@@ -465,3 +465,11 @@ def test_an_unparseable_extraction_is_a_rejected_call_the_model_can_recover_from
     assert [t.ok for t in extracts] == [False, True]
     assert "could not parse" in extracts[0].summary
     assert report.result_for(DOOR).verdict == "pass"
+
+
+def test_the_system_prompt_asks_for_general_and_special_case_rules_and_whole_tables():
+    from rail_compliance.agent import SYSTEM_PROMPT
+
+    text = " ".join(SYSTEM_PROMPT.split())
+    assert "general rule AND each special-case rule" in text
+    assert "single call, never row by row" in text

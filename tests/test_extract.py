@@ -1,3 +1,5 @@
+import pytest
+
 from rail_compliance.models import (
     Band,
     BandDraft,
@@ -372,4 +374,84 @@ def test_the_system_prompt_tells_the_model_to_give_a_whole_table():
     from rail_compliance.tools.extract import SYSTEM
 
     assert "every row" in SYSTEM
-    assert "to null" in SYSTEM
+    assert "to null" in " ".join(SYSTEM.split())
+
+
+# --- conditions are checked by the kind of parameter they refer to (first real run) -----------
+
+
+def toilet_rule(*conditions, **over) -> RequirementDraft:
+    rule = RequirementCore(
+        parameter="toilets.universal", comparator=">=", value=1, conditions=list(conditions)
+    )
+    return toilet_draft(rule=rule, **over)
+
+
+def run_toilet(draft):
+    return run(draft, passages=(TOILET,), parameter="toilets.universal")[0]
+
+
+def test_a_count_compared_with_equals_one_is_unverified_when_the_quote_never_says_one():
+    # The model read "when toilets are fitted" as `toilets.fitted == 1`: wrong for a count
+    result = run_toilet(toilet_rule(Condition(variable="toilets.fitted", op="==", value=1)))
+    assert result.status == "unverified"
+    assert "toilets.fitted" in result.reason
+    assert "1" in result.reason
+
+
+@pytest.mark.parametrize(
+    "condition",
+    [
+        Condition(variable="toilets.fitted", op=">", value=0),
+        Condition(variable="toilets.fitted", op=">=", value=1),
+    ],
+)
+def test_existence_of_a_count_is_greater_than_zero_and_needs_no_number_in_the_quote(condition):
+    assert run_toilet(toilet_rule(condition)).status == "found"
+
+
+def test_a_count_threshold_must_be_stated_in_the_quote():
+    result = run_toilet(toilet_rule(Condition(variable="toilets.fitted", op=">", value=3)))
+    assert result.status == "unverified"
+    assert "3" in result.reason
+
+
+def test_a_boolean_parameter_takes_only_zero_or_one():
+    bad = Condition(variable="exterior_doors.wheelchair_door_level_access", op="==", value=2)
+    result = run_toilet(toilet_rule(bad))
+    assert result.status == "unverified"
+    assert "true/false" in result.reason
+
+
+def test_a_condition_on_an_unknown_parameter_is_unverified():
+    result = run_toilet(toilet_rule(Condition(variable="toilets.size", op=">", value=0)))
+    assert result.status == "unverified"
+    assert "toilets.size" in result.reason
+
+
+def test_a_band_variable_that_is_not_a_spec_parameter_is_unverified():
+    bands = [Band(upper=30, upper_inclusive=False, value=1), Band(lower=30, value=2)]
+    rule = RequirementCore(
+        parameter="wheelchair_spaces", comparator=">=", bands=bands, band_variable="train_length"
+    )
+    quote = TABLE[TABLE.index("Less than 30 m") :]
+    draft = RequirementDraft(found=True, passage_id=TABLE_PASSAGE.id, quote=quote, rule=rule)
+    result, _ = run(draft, passages=(TABLE_PASSAGE,), parameter="wheelchair_spaces")
+    assert result.status == "unverified"
+    assert "train_length" in result.reason
+
+
+def test_the_prompt_says_which_parameters_are_flags_counts_and_numbers():
+    _, llm = run(door_draft())
+    user = llm.calls[0][1]
+    assert "toilets.fitted (count)" in user
+    assert "exterior_doors.wheelchair_door_level_access (true/false" in user
+    assert "design_speed_kmh (number, km/h)" in user
+
+
+def test_the_prompt_says_a_table_is_one_rule_and_focus_selects_the_rule():
+    from rail_compliance.tools.extract import SYSTEM
+
+    assert "one rule" in SYSTEM.lower()
+    assert "fitted" in SYSTEM  # the worked meaning of an existence condition on a count
+    assert "Focus" in SYSTEM

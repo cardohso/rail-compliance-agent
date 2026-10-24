@@ -23,7 +23,7 @@ from rail_compliance.models import (
     RequirementCore,
     RequirementDraft,
 )
-from rail_compliance.spec import parameter_info
+from rail_compliance.spec import parameter_info, parameter_kinds
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -33,18 +33,22 @@ You extract one numeric requirement from passages of EU railway law (TSI).
 Rules:
 - Extract only the requirement for the parameter you are asked about. Do not infer, convert or
   round: use the number and unit as the passage states them.
+- If the request has a Focus line, extract exactly the rule it names and ignore other rules in the
+  passages, even if they are for the same parameter.
 - Copy the words that state the rule into `quote`, word for word from ONE passage, and give that
   passage's id in `passage_id`. You may use "..." to skip text, but each part must be verbatim.
 - `comparator` is how the spec value must relate to the required value: "at least" or "minimum"
   is ">=", "at most" or "maximum" is "<=".
 - A rule that applies only in some cases (for example "on trains with a design speed lower than
   250 km/h") goes in `conditions`, using only the spec parameters listed in the request. Express
-  true/false parameters as 1/0.
-- A table whose required value depends on another parameter (for example unit length) goes in
-  `bands`: one band for every row of the table, none left out, and `quote` must contain the whole
-  table. Set `value` to null when you give `bands`, and `bands` to an empty list when you give
-  `value`; never both. `band_variable` names the spec parameter that selects the row.
-  Mind inclusive/exclusive bounds: "less than 30 m" excludes 30, "30 to 205 metres" includes both.
+  true/false parameters as 1/0 and only those. The request tells you each parameter's type. A
+  count is not a flag: "when toilets are fitted" means `toilets.fitted` > 0, never == 1.
+- A table is ONE rule: give it in one answer, never one answer per row. A table whose required
+  value depends on another parameter (for example unit length) goes in `bands`: one band for
+  every row of the table, none left out, and `quote` must contain the whole table. Set `value` to
+  null when you give `bands`, and `bands` to an empty list when you give `value`; never both.
+  `band_variable` names the spec parameter that selects the row. Mind inclusive/exclusive bounds:
+  "less than 30 m" excludes 30, "30 to 205 metres" includes both.
 - If the passages do not state a number for this parameter (they refer to an external standard,
   describe something else, or are ambiguous), set `found` to false and explain in `note`.
 """
@@ -100,9 +104,17 @@ def _quote_in(quote: str, passage_text: str) -> bool:
 def _prompt(parameter: str, passages: Sequence[Passage], focus: str | None) -> str:
     info = parameter_info()
     unit, description = info.get(parameter, (None, ""))
-    variables = "\n".join(
-        f"- {path}" + (f" ({u})" if u else "") + f": {d}" for path, (u, d) in info.items()
-    )
+    kinds = parameter_kinds()
+    labels = {"bool": "true/false, use 1/0", "count": "count", "number": "number"}
+
+    def label(path: str, u: str | None) -> str:
+        return (
+            labels[kinds[path]].split(",")[0]
+            + (f", {u}" if u else "")
+            + (", use 1/0" if kinds[path] == "bool" else "")
+        )
+
+    variables = "\n".join(f"- {path} ({label(path, u)}): {d}" for path, (u, d) in info.items())
     blocks = "\n\n".join(f"[{p.id}] {p.document}, {p.section}\n{p.text}" for p in passages)
     focus_line = f"Focus: {focus}\n\n" if focus else ""
     return (
@@ -113,6 +125,23 @@ def _prompt(parameter: str, passages: Sequence[Passage], focus: str | None) -> s
         + f"Spec parameters you may use in conditions and bands:\n{variables}\n\n"
         f"Passages:\n{blocks}"
     )
+
+
+def _is_existence(cond) -> bool:
+    """`count > 0` and `count >= 1` both say "there is at least one"."""
+    return (cond.op, cond.value) in {(">", 0.0), (">=", 1.0)}
+
+
+def _check_variables(rule: RequirementCore, kinds: dict[str, str]) -> str | None:
+    """Conditions and tables may only use real spec parameters, the way their type allows."""
+    names = [c.variable for c in rule.conditions] + ([rule.band_variable] if rule.bands else [])
+    for name in names:
+        if name not in kinds:
+            return f"the rule refers to {name}, which is not a spec parameter"
+    for cond in rule.conditions:
+        if kinds[cond.variable] == "bool" and cond.value not in (0.0, 1.0):
+            return f"{cond.variable} is true/false, so its value must be 1 or 0, not {cond.value:g}"
+    return None
 
 
 def _unverified(reason: str) -> ExtractionResult:
@@ -147,22 +176,35 @@ def extract_requirement(
     if not _quote_in(draft.quote, source.text):
         return _unverified(f"the quote was not found in the passage {source.id}")
 
+    kinds = parameter_kinds()
+    problem = _check_variables(rule, kinds)
+    if problem:
+        return _unverified(problem)
+
     stated = numbers_in(draft.quote)
-    claimed = [rule.value] if rule.value is not None else []
+    rule_numbers = [rule.value] if rule.value is not None else []
     for band in rule.bands:
-        claimed += [band.value, band.lower, band.upper]
-    claimed += [c.value for c in rule.conditions if c.value not in (0.0, 1.0)]  # 1/0 = booleans
+        rule_numbers += [band.value, band.lower, band.upper]
+    # "a universal toilet shall be provided" states the rule's own value as an article, not a digit
+    # (this allowance covers the rule's value only, never a condition's).
     if (
         rule.comparator == ">="
         and rule.value == 1
         and not rule.bands
         and _EXISTENCE.search(_norm(draft.quote))
     ):
-        stated.add(1.0)
-    missing = sorted({x for x in claimed if x is not None and x not in stated})
+        rule_numbers.remove(1.0)
+    missing = sorted({x for x in rule_numbers if x is not None and x not in stated})
     if missing:
         shown = ", ".join(f"{x:g}" for x in missing)
         return _unverified(f"the number(s) {shown} are not stated in the quote")
+    # A flag's 1/0 and a count's "there is at least one" are not numbers the quote has to state.
+    for cond in rule.conditions:
+        if kinds[cond.variable] != "bool" and not _is_existence(cond) and cond.value not in stated:
+            return _unverified(
+                f"the condition {cond.variable} {cond.op} {cond.value:g} uses a number the quote "
+                "does not state (for 'is fitted' or 'is provided' on a count, use > 0)"
+            )
 
     citation = Citation(
         passage_id=source.id,

@@ -65,9 +65,11 @@ Procedure:
 1. search_regulation(question): find passages of the regulation. Ask a specific question about the
    parameter. If the passages do not contain the rule, search again with a different question.
 2. extract_requirement(passage_ids, parameter, focus): get the numeric rule as a typed
-   requirement. A parameter can have more than one rule (a general minimum, and a stricter one for
-   some cases such as a speed or a door type). Extract each rule that could apply, one call per
-   rule, using `focus` to say which rule you want.
+   requirement. A parameter can have more than one rule: a general one, and special-case rules
+   that are stricter or have conditions (a speed, a door type, an exception). Extract the general
+   rule AND each special-case rule that could apply, one call per rule, using `focus` to name the
+   rule you want. A table is one rule: extract it in a single call, never row by row. Do not
+   extract the same rule twice.
 3. check(parameter, spec_value, requirement_id): compare the spec with a requirement. Pass the
    spec value exactly as given. A result of not_applicable means that rule's conditions are false
    for this spec: that is not a failure, so look for the other rule that applies.

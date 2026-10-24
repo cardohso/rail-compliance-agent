@@ -14,7 +14,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import Annotated, get_args
+from typing import Annotated, get_args, get_origin
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
@@ -122,11 +122,10 @@ def spec_values(spec: TrainSpec) -> dict[str, float]:
     return out
 
 
-def parameter_info() -> dict[str, tuple[str | None, str]]:
-    """Every checkable parameter path -> (unit, description), for prompts and tool descriptions."""
-    out: dict[str, tuple[str | None, str]] = {}
+def _walk_parameters():
+    """Every checkable parameter: (dotted path, field name, field info)."""
 
-    def walk(model: type[BaseModel], prefix: str) -> None:
+    def walk(model: type[BaseModel], prefix: str):
         for name, field in model.model_fields.items():
             nested = [
                 t
@@ -134,12 +133,40 @@ def parameter_info() -> dict[str, tuple[str | None, str]]:
                 if isinstance(t, type) and issubclass(t, BaseModel)
             ]
             if nested:
-                walk(nested[0], f"{prefix}{name}.")
+                yield from walk(nested[0], f"{prefix}{name}.")
             elif name not in {"spec_version", "name", "description"}:
-                out[f"{prefix}{name}"] = (unit_of(name), field.description or "")
+                yield f"{prefix}{name}", name, field
 
-    walk(TrainSpec, "")
-    return out
+    yield from walk(TrainSpec, "")
+
+
+def parameter_info() -> dict[str, tuple[str | None, str]]:
+    """Every checkable parameter path -> (unit, description), for prompts and tool descriptions."""
+    return {
+        path: (unit_of(name), field.description or "") for path, name, field in _walk_parameters()
+    }
+
+
+def parameter_kinds() -> dict[str, str]:
+    """Every parameter path -> "bool" (true/false), "count" (whole number) or "number"."""
+
+    def leaves(annotation):
+        """The plain types inside Annotated[...] and unions such as `int | None`."""
+        if get_origin(annotation) is Annotated:
+            yield from leaves(get_args(annotation)[0])
+        elif get_args(annotation):
+            for arg in get_args(annotation):
+                yield from leaves(arg)
+        else:
+            yield annotation
+
+    def kind(annotation) -> str:
+        types = set(leaves(annotation))
+        if bool in types:
+            return "bool"
+        return "count" if int in types else "number"
+
+    return {path: kind(field.annotation) for path, _, field in _walk_parameters()}
 
 
 UNIT_SUFFIXES = {"_mm": "mm", "_m": "m", "_kmh": "km/h"}

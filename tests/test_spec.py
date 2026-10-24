@@ -141,3 +141,16 @@ def test_parameter_info_lists_every_checkable_path_with_unit_and_description():
 def test_every_spec_value_path_is_in_parameter_info():
     spec = load_spec(ROOT / "examples" / "01_compliant_emu.json")
     assert set(spec_values(spec)) <= set(parameter_info())
+
+
+def test_parameter_kinds_distinguish_flags_counts_and_numbers():
+    from rail_compliance.spec import parameter_kinds
+
+    kinds = parameter_kinds()
+    assert kinds["exterior_doors.wheelchair_door_level_access"] == "bool"
+    assert kinds["length_includes_power_head"] == "bool"
+    assert kinds["toilets.fitted"] == "count"
+    assert kinds["wheelchair_spaces"] == "count"
+    assert kinds["design_speed_kmh"] == "number"
+    assert kinds["exterior_doors.clear_width_mm"] == "number"
+    assert set(kinds) == set(parameter_info())
