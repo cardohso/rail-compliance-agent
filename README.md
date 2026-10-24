@@ -138,6 +138,14 @@ uv run python -m rail_compliance.evaluation gate eval/results/local
 uv run goldpass run --config eval/goldpass/goldpass.yaml
 ```
 
+**Cost.** A fresh full run makes roughly 250-300 model requests (about 10 agent turns per spec plus
+the extraction calls; an estimate, not a meter). Gemini's free tier allows 500 requests per day per
+Google project for this model and 15 per minute, so about one fresh full run a day fits, and the
+CI workflow draws on the same key's quota. Every successful call is cached by its full prompt, so
+a run that stops on the quota resumes where it stopped (re-run the same command), and a re-run
+of unchanged code costs nothing. This happened during development: see
+[`eval/results/run-02-partial`](eval/results/run-02-partial/NOTE.md).
+
 **Results:** none yet. They go here from a real run, with nothing rounded up.
 
 ## Development
