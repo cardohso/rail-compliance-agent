@@ -1,0 +1,116 @@
+{
+  "id": "g02",
+  "title": "Regional train violating six rules",
+  "tags": [
+    "violation",
+    "length-dependent"
+  ],
+  "why": "Every supplied rule is broken, including the internal step beyond even the 230 mm exception.",
+  "spec": {
+    "spec_version": "1",
+    "name": "Regional train violating six rules",
+    "unit_length_m": 150.0,
+    "length_includes_power_head": false,
+    "design_speed_kmh": 160.0,
+    "wheelchair_spaces": 1,
+    "exterior_doors": {
+      "clear_width_mm": 760.0,
+      "wheelchair_door_clear_width_mm": 950.0,
+      "wheelchair_door_level_access": true
+    },
+    "steps": {
+      "external_step_height_mm": 260.0,
+      "internal_step_height_mm": 240.0
+    },
+    "toilets": {
+      "fitted": 3,
+      "universal": 0
+    }
+  },
+  "expected": {
+    "wheelchair_spaces": {
+      "verdict": "fail",
+      "required": "≥ 2 (30 to 205 m row)",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.2#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "Table 5 of point 4.2.2.2(1): 150 m needs 2 spaces; 1 < 2."
+    },
+    "exterior_doors.clear_width_mm": {
+      "verdict": "fail",
+      "required": "≥ 800 mm",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.3.2#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.3.2(1): 760 < 800."
+    },
+    "exterior_doors.wheelchair_door_clear_width_mm": {
+      "verdict": "fail",
+      "required": "≥ 1000 mm",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.3.2#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.3.2(2) applies (160 < 250 km/h, level access): 950 < 1000."
+    },
+    "steps.external_step_height_mm": {
+      "verdict": "fail",
+      "required": "≤ 230 mm",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.11.2#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.11.2(5): 260 > 230."
+    },
+    "steps.internal_step_height_mm": {
+      "verdict": "fail",
+      "required": "≤ 200 mm (230 mm at most)",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.11.2#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.11.2(2): 240 exceeds 200 and also exceeds the 230 mm the exception allows."
+    },
+    "toilets.universal": {
+      "verdict": "fail",
+      "required": "≥ 1 when toilets are fitted",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.5#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.5(1): 3 toilets are fitted, 0 are universal."
+    }
+  }
+}

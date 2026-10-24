@@ -1,0 +1,40 @@
+{
+  "id": "g03",
+  "title": "Internal step exactly at the exception limit",
+  "tags": [
+    "needs-human",
+    "exception",
+    "exact-limit"
+  ],
+  "why": "230 mm is allowed only if the step count is reduced, which the spec cannot show.",
+  "spec": {
+    "spec_version": "1",
+    "name": "Internal step exactly at the exception limit",
+    "unit_length_m": 100.0,
+    "steps": {
+      "internal_step_height_mm": 230.0
+    }
+  },
+  "expected": {
+    "steps.internal_step_height_mm": {
+      "verdict": "needs_human",
+      "required": "≤ 200 mm, or ≤ 230 mm if it reduces the number of steps",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.11.2#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "needs_human"
+      ],
+      "alt_tools": [
+        [
+          "search_regulation",
+          "extract_requirement",
+          "check"
+        ]
+      ],
+      "rationale": "4.2.2.11.2(2): 230 exceeds 200; the 230 mm maximum is allowed only 'if it can be demonstrated that this achieves a reduction of one in the total number of steps'. The spec has no such data: a person must decide."
+    }
+  }
+}

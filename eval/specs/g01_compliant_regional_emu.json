@@ -1,0 +1,130 @@
+{
+  "id": "g01",
+  "title": "Compliant regional EMU",
+  "tags": [
+    "baseline"
+  ],
+  "why": "Every supplied value is comfortably inside its limit: no trap, a sanity floor.",
+  "spec": {
+    "spec_version": "1",
+    "name": "Compliant regional EMU",
+    "unit_length_m": 105.0,
+    "length_includes_power_head": false,
+    "design_speed_kmh": 160.0,
+    "wheelchair_spaces": 2,
+    "exterior_doors": {
+      "clear_width_mm": 850.0,
+      "wheelchair_door_clear_width_mm": 1100.0,
+      "wheelchair_door_level_access": true
+    },
+    "steps": {
+      "external_step_height_mm": 200.0,
+      "internal_step_height_mm": 180.0
+    },
+    "toilets": {
+      "fitted": 2,
+      "universal": 1,
+      "universal_door_clear_width_mm": 900.0
+    }
+  },
+  "expected": {
+    "wheelchair_spaces": {
+      "verdict": "pass",
+      "required": "≥ 2 (30 to 205 m row)",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.2#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "Table 5 of point 4.2.2.2(1): 105 m is in the '30 to 205 metres' row, 2 spaces; 2 ≥ 2."
+    },
+    "exterior_doors.clear_width_mm": {
+      "verdict": "pass",
+      "required": "≥ 800 mm",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.3.2#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.3.2(1): 850 ≥ 800."
+    },
+    "exterior_doors.wheelchair_door_clear_width_mm": {
+      "verdict": "pass",
+      "required": "≥ 1000 mm (and ≥ 800 mm)",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.3.2#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.3.2(2) applies (160 < 250 km/h, level access): 1100 ≥ 1000, and ≥ 800."
+    },
+    "steps.external_step_height_mm": {
+      "verdict": "pass",
+      "required": "≤ 230 mm",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.11.2#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.11.2(5): 200 ≤ 230."
+    },
+    "steps.internal_step_height_mm": {
+      "verdict": "pass",
+      "required": "≤ 200 mm",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.11.2#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.11.2(2): 180 ≤ 200."
+    },
+    "toilets.universal": {
+      "verdict": "pass",
+      "required": "≥ 1 when toilets are fitted",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.5#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.5(1): toilets are fitted (2) and 1 is universal."
+    },
+    "toilets.universal_door_clear_width_mm": {
+      "verdict": "pass",
+      "required": "≥ 800 mm",
+      "gold_passages": [
+        "tsi-prm:Annex §5.3.2.4#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "5.3.2.4(3): 900 ≥ 800. The rule sits in 5.3.2.4, not in 4.2.2.5, which only points to it."
+    }
+  }
+}

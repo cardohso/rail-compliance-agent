@@ -1,0 +1,32 @@
+{
+  "id": "g07",
+  "title": "Length 300.1 m with three wheelchair spaces",
+  "tags": [
+    "table-boundary",
+    "length-dependent",
+    "exact-limit"
+  ],
+  "why": "'More than 300 metres' starts just above 300: the 4-space row.",
+  "spec": {
+    "spec_version": "1",
+    "name": "Length 300.1 m with three wheelchair spaces",
+    "unit_length_m": 300.1,
+    "wheelchair_spaces": 3
+  },
+  "expected": {
+    "wheelchair_spaces": {
+      "verdict": "fail",
+      "required": "≥ 4 (over 300 m row)",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.2#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "Table 5 of point 4.2.2.2(1): 300.1 is 'More than 300 metres' (4 spaces); 3 < 4."
+    }
+  }
+}

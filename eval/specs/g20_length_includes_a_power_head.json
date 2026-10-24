@@ -1,0 +1,32 @@
+{
+  "id": "g20",
+  "title": "Length includes a power head, three wheelchair spaces",
+  "tags": [
+    "length-dependent",
+    "ambiguous-data"
+  ],
+  "why": "Same length basis problem, but 3 spaces meet the largest possible requirement (3 up to 300 m), so the answer is safe.",
+  "spec": {
+    "spec_version": "1",
+    "name": "Length includes a power head, three wheelchair spaces",
+    "unit_length_m": 210.0,
+    "length_includes_power_head": true,
+    "wheelchair_spaces": 3
+  },
+  "expected": {
+    "wheelchair_spaces": {
+      "verdict": "pass",
+      "required": "≥ 3 (at most, for a length up to 210 m)",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.2#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "Table 5 of point 4.2.2.2(1): whatever the power head's length, the true length is ≤ 210 m, which needs at most 3 spaces; 3 ≥ 3."
+    }
+  }
+}

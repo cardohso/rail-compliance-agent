@@ -1,0 +1,133 @@
+{
+  "id": "g09",
+  "title": "Every value just past its limit",
+  "tags": [
+    "exact-limit",
+    "other-section",
+    "violation",
+    "length-dependent"
+  ],
+  "why": "Each limit is missed by the smallest step (0.1 mm, one table row): no rule may pass.",
+  "spec": {
+    "spec_version": "1",
+    "name": "Every value just past its limit",
+    "unit_length_m": 205.1,
+    "length_includes_power_head": false,
+    "design_speed_kmh": 160.0,
+    "wheelchair_spaces": 2,
+    "exterior_doors": {
+      "clear_width_mm": 799.9,
+      "wheelchair_door_clear_width_mm": 999.9,
+      "wheelchair_door_level_access": true
+    },
+    "steps": {
+      "external_step_height_mm": 230.1,
+      "internal_step_height_mm": 230.1
+    },
+    "toilets": {
+      "fitted": 1,
+      "universal": 1,
+      "universal_door_clear_width_mm": 799.9
+    }
+  },
+  "expected": {
+    "wheelchair_spaces": {
+      "verdict": "fail",
+      "required": "≥ 3 (205 to 300 m row)",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.2#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "Table 5 of point 4.2.2.2(1): 205.1 is 'More than 205 to 300 metres' (3 spaces); 2 < 3."
+    },
+    "exterior_doors.clear_width_mm": {
+      "verdict": "fail",
+      "required": "≥ 800 mm",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.3.2#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.3.2(1): 799.9 < 800."
+    },
+    "exterior_doors.wheelchair_door_clear_width_mm": {
+      "verdict": "fail",
+      "required": "≥ 1000 mm",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.3.2#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.3.2(2) applies (160 km/h, level access): 999.9 < 1000."
+    },
+    "steps.external_step_height_mm": {
+      "verdict": "fail",
+      "required": "≤ 230 mm",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.11.2#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.11.2(5): 230.1 > 230."
+    },
+    "steps.internal_step_height_mm": {
+      "verdict": "fail",
+      "required": "≤ 200 mm (230 mm at most)",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.11.2#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.11.2(2): 230.1 exceeds even the 230 mm the exception allows, so no demonstration could save it."
+    },
+    "toilets.universal": {
+      "verdict": "pass",
+      "required": "≥ 1 when toilets are fitted",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.5#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.5(1): 1 toilet fitted, 1 universal."
+    },
+    "toilets.universal_door_clear_width_mm": {
+      "verdict": "fail",
+      "required": "≥ 800 mm",
+      "gold_passages": [
+        "tsi-prm:Annex §5.3.2.4#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "5.3.2.4(3): 799.9 < 800."
+    }
+  }
+}

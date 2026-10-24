@@ -1,0 +1,39 @@
+{
+  "id": "g16",
+  "title": "Internal step of 215 mm",
+  "tags": [
+    "needs-human",
+    "exception"
+  ],
+  "why": "Above the 200 mm default but within the 230 mm exception, which needs a demonstration the spec cannot give.",
+  "spec": {
+    "spec_version": "1",
+    "name": "Internal step of 215 mm",
+    "unit_length_m": 100.0,
+    "steps": {
+      "internal_step_height_mm": 215.0
+    }
+  },
+  "expected": {
+    "steps.internal_step_height_mm": {
+      "verdict": "needs_human",
+      "required": "≤ 200 mm, or ≤ 230 mm if it reduces the number of steps",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.11.2#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "needs_human"
+      ],
+      "alt_tools": [
+        [
+          "search_regulation",
+          "extract_requirement",
+          "check"
+        ]
+      ],
+      "rationale": "4.2.2.11.2(2): 215 exceeds 200 but not 230; it is allowed only 'if it can be demonstrated' that it reduces the total number of steps by one. A person must decide."
+    }
+  }
+}

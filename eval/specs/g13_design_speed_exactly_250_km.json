@@ -1,0 +1,36 @@
+{
+  "id": "g13",
+  "title": "Design speed exactly 250 km/h",
+  "tags": [
+    "conditional-rule",
+    "exact-limit",
+    "judgment-call"
+  ],
+  "why": "The text says 'lower than 250 km/h'; 250 is not lower. JUDGMENT CALL for your review.",
+  "spec": {
+    "spec_version": "1",
+    "name": "Design speed exactly 250 km/h",
+    "unit_length_m": 100.0,
+    "design_speed_kmh": 250.0,
+    "exterior_doors": {
+      "wheelchair_door_clear_width_mm": 900.0,
+      "wheelchair_door_level_access": true
+    }
+  },
+  "expected": {
+    "exterior_doors.wheelchair_door_clear_width_mm": {
+      "verdict": "pass",
+      "required": "≥ 800 mm (read literally, the 1000 mm rule needs a speed below 250)",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.3.2#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.3.2(2) says 'lower than 250 km/h', so it does not apply at exactly 250; 4.2.2.3.2(1): 900 ≥ 800. A cautious engineer might still ask whether the boundary was intended; this case expects the literal reading."
+    }
+  }
+}

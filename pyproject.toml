@@ -39,6 +39,9 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM"]
 
+[tool.ruff.lint.per-file-ignores]
+"eval/build_golden.py" = ["E501"]  # data file: long rationale strings read better unwrapped
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"

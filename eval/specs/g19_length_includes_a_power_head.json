@@ -1,0 +1,39 @@
+{
+  "id": "g19",
+  "title": "Length includes a power head, two wheelchair spaces",
+  "tags": [
+    "needs-human",
+    "length-dependent",
+    "ambiguous-data"
+  ],
+  "why": "Table 5 uses the unit length 'excluding the locomotive or power head'. At 210 m 3 spaces are needed, at 205 m or less 2: the true length is unknown.",
+  "spec": {
+    "spec_version": "1",
+    "name": "Length includes a power head, two wheelchair spaces",
+    "unit_length_m": 210.0,
+    "length_includes_power_head": true,
+    "wheelchair_spaces": 2
+  },
+  "expected": {
+    "wheelchair_spaces": {
+      "verdict": "needs_human",
+      "required": "≥ 2 or ≥ 3 depending on the length without the power head",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.2#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "needs_human"
+      ],
+      "alt_tools": [
+        [
+          "search_regulation",
+          "extract_requirement",
+          "check"
+        ]
+      ],
+      "rationale": "4.2.2.2(1) counts the length 'excluding the locomotive or power head'. The stated 210 m includes it, so the true length is ≤ 210 m: it needs 3 spaces if above 205 m and 2 if not. The spec cannot settle it."
+    }
+  }
+}
