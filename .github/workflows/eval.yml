@@ -105,7 +105,12 @@ jobs:
           path: eval/.cache
           key: eval-cache-${{ github.sha }}
 
+      # A manual run on a subset of cases (the `cases` input) reports the gates but cannot fail on
+      # them: thresholds written for 20 specs need data a subset does not have (for example no
+      # escalation is expected in g04 or g05, so escalation recall has no value). Pull requests and
+      # full manual runs enforce them.
       - name: Gate on tool use, verdicts and escalation
+        continue-on-error: ${{ inputs.cases != '' }}
         run: |
           status=0
           uv run python -m rail_compliance.evaluation gate eval/results/local > gate.md || status=$?
@@ -114,6 +119,7 @@ jobs:
           exit "$status"
 
       - name: Gate on retrieval, citations and grounding (goldpass)
+        continue-on-error: ${{ inputs.cases != '' }}
         run: uv run goldpass run --config eval/goldpass/goldpass.yaml --summary "$GITHUB_STEP_SUMMARY"
 
       - name: Upload results
