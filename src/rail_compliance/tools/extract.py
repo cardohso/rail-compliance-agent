@@ -23,7 +23,13 @@ from rail_compliance.models import (
     RequirementCore,
     RequirementDraft,
 )
-from rail_compliance.spec import parameter_info, parameter_kinds
+from rail_compliance.parameters import SUBJECT_OF, SUBJECTS, accepted_subjects
+from rail_compliance.spec import (
+    QUALIFIERS,
+    condition_variables,
+    parameter_info,
+    parameter_kinds,
+)
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -35,13 +41,23 @@ Rules:
   round: use the number and unit as the passage states them.
 - If the request has a Focus line, extract exactly the rule it names and ignore other rules in the
   passages, even if they are for the same parameter.
+- Label the rule with the `subject` it is STATED for, from the list in the request: a rule stated
+  for "all exterior passenger doorways" has subject exterior_doorway even if you are asked about
+  wheelchair doors, and a rule stated only for wheelchair access doors has subject
+  wheelchair_doorway. Rules for a broader subject also govern a narrower one; never present a
+  narrower rule as if it governed the broader parameter.
 - Copy the words that state the rule into `quote`, word for word from ONE passage, and give that
   passage's id in `passage_id`. You may use "..." to skip text, but each part must be verbatim.
 - `comparator` is how the spec value must relate to the required value: "at least" or "minimum"
   is ">=", "at most" or "maximum" is "<=".
+- A rule or exception that holds only if something is shown, approved or demonstrated (for
+  example "if it can be demonstrated that ...") is not unconditional: say what must be shown in
+  `contingency`, in a few words from the quote. Leave `contingency` null for ordinary rules.
 - A rule that applies only in some cases (for example "on trains with a design speed lower than
   250 km/h") goes in `conditions`, using only the spec parameters listed in the request. Express
   true/false parameters as 1/0 and only those. The request tells you each parameter's type. A
+  Never make a condition out of wording that only says how a value is measured ("excluding the
+  locomotive or power head"): the spec handles that outside the rules. A
   count is not a flag: "when toilets are fitted" means `toilets.fitted` > 0, never == 1.
 - A table is ONE rule: give it in one answer, never one answer per row. A table whose required
   value depends on another parameter (for example unit length) goes in `bands`: one band for
@@ -114,7 +130,18 @@ def _prompt(parameter: str, passages: Sequence[Passage], focus: str | None) -> s
             + (", use 1/0" if kinds[path] == "bool" else "")
         )
 
-    variables = "\n".join(f"- {path} ({label(path, u)}): {d}" for path, (u, d) in info.items())
+    allowed = set(condition_variables())
+    variables = "\n".join(
+        f"- {path} ({label(path, u)}): {d}" for path, (u, d) in info.items() if path in allowed
+    )
+    vocabulary = "\n".join(f"- {name} ({text})" for name, text in SUBJECTS.items())
+    governing = accepted_subjects(parameter) if parameter in SUBJECT_OF else []
+    subjects = f"Subjects whose rules govern this parameter: {', '.join(governing)}"
+    if len(governing) > 1:
+        subjects += (
+            f" (a rule for {', '.join(governing[1:])} also governs it, because it is a kind of "
+            f"{governing[1]})"
+        )
     blocks = "\n\n".join(f"[{p.id}] {p.document}, {p.section}\n{p.text}" for p in passages)
     focus_line = f"Focus: {focus}\n\n" if focus else ""
     return (
@@ -122,6 +149,7 @@ def _prompt(parameter: str, passages: Sequence[Passage], focus: str | None) -> s
         + (f" (unit: {unit})" if unit else "")
         + f"\n{description}\n\n"
         + focus_line
+        + f"Rule subjects:\n{vocabulary}\n{subjects}\n\n"
         + f"Spec parameters you may use in conditions and bands:\n{variables}\n\n"
         f"Passages:\n{blocks}"
     )
@@ -136,12 +164,35 @@ def _check_variables(rule: RequirementCore, kinds: dict[str, str]) -> str | None
     """Conditions and tables may only use real spec parameters, the way their type allows."""
     names = [c.variable for c in rule.conditions] + ([rule.band_variable] if rule.bands else [])
     for name in names:
+        if name in QUALIFIERS:
+            return (
+                f"{name} is a qualifier of {QUALIFIERS[name]} (it says how the value was "
+                "measured), not a circumstance that selects a rule: leave it out"
+            )
         if name not in kinds:
             return f"the rule refers to {name}, which is not a spec parameter"
     for cond in rule.conditions:
         if kinds[cond.variable] == "bool" and cond.value not in (0.0, 1.0):
             return f"{cond.variable} is true/false, so its value must be 1 or 0, not {cond.value:g}"
     return None
+
+
+def _check_subject(rule: RequirementCore, parameter: str) -> str | None:
+    """A rule governs a parameter if it is stated for the parameter's subject or a broader one."""
+    if rule.subject not in SUBJECTS:
+        return f"unknown subject '{rule.subject}'. Valid subjects: {', '.join(SUBJECTS)}"
+    if parameter in SUBJECT_OF and rule.subject not in accepted_subjects(parameter):
+        valid = ", ".join(accepted_subjects(parameter))
+        return (
+            f"the rule is stated for '{rule.subject}' ({SUBJECTS[rule.subject]}), which does not "
+            f"govern {parameter}. Rules for these subjects do: {valid}"
+        )
+    return None
+
+
+_CONDITIONAL = re.compile(
+    r"\b(?:if|where|provided|unless|subject to|only when|on condition|in case)\b", re.IGNORECASE
+)
 
 
 def _unverified(reason: str) -> ExtractionResult:
@@ -170,6 +221,9 @@ def extract_requirement(
         return _unverified(f"the model's rule is malformed: {problem}")
     if rule.parameter != parameter:
         return _unverified(f"the model extracted a rule for {rule.parameter}, not for {parameter}")
+    problem = _check_subject(rule, parameter)
+    if problem:
+        return _unverified(problem)
     source = next((p for p in passages if p.id == draft.passage_id), None)
     if source is None:
         return _unverified(f"passage {draft.passage_id} is not one of the passages given")
@@ -180,6 +234,12 @@ def extract_requirement(
     problem = _check_variables(rule, kinds)
     if problem:
         return _unverified(problem)
+    if rule.contingency and not _CONDITIONAL.search(_norm(draft.quote)):
+        return _unverified(
+            f"the contingency '{rule.contingency}' is not supported by the quote, which states no "
+            "'if', 'where', 'provided' or 'unless'. Either quote the sentence that makes the rule "
+            "conditional or leave contingency empty"
+        )
 
     stated = numbers_in(draft.quote)
     rule_numbers = [rule.value] if rule.value is not None else []

@@ -59,7 +59,11 @@ def test_real_corpus_text_passes_extraction_verification(backend):
         passage_id=doors.id,
         quote="All exterior passenger doorways shall have a minimum clear useable width of 800 mm",
         rule=RequirementCore(
-            parameter="exterior_doors.clear_width_mm", comparator=">=", value=800, unit="mm"
+            parameter="exterior_doors.clear_width_mm",
+            subject="exterior_doorway",
+            comparator=">=",
+            value=800,
+            unit="mm",
         ),
     )
     slow = RequirementDraft(
@@ -70,6 +74,7 @@ def test_real_corpus_text_passes_extraction_verification(backend):
         "1 000 mm when open",
         rule=RequirementCore(
             parameter="exterior_doors.wheelchair_door_clear_width_mm",
+            subject="wheelchair_doorway",
             comparator=">=",
             value=1000,
             unit="mm",

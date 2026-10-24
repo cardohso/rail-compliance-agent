@@ -154,3 +154,23 @@ def test_parameter_kinds_distinguish_flags_counts_and_numbers():
     assert kinds["design_speed_kmh"] == "number"
     assert kinds["exterior_doors.clear_width_mm"] == "number"
     assert set(kinds) == set(parameter_info())
+
+
+def test_the_power_head_flag_is_a_qualifier_of_the_unit_length():
+    from rail_compliance.spec import QUALIFIERS, condition_variables
+
+    assert QUALIFIERS == {"length_includes_power_head": "unit_length_m"}
+    assert "length_includes_power_head" not in condition_variables()
+    assert "unit_length_m" in condition_variables()
+    assert set(condition_variables()) < set(parameter_info())
+
+
+def test_a_length_that_includes_a_power_head_is_only_an_upper_bound():
+    from rail_compliance.spec import spec_intervals
+
+    def intervals(**kw):
+        return spec_intervals(TrainSpec.model_validate({"name": "t", "unit_length_m": 210, **kw}))
+
+    assert intervals(length_includes_power_head=True) == {"unit_length_m": (0.0, 210.0)}
+    assert intervals(length_includes_power_head=False) == {}
+    assert intervals() == {}  # no flag: the stated length is taken as given

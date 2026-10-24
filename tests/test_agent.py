@@ -10,7 +10,7 @@ from rail_compliance.models import (
     RequirementDraft,
     SearchResult,
 )
-from rail_compliance.parameters import CHECKED_PARAMETERS
+from rail_compliance.parameters import CHECKED_PARAMETERS, SUBJECT_OF
 from rail_compliance.retry import LLMUnavailable
 from rail_compliance.spec import TrainSpec
 from tests.fakes import ScriptedAgentLLM, ai, tool_call
@@ -164,6 +164,7 @@ def test_a_wrong_spec_value_is_rejected_and_never_used():
 def test_a_conditional_rule_that_does_not_apply_leads_to_the_general_rule():
     speed_rule = RequirementCore(
         parameter=WC_DOOR,
+        subject=SUBJECT_OF[WC_DOOR],
         comparator=">=",
         value=1000,
         unit="mm",
@@ -175,7 +176,9 @@ def test_a_conditional_rule_that_does_not_apply_leads_to_the_general_rule():
     quote = DOORS[DOORS.index("On trains") :]
     speed_draft = door_draft(quote=quote, rule=speed_rule)
     general = door_draft(
-        rule=RequirementCore(parameter=WC_DOOR, comparator=">=", value=800, unit="mm")
+        rule=RequirementCore(
+            parameter=WC_DOOR, subject=SUBJECT_OF[WC_DOOR], comparator=">=", value=800, unit="mm"
+        )
     )
     script = [
         search_call("wheelchair door width"),
@@ -215,6 +218,7 @@ def test_a_conditional_rule_that_does_not_apply_leads_to_the_general_rule():
 def test_missing_data_that_a_rule_depends_on_becomes_needs_human():
     speed_rule = RequirementCore(
         parameter=WC_DOOR,
+        subject=SUBJECT_OF[WC_DOOR],
         comparator=">=",
         value=1000,
         unit="mm",
@@ -237,7 +241,11 @@ def test_a_table_rule_uses_the_unit_length_from_the_spec():
         Band(lower=300, lower_inclusive=False, value=4),
     ]
     rule = RequirementCore(
-        parameter="wheelchair_spaces", comparator=">=", bands=bands, band_variable="unit_length_m"
+        parameter="wheelchair_spaces",
+        subject=SUBJECT_OF["wheelchair_spaces"],
+        comparator=">=",
+        bands=bands,
+        band_variable="unit_length_m",
     )
     draft = RequirementDraft(
         found=True,
@@ -406,10 +414,13 @@ def test_a_provider_outage_aborts_the_run_instead_of_recording_garbage():
 
 def test_one_rule_passing_does_not_hide_an_unresolved_one():
     general = door_draft(
-        rule=RequirementCore(parameter=WC_DOOR, comparator=">=", value=800, unit="mm")
+        rule=RequirementCore(
+            parameter=WC_DOOR, subject=SUBJECT_OF[WC_DOOR], comparator=">=", value=800, unit="mm"
+        )
     )
     speed_rule = RequirementCore(
         parameter=WC_DOOR,
+        subject=SUBJECT_OF[WC_DOOR],
         comparator=">=",
         value=1000,
         unit="mm",
@@ -471,5 +482,176 @@ def test_the_system_prompt_asks_for_general_and_special_case_rules_and_whole_tab
     from rail_compliance.agent import SYSTEM_PROMPT
 
     text = " ".join(SYSTEM_PROMPT.split())
-    assert "general rule AND each special-case rule" in text
+    assert "Extract the rule for each listed subject" in text
     assert "single call, never row by row" in text
+    assert "contingency" in text
+
+
+# --- run 01 causes A-D: settle precedence, contingent exceptions, intervals, subjects ----------
+
+INT = "steps.internal_step_height_mm"
+
+
+def internal_step_drafts(contingent=True):
+    """The two rules of 4.2.2.11.2(2): 200 mm, and 230 mm if it reduces the number of steps."""
+    from tests.test_extract import EXCEPTION_QUOTE, STEP_PASSAGE
+
+    general_quote = (
+        "Internal steps for external access shall have a minimum depth of 240 mm between the "
+        "vertical edges of the step and a maximum height of 200 mm."
+    )
+    general = RequirementDraft(
+        found=True,
+        passage_id=STEP_PASSAGE.id,
+        quote=general_quote,
+        rule=RequirementCore(
+            parameter=INT, subject="internal_step", comparator="<=", value=200, unit="mm"
+        ),
+    )
+    exception = RequirementDraft(
+        found=True,
+        passage_id=STEP_PASSAGE.id,
+        quote=EXCEPTION_QUOTE,
+        rule=RequirementCore(
+            parameter=INT, subject="internal_step", comparator="<=", value=230, unit="mm",
+            contingency="a demonstrated reduction of one in the total number of steps"
+            if contingent else None,
+        ),
+    )  # fmt: skip
+    return general, exception
+
+
+def step_script():
+    return [
+        search_call("maximum internal step height"),
+        extract_call(INT, ids=["tsi-prm:Annex §4.2.2.11.2#1"], focus="the general limit"),
+        extract_call(INT, ids=["tsi-prm:Annex §4.2.2.11.2#1"], focus="the exception"),
+        check_call(INT, None, "R1"),
+        check_call(INT, None, "R2"),
+        DONE,
+    ]
+
+
+def run_step(value, escalate=False, contingent=True, drafts=None):
+    from tests.test_extract import STEP_PASSAGE
+
+    script = step_script()
+    for i in (3, 4):  # fill in the spec value
+        call_ = script[i].tool_calls[0]
+        call_["args"]["spec_value"] = float(value)
+    if escalate:
+        script[-1] = ai(
+            tool_call("needs_human", reason="An exception may apply that I cannot evaluate.",
+                      category="ambiguous_law")
+        )  # fmt: skip
+    llm, extractor = (
+        ScriptedAgentLLM(script),
+        FakeExtractor(drafts or internal_step_drafts(contingent)),
+    )
+
+    class StepSearch(FakeSearch):
+        def search(self, question, k):
+            return SearchResult(question=question, passages=[STEP_PASSAGE], backend="fake")
+
+    agent = ComplianceAgent(llm, extractor, StepSearch())
+    return agent.run(spec(steps={"internal_step_height_mm": float(value)})).result_for(INT)
+
+
+def test_a_contingent_exception_that_would_allow_the_value_makes_it_needs_human():
+    result = run_step(215)  # fails 200 mm; the 230 mm exception would allow it if demonstrated
+    assert result.verdict == "needs_human"
+    assert "demonstrated reduction" in result.reason
+    assert [c.verdict for c in result.checks] == ["fail", "pass"]
+
+
+def test_the_contingent_exception_does_not_matter_when_the_general_limit_is_met():
+    assert run_step(180).verdict == "pass"
+
+
+def test_a_value_beyond_even_the_exception_is_a_fail():
+    assert run_step(231).verdict == "fail"
+
+
+def test_an_exception_extracted_without_a_contingency_would_hide_the_problem():
+    # documents why the contingency matters: unconditional, the 230 mm rule passes and the 200 mm
+    # rule fails, and with no escalation the parameter is simply a fail
+    assert run_step(215, contingent=False).verdict == "fail"
+
+
+def test_the_models_own_escalation_is_binding_even_after_a_failed_check():
+    result = run_step(215, escalate=True, contingent=False)
+    assert result.verdict == "needs_human"
+    assert any(c.verdict == "fail" for c in result.checks)  # the failure stays visible
+    assert "exception may apply" in result.reason
+
+
+def test_only_the_contingent_rule_extracted_still_needs_a_person():
+    from tests.test_extract import STEP_PASSAGE
+
+    _, exception = internal_step_drafts()
+    script = [
+        search_call("maximum internal step height"),
+        extract_call(INT, ids=[STEP_PASSAGE.id]),
+        check_call(INT, 215, "R1"),
+        DONE,
+    ]
+
+    class StepSearch(FakeSearch):
+        def search(self, question, k):
+            return SearchResult(question=question, passages=[STEP_PASSAGE], backend="fake")
+
+    agent = ComplianceAgent(ScriptedAgentLLM(script), FakeExtractor([exception]), StepSearch())
+    result = agent.run(spec(steps={"internal_step_height_mm": 215.0})).result_for(INT)
+    assert result.verdict == "needs_human" and "demonstrated" in result.reason
+
+
+def power_head_table_run(spaces_value, includes_head):
+    bands = [
+        Band(upper=30, upper_inclusive=False, value=1),
+        Band(lower=30, upper=205, value=2),
+        Band(lower=205, lower_inclusive=False, upper=300, value=3),
+        Band(lower=300, lower_inclusive=False, value=4),
+    ]
+    rule = RequirementCore(
+        parameter="wheelchair_spaces", subject="wheelchair_space", comparator=">=", bands=bands,
+        band_variable="unit_length_m",
+    )  # fmt: skip
+    draft = RequirementDraft(
+        found=True, passage_id=TABLE_PASSAGE.id, quote=TABLE[TABLE.index("Less than 30 m") :],
+        rule=rule,
+    )  # fmt: skip
+    script = [
+        search_call("wheelchair spaces"),
+        extract_call("wheelchair_spaces", ids=[TABLE_PASSAGE.id]),
+        check_call("wheelchair_spaces", float(spaces_value)),
+        DONE,
+    ]
+    s = spec(
+        unit_length_m=210.0,
+        length_includes_power_head=includes_head,
+        wheelchair_spaces=spaces_value,
+    )
+    return run(s, script, [draft])[0].result_for("wheelchair_spaces")
+
+
+def test_a_length_that_includes_a_power_head_is_decided_over_the_possible_lengths():
+    assert power_head_table_run(3, True).verdict == "pass"  # enough for any length up to 210 m
+    assert power_head_table_run(2, True).verdict == "needs_human"
+    assert power_head_table_run(0, True).verdict == "fail"
+
+
+def test_without_the_power_head_flag_the_stated_length_is_used():
+    assert power_head_table_run(2, False).verdict == "fail"  # 210 m needs 3
+    assert power_head_table_run(3, None).verdict == "pass"
+
+
+def test_the_task_message_lists_the_subjects_that_govern_the_parameter():
+    spec_ = spec(exterior_doors={"clear_width_mm": 850, "wheelchair_door_clear_width_mm": 900})
+    llm = ScriptedAgentLLM([DONE, DONE])
+    ComplianceAgent(llm, FakeExtractor([]), FakeSearch()).run(spec_)
+    messages = {m[1].content.split("\n")[0]: m[1].content for m in llm.seen}
+    wheelchair = messages[f"Parameter to check: {WC_DOOR} (mm)"]
+    assert "wheelchair_doorway, exterior_doorway" in wheelchair
+    clear = messages["Parameter to check: exterior_doors.clear_width_mm (mm)"]
+    assert "(own subject first): exterior_doorway" in clear
+    assert "wheelchair_doorway" not in clear

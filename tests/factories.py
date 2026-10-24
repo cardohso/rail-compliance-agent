@@ -18,13 +18,15 @@ CITATION = Citation(
 )
 
 
-def limit(parameter, comparator, value, unit=None, conditions=()):
+def limit(parameter, comparator, value, unit=None, conditions=(), contingency=None, subject="s"):
     return Requirement(
         parameter=parameter,
+        subject=subject,
         comparator=comparator,
         value=value,
         unit=unit,
         conditions=list(conditions),
+        contingency=contingency,
         citation=CITATION,
     )
 
@@ -33,6 +35,7 @@ def table5() -> Requirement:
     """PRM TSI 4.2.2.2 Table 5: minimum wheelchair spaces by unit length."""
     return Requirement(
         parameter="wheelchair_spaces",
+        subject="wheelchair_space",
         comparator=">=",
         bands=[
             Band(upper=30, upper_inclusive=False, value=1),

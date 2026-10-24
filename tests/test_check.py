@@ -99,6 +99,7 @@ def test_table_with_a_gap_is_needs_human():
 
     gappy = Requirement(
         parameter="p",
+        subject="s",
         comparator=">=",
         bands=[Band(upper=10, value=1), Band(lower=20, value=2)],
         band_variable="x",
@@ -115,6 +116,7 @@ def test_table_with_overlapping_bands_is_needs_human():
 
     overlap = Requirement(
         parameter="p",
+        subject="s",
         comparator=">=",
         bands=[Band(upper=20, value=1), Band(lower=10, value=2)],
         band_variable="x",

@@ -169,6 +169,28 @@ def parameter_kinds() -> dict[str, str]:
     return {path: kind(field.annotation) for path, _, field in _walk_parameters()}
 
 
+# A qualifier says how another parameter's value was measured; it is not a circumstance that
+# selects a rule. The flag below says the stated length includes a power head, which the TSI's
+# table excludes: the length it counts is then at most the stated one. Rules may not be
+# conditioned on a qualifier; the evaluation of `check` handles it as an interval instead.
+QUALIFIERS: dict[str, str] = {"length_includes_power_head": "unit_length_m"}
+
+
+def condition_variables() -> list[str]:
+    """Spec parameters a rule's condition or table may refer to (qualifiers excluded)."""
+    return [path for path in parameter_info() if path not in QUALIFIERS]
+
+
+def spec_intervals(spec: TrainSpec) -> dict[str, tuple[float, float]]:
+    """Parameters whose true value is only known to lie in [low, high], from the qualifiers."""
+    values = spec_values(spec)
+    return {
+        target: (0.0, values[target])
+        for flag, target in QUALIFIERS.items()
+        if values.get(flag) == 1.0 and target in values
+    }
+
+
 UNIT_SUFFIXES = {"_mm": "mm", "_m": "m", "_kmh": "km/h"}
 
 

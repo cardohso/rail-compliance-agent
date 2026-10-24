@@ -75,9 +75,19 @@ without a search. Three rules keep the model away from numbers it could get wron
 - It passes passage **ids** and a **requirement id**, not text. The runtime resolves them.
 - A `check` call whose `spec_value` differs from the spec is **rejected** (and recorded, so the
   evaluation can score argument correctness). The verdict never uses a wrong value.
-- The parameter's verdict is **computed by code** from the checks that ran: `fail` beats
-  `needs_human` beats `pass`. The model never writes a verdict. A tool-call budget per parameter
-  stops loops, and ending it with no check or escalation is itself `needs_human`.
+- The parameter's verdict is **computed by code** from the checks that ran, never written by the
+  model: if the model escalated with `needs_human`, that stands (its doubt is not overruled; failed
+  checks stay in the report); otherwise `fail` beats a check that needed a person, which beats
+  `pass`. A tool-call budget per parameter stops loops, and ending with no check or escalation is
+  itself `needs_human`.
+- Every extracted rule is labelled with the **subject** it is stated for (for example "all exterior
+  doorways" or "wheelchair doorways"). A parameter is governed by rules for its own subject and for
+  broader ones, never narrower ones, and the extraction tool rejects the rest.
+- A rule that holds only "if it can be demonstrated ..." is recorded with a **contingency**: an
+  exception that would allow a value the general rule rejects makes the parameter `needs_human`.
+- A **qualifier** such as `length_includes_power_head` is not a rule condition: it makes the unit
+  length an interval (at most the stated value), and `check` decides tables and conditions over
+  that whole interval.
 
 The report ([`report.py`](src/rail_compliance/report.py)) has, per parameter, the verdict, the
 requirement, the spec value and citations (document, section, EUR-Lex link, the exact quote), as

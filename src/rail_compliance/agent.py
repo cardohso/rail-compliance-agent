@@ -39,7 +39,7 @@ from rail_compliance.models import (
     Passage,
     Requirement,
 )
-from rail_compliance.parameters import CHECKED_PARAMETERS
+from rail_compliance.parameters import CHECKED_PARAMETERS, accepted_subjects
 from rail_compliance.report import (
     ParameterResult,
     Report,
@@ -48,7 +48,7 @@ from rail_compliance.report import (
     describe_rule,
 )
 from rail_compliance.retry import LLMUnavailable
-from rail_compliance.spec import TrainSpec, parameter_info, spec_values, unit_of
+from rail_compliance.spec import TrainSpec, parameter_info, spec_intervals, spec_values, unit_of
 from rail_compliance.tools.check import check as check_tool
 from rail_compliance.tools.extract import StructuredLLM, StructuredOutputError
 from rail_compliance.tools.extract import extract_requirement as extract_tool
@@ -65,11 +65,14 @@ Procedure:
 1. search_regulation(question): find passages of the regulation. Ask a specific question about the
    parameter. If the passages do not contain the rule, search again with a different question.
 2. extract_requirement(passage_ids, parameter, focus): get the numeric rule as a typed
-   requirement. A parameter can have more than one rule: a general one, and special-case rules
-   that are stricter or have conditions (a speed, a door type, an exception). Extract the general
-   rule AND each special-case rule that could apply, one call per rule, using `focus` to name the
-   rule you want. A table is one rule: extract it in a single call, never row by row. Do not
-   extract the same rule twice.
+   requirement. The task message lists the subjects whose rules govern the parameter: a rule
+   stated for a broader subject (all exterior doorways) also governs a narrower parameter
+   (wheelchair doorways). Extract the rule for each listed subject, plus any special-case rule
+   with conditions for the parameter's own subject, one call per rule, using `focus` to name the
+   rule you want. Never use a rule stated for a narrower subject than the parameter. An exception
+   that holds only "if it can be demonstrated ..." is recorded with its contingency and does not
+   settle the parameter by itself. A table is one rule: extract it in a single call, never row
+   by row. Do not extract the same rule twice.
 3. check(parameter, spec_value, requirement_id): compare the spec with a requirement. Pass the
    spec value exactly as given. A result of not_applicable means that rule's conditions are false
    for this spec: that is not a failure, so look for the other rule that applies.
@@ -146,12 +149,17 @@ class Scratch:
     requirements: dict[str, Requirement] = field(default_factory=dict)
     checks: list[tuple[CheckResult, Requirement]] = field(default_factory=list)
     reviews: list[HumanReview] = field(default_factory=list)
+    escalations: list[HumanReview] = field(
+        default_factory=list
+    )  # the model's own needs_human calls
+    intervals: dict[str, tuple[float, float]] = field(default_factory=dict)
     calls: int = 0
     done: bool = False  # needs_human was called, or the budget ran out
 
 
 class AgentState(TypedDict, total=False):
     values: dict[str, float]
+    intervals: dict[str, tuple[float, float]]
     queue: list[str]
     idx: int
     messages: list[BaseMessage]
@@ -254,7 +262,13 @@ class _Runner:
                 f"spec_value {a.spec_value:g} does not match the spec, which has {actual:g} {unit}."
                 " Pass the spec's value unchanged."
             )
-        result = check_tool(actual, req, spec_unit=unit_of(scratch.parameter), context=values)
+        result = check_tool(
+            actual,
+            req,
+            spec_unit=unit_of(scratch.parameter),
+            context=values,
+            intervals=scratch.intervals,
+        )
         scratch.checks.append((result, req))
         return True, f"{result.verdict}: {result.reason}"
 
@@ -264,6 +278,7 @@ class _Runner:
         except ValueError as exc:
             return False, str(exc)
         scratch.reviews.append(review)
+        scratch.escalations.append(review)
         scratch.done = True
         return True, "recorded. Work on this parameter ends here."
 
@@ -276,6 +291,8 @@ def _task_message(parameter: str, values: dict[str, float]) -> str:
     lines = [
         f"Parameter to check: {parameter}" + (f" ({unit})" if unit else ""),
         f"Meaning: {description}",
+        "Rules stated for these subjects govern it (own subject first): "
+        + ", ".join(accepted_subjects(parameter)),
         f"Spec value: {values[parameter]:g}" + (f" {unit}" if unit else ""),
         "",
         "Other values the spec supplies (booleans as 1/0; the runtime applies them automatically "
@@ -287,20 +304,50 @@ def _task_message(parameter: str, values: dict[str, float]) -> str:
 
 
 def _settle(scratch: Scratch, values: dict[str, float]) -> ParameterResult:
-    """The parameter's verdict, computed from the checks that ran: fail beats needs_human beats
-    pass; if every rule was not_applicable the parameter is too."""
+    """The parameter's verdict, computed from the checks that ran. In order:
+
+    1. the model escalated: needs_human, whatever the checks said (its doubt is not ours to
+       overrule; failed checks stay in the report);
+    2. a check failed: fail, unless a contingent exception would allow the value, in which case
+       it is needs_human (the exception cannot be shown from the spec);
+    3. a check needed a person (missing data): needs_human;
+    4. the runtime cut the work short: needs_human;
+    5. an ordinary rule passed: pass; only a contingent exception passed: needs_human;
+    6. every rule was not applicable: not_applicable.
+    """
     parameter = scratch.parameter
     checks = [c for c, _ in scratch.checks]
     reviews = list(scratch.reviews)
-    by = {v: [c for c in checks if c.verdict == v] for v in ("fail", "needs_human", "pass")}
+    fails = [c for c in checks if c.verdict == "fail"]
+    mechanical = [c for c in checks if c.verdict == "needs_human"]
+    passes = [c for c in checks if c.verdict == "pass" and not c.contingency]
+    exceptions = [c for c in checks if c.verdict == "pass" and c.contingency]
+    runtime = [r for r in reviews if r not in scratch.escalations]
 
-    if by["fail"]:
-        verdict, reason = "fail", "; ".join(c.reason for c in by["fail"])
-    elif reviews or by["needs_human"]:
+    if scratch.escalations:
         verdict = "needs_human"
-        reason = "; ".join([r.reason for r in reviews] + [c.reason for c in by["needs_human"]])
-    elif by["pass"]:
-        verdict, reason = "pass", "; ".join(c.reason for c in by["pass"])
+        reason = "; ".join(r.reason for r in scratch.escalations)
+        if fails:
+            reason += f" (failed: {'; '.join(c.reason for c in fails)})"
+    elif fails and exceptions:
+        verdict = "needs_human"
+        reason = (
+            f"{'; '.join(c.reason for c in fails)}; an exception would allow it only if "
+            f"{exceptions[0].contingency}, which the spec cannot show"
+        )
+    elif fails:
+        verdict, reason = "fail", "; ".join(c.reason for c in fails)
+    elif mechanical:
+        verdict, reason = "needs_human", "; ".join(c.reason for c in mechanical)
+    elif runtime:
+        verdict, reason = "needs_human", "; ".join(r.reason for r in runtime)
+    elif passes:
+        verdict, reason = "pass", "; ".join(c.reason for c in passes)
+    elif exceptions:
+        verdict = "needs_human"
+        reason = (
+            f"the value is allowed only if {exceptions[0].contingency}, which the spec cannot show"
+        )
     elif checks:
         verdict, reason = "not_applicable", "; ".join(c.reason for c in checks)
     else:
@@ -378,7 +425,10 @@ class ComplianceAgent:
                 SystemMessage(SYSTEM_PROMPT),
                 HumanMessage(_task_message(parameter, state["values"])),
             ]
-            return {"messages": messages, "scratch": Scratch(parameter)}
+            return {
+                "messages": messages,
+                "scratch": Scratch(parameter, intervals=state.get("intervals", {})),
+            }
 
         def agent(state: AgentState) -> AgentState:
             reply = self.llm.invoke(state["messages"])
@@ -449,7 +499,8 @@ class ComplianceAgent:
         values = spec_values(spec)
         try:
             final: dict[str, Any] = self.graph.invoke(
-                {"values": values}, config={"recursion_limit": 1000}
+                {"values": values, "intervals": spec_intervals(spec)},
+                config={"recursion_limit": 1000},
             )
         except LLMUnavailable:
             raise

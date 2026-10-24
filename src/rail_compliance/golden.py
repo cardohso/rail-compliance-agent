@@ -15,6 +15,7 @@ from pathlib import Path
 from pydantic import BaseModel, ConfigDict, Field
 
 from rail_compliance.models import Band, Citation, Condition, Requirement
+from rail_compliance.parameters import SUBJECT_OF
 from rail_compliance.report import FinalVerdict
 from rail_compliance.spec import TrainSpec, spec_values
 from rail_compliance.tools.check import check
@@ -57,9 +58,13 @@ PRM = {"doc_id": "tsi-prm", "document": "PRM TSI"}
 URL = "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:02014R1300-20230928"
 
 
-def _rule(parameter, comparator, value, unit, passage, section, quote, conditions=(), bands=()):
+def _rule(
+    parameter, comparator, value, unit, passage, section, quote, conditions=(), bands=(),
+    subject=None,
+):  # fmt: skip
     return Requirement(
         parameter=parameter,
+        subject=subject or SUBJECT_OF[parameter],
         comparator=comparator,
         value=value,
         unit=unit,
@@ -99,6 +104,7 @@ DOORS_ALL = _rule(
 WHEELCHAIR_GENERAL = _rule(
     "exterior_doors.wheelchair_door_clear_width_mm", ">=", 800, "mm", P_DOORS, "Annex §4.2.2.3.2",
     "All exterior passenger doorways shall have a minimum clear useable width of 800 mm when open.",
+    subject="exterior_doorway",
 )  # fmt: skip
 WHEELCHAIR_LEVEL = _rule(
     "exterior_doors.wheelchair_door_clear_width_mm", ">=", 1000, "mm", P_DOORS, "Annex §4.2.2.3.2",
@@ -124,6 +130,7 @@ INTERNAL_EXCEPTION = _rule(
     "steps.internal_step_height_mm", "<=", 230, "mm", P_STEPS, "Annex §4.2.2.11.2",
     "The height of each step may be increased to a maximum of 230 mm if it can be demonstrated "
     "that this achieves a reduction of one in the total number of steps required.",
+    subject="internal_step",
 )  # fmt: skip
 UNIVERSAL_TOILET = _rule(
     "toilets.universal", ">=", 1, None, P_TOILET, "Annex §4.2.2.5",

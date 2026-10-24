@@ -81,6 +81,17 @@ class Band(BandDraft):
             raise ValueError(f"band lower {self.lower} is above upper {self.upper}")
         return self
 
+    def intersects(self, lo: float, hi: float) -> bool:
+        """Does any value in the closed interval [lo, hi] fall in this row?"""
+        if self.lower is not None and (
+            hi < self.lower or (hi == self.lower and not self.lower_inclusive)
+        ):
+            return False
+        return not (
+            self.upper is not None
+            and (lo > self.upper or (lo == self.upper and not self.upper_inclusive))
+        )
+
     def contains(self, x: float) -> bool:
         if self.lower is not None and (
             x < self.lower or (x == self.lower and not self.lower_inclusive)
@@ -97,7 +108,9 @@ class RuleDraft(_Strict):
     tool validates it afterwards (as `RequirementCore`) and reports a bad one as unverified."""
 
     parameter: str  # the spec parameter path the rule constrains, e.g. "wheelchair_spaces"
+    subject: str  # what the rule is stated for (see parameters.SUBJECTS), e.g. "exterior_doorway"
     comparator: Comparator  # spec_value <comparator> required
+    contingency: str | None = None  # what must be shown for the rule to hold; not a spec value
     value: float | None = None
     unit: str | None = None
     bands: list[BandDraft] = Field(default_factory=list)
@@ -134,6 +147,7 @@ class CheckResult(_Strict):
     comparator: Comparator | None = None
     unit: str | None = None
     margin: float | None = None  # spec_value - required_value, in the requirement's unit
+    contingency: str | None = None  # the rule holds only if this is shown (see Requirement)
 
 
 class HumanReview(_Strict):

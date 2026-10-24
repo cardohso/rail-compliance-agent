@@ -8,6 +8,7 @@ from rail_compliance.models import (
     RequirementDraft,
     RuleDraft,
 )
+from rail_compliance.parameters import SUBJECT_OF
 from rail_compliance.tools.extract import extract_requirement, numbers_in
 from tests.factories import passage
 
@@ -46,7 +47,11 @@ class FakeLLM:
 
 def door_draft(**over) -> RequirementDraft:
     rule = RequirementCore(
-        parameter="exterior_doors.clear_width_mm", comparator=">=", value=800, unit="mm"
+        parameter="exterior_doors.clear_width_mm",
+        subject=SUBJECT_OF["exterior_doors.clear_width_mm"],
+        comparator=">=",
+        value=800,
+        unit="mm",
     )
     fields = {"found": True, "passage_id": DOOR_PASSAGE.id, "quote": QUOTE_800, "rule": rule}
     return RequirementDraft(**{**fields, **over})
@@ -94,7 +99,11 @@ def test_a_quote_that_is_not_in_the_passage_is_unverified():
 
 def test_a_value_that_is_not_in_the_quote_is_unverified():
     wrong = RequirementCore(
-        parameter="exterior_doors.clear_width_mm", comparator=">=", value=900, unit="mm"
+        parameter="exterior_doors.clear_width_mm",
+        subject=SUBJECT_OF["exterior_doors.clear_width_mm"],
+        comparator=">=",
+        value=900,
+        unit="mm",
     )
     result, _ = run(door_draft(rule=wrong))
     assert result.status == "unverified"
@@ -134,6 +143,7 @@ def test_no_passages_means_not_found_without_calling_the_model():
 def test_thousand_separator_spaces_are_read_as_one_number():
     rule = RequirementCore(
         parameter="exterior_doors.wheelchair_door_clear_width_mm",
+        subject=SUBJECT_OF["exterior_doors.wheelchair_door_clear_width_mm"],
         comparator=">=",
         value=1000,
         unit="mm",
@@ -156,6 +166,7 @@ def test_non_breaking_spaces_in_the_source_do_not_break_verification():
     nbsp = passage(DOORS.replace("1 000", "1 000"))
     rule = RequirementCore(
         parameter="exterior_doors.wheelchair_door_clear_width_mm",
+        subject=SUBJECT_OF["exterior_doors.wheelchair_door_clear_width_mm"],
         comparator=">=",
         value=1000,
         unit="mm",
@@ -172,6 +183,7 @@ def test_non_breaking_spaces_in_the_source_do_not_break_verification():
 def test_a_condition_value_the_quote_does_not_state_is_unverified():
     rule = RequirementCore(
         parameter="exterior_doors.wheelchair_door_clear_width_mm",
+        subject=SUBJECT_OF["exterior_doors.wheelchair_door_clear_width_mm"],
         comparator=">=",
         value=1000,
         unit="mm",
@@ -193,6 +205,7 @@ def test_a_condition_value_the_quote_does_not_state_is_unverified():
 def test_boolean_conditions_need_no_number_in_the_quote():
     rule = RequirementCore(
         parameter="exterior_doors.wheelchair_door_clear_width_mm",
+        subject=SUBJECT_OF["exterior_doors.wheelchair_door_clear_width_mm"],
         comparator=">=",
         value=1000,
         unit="mm",
@@ -216,7 +229,11 @@ def test_a_table_is_verified_against_every_bound_and_value():
         Band(lower=300, lower_inclusive=False, value=4),
     ]
     rule = RequirementCore(
-        parameter="wheelchair_spaces", comparator=">=", bands=bands, band_variable="unit_length_m"
+        parameter="wheelchair_spaces",
+        subject=SUBJECT_OF["wheelchair_spaces"],
+        comparator=">=",
+        bands=bands,
+        band_variable="unit_length_m",
     )
     quote = TABLE[TABLE.index("Less than 30 m") :]
     draft = RequirementDraft(found=True, passage_id=TABLE_PASSAGE.id, quote=quote, rule=rule)
@@ -228,7 +245,11 @@ def test_a_table_is_verified_against_every_bound_and_value():
 def test_a_table_with_an_invented_bound_is_unverified():
     bands = [Band(upper=40, upper_inclusive=False, value=1), Band(lower=40, value=2)]
     rule = RequirementCore(
-        parameter="wheelchair_spaces", comparator=">=", bands=bands, band_variable="unit_length_m"
+        parameter="wheelchair_spaces",
+        subject=SUBJECT_OF["wheelchair_spaces"],
+        comparator=">=",
+        bands=bands,
+        band_variable="unit_length_m",
     )
     quote = TABLE[TABLE.index("Less than 30 m") :]
     draft = RequirementDraft(found=True, passage_id=TABLE_PASSAGE.id, quote=quote, rule=rule)
@@ -248,7 +269,12 @@ def test_quote_may_skip_text_with_an_ellipsis_but_each_part_must_be_verbatim():
 
 def test_curly_and_straight_quotes_and_dashes_match():
     p = passage("(1) The ‘step location’ shall be 800 mm — measured at the nose.")
-    rule = RequirementCore(parameter="steps.external_step_height_mm", comparator="<=", value=800)
+    rule = RequirementCore(
+        parameter="steps.external_step_height_mm",
+        subject=SUBJECT_OF["steps.external_step_height_mm"],
+        comparator="<=",
+        value=800,
+    )
     draft = RequirementDraft(
         found=True,
         passage_id=p.id,
@@ -280,6 +306,7 @@ TOILET = passage(
 def toilet_draft(**over) -> RequirementDraft:
     rule = RequirementCore(
         parameter="toilets.universal",
+        subject=SUBJECT_OF["toilets.universal"],
         comparator=">=",
         value=1,
         conditions=[Condition(variable="toilets.fitted", op=">", value=0)],
@@ -301,7 +328,11 @@ def test_an_existence_rule_with_an_article_is_verified_as_at_least_one():
 
 def test_the_article_only_counts_as_one_for_a_shall_be_provided_rule():
     rule = RequirementCore(
-        parameter="exterior_doors.clear_width_mm", comparator=">=", value=1, unit="mm"
+        parameter="exterior_doors.clear_width_mm",
+        subject=SUBJECT_OF["exterior_doors.clear_width_mm"],
+        comparator=">=",
+        value=1,
+        unit="mm",
     )
     result, _ = run(door_draft(rule=rule))  # quote: "...minimum clear useable width of 800 mm"
     assert result.status == "unverified"
@@ -333,7 +364,14 @@ def test_without_focus_the_prompt_has_no_focus_line():
 
 
 def lenient_rule(**fields) -> RuleDraft:
-    return RuleDraft(**{"parameter": "wheelchair_spaces", "comparator": ">=", **fields})
+    return RuleDraft(
+        **{
+            "parameter": "wheelchair_spaces",
+            "subject": "wheelchair_space",
+            "comparator": ">=",
+            **fields,
+        }
+    )
 
 
 def test_a_rule_with_both_value_and_bands_is_unverified_not_a_crash():
@@ -382,7 +420,11 @@ def test_the_system_prompt_tells_the_model_to_give_a_whole_table():
 
 def toilet_rule(*conditions, **over) -> RequirementDraft:
     rule = RequirementCore(
-        parameter="toilets.universal", comparator=">=", value=1, conditions=list(conditions)
+        parameter="toilets.universal",
+        subject=SUBJECT_OF["toilets.universal"],
+        comparator=">=",
+        value=1,
+        conditions=list(conditions),
     )
     return toilet_draft(rule=rule, **over)
 
@@ -432,7 +474,11 @@ def test_a_condition_on_an_unknown_parameter_is_unverified():
 def test_a_band_variable_that_is_not_a_spec_parameter_is_unverified():
     bands = [Band(upper=30, upper_inclusive=False, value=1), Band(lower=30, value=2)]
     rule = RequirementCore(
-        parameter="wheelchair_spaces", comparator=">=", bands=bands, band_variable="train_length"
+        parameter="wheelchair_spaces",
+        subject=SUBJECT_OF["wheelchair_spaces"],
+        comparator=">=",
+        bands=bands,
+        band_variable="train_length",
     )
     quote = TABLE[TABLE.index("Less than 30 m") :]
     draft = RequirementDraft(found=True, passage_id=TABLE_PASSAGE.id, quote=quote, rule=rule)
@@ -455,3 +501,130 @@ def test_the_prompt_says_a_table_is_one_rule_and_focus_selects_the_rule():
     assert "one rule" in SYSTEM.lower()
     assert "fitted" in SYSTEM  # the worked meaning of an existence condition on a count
     assert "Focus" in SYSTEM
+
+
+# --- subject, qualifier and contingency (run 01: causes A, B, C, D) ----------------------------
+
+WC = "exterior_doors.wheelchair_door_clear_width_mm"
+CLEAR = "exterior_doors.clear_width_mm"
+WHEELCHAIR_QUOTE = (
+    "On trains with a design speed lower than 250 km/h, wheelchair access doors offering a level "
+    "access as defined in point 2.3 shall have a minimum clear useable width of 1 000 mm when open"
+)
+
+
+def door_rule(parameter, subject, value=800, quote=QUOTE_800, **fields):
+    rule = RequirementCore(
+        parameter=parameter, subject=subject, comparator=">=", value=value, unit="mm", **fields
+    )
+    return RequirementDraft(found=True, passage_id=DOOR_PASSAGE.id, quote=quote, rule=rule)
+
+
+def test_a_rule_for_a_narrower_subject_does_not_govern_the_broader_parameter():
+    # run 01 g08: the wheelchair-door rule was applied to the narrowest-doorway parameter
+    wheelchair_rule = door_rule(CLEAR, "wheelchair_doorway", 1000, WHEELCHAIR_QUOTE)
+    result, _ = run(wheelchair_rule, parameter=CLEAR)
+    assert result.status == "unverified"
+    assert "wheelchair_doorway" in result.reason and "exterior_doorway" in result.reason
+
+
+def test_a_rule_for_a_broader_subject_governs_the_narrower_parameter():
+    # run 01 g11-g13: the rule for ALL exterior doorways also governs the wheelchair doorways
+    result, _ = run(door_rule(WC, "exterior_doorway"), parameter=WC)
+    assert result.status == "found"
+    assert result.requirement.subject == "exterior_doorway"
+    assert result.requirement.parameter == WC
+
+
+def test_a_rule_for_the_parameters_own_subject_is_accepted():
+    result, _ = run(door_rule(WC, "wheelchair_doorway", 1000, WHEELCHAIR_QUOTE), parameter=WC)
+    assert result.status == "found"
+
+
+def test_an_unknown_subject_is_unverified_and_the_reason_lists_the_valid_ones():
+    result, _ = run(door_rule(CLEAR, "doors"), parameter=CLEAR)
+    assert result.status == "unverified"
+    assert "doors" in result.reason and "exterior_doorway" in result.reason
+
+
+def test_the_prompt_states_which_subjects_govern_the_parameter():
+    _, llm = run(door_rule(WC, "exterior_doorway"), parameter=WC)
+    user = llm.calls[0][1]
+    assert "wheelchair_doorway" in user and "exterior_doorway" in user
+    assert "also governs" in user or "also govern" in user
+    _, llm = run(door_rule(CLEAR, "exterior_doorway"), parameter=CLEAR)
+    assert "wheelchair_doorway (" in llm.calls[0][1]  # listed in the vocabulary...
+    assert "Subjects whose rules govern this parameter: exterior_doorway" in llm.calls[0][1]
+
+
+@pytest.mark.parametrize("variable", ["length_includes_power_head"])
+def test_a_condition_on_a_qualifier_is_unverified(variable):
+    # run 01 g04/g05/g20: "excluding the locomotive or power head" became a condition on the flag
+    rule = door_rule(
+        WC, "exterior_doorway", conditions=[Condition(variable=variable, op="==", value=0)]
+    )
+    result, _ = run(rule, parameter=WC)
+    assert result.status == "unverified"
+    assert "qualifier" in result.reason and "unit_length_m" in result.reason
+
+
+def test_a_table_may_not_be_selected_by_a_qualifier():
+    bands = [Band(upper=30, upper_inclusive=False, value=1), Band(lower=30, value=2)]
+    rule = RequirementCore(
+        parameter="wheelchair_spaces", subject="wheelchair_space", comparator=">=", bands=bands,
+        band_variable="length_includes_power_head",
+    )  # fmt: skip
+    quote = TABLE[TABLE.index("Less than 30 m") :]
+    draft = RequirementDraft(found=True, passage_id=TABLE_PASSAGE.id, quote=quote, rule=rule)
+    result, _ = run(draft, passages=(TABLE_PASSAGE,), parameter="wheelchair_spaces")
+    assert result.status == "unverified" and "qualifier" in result.reason
+
+
+def test_qualifiers_are_not_offered_as_variables_in_the_prompt():
+    _, llm = run(door_rule(CLEAR, "exterior_doorway"), parameter=CLEAR)
+    variables = llm.calls[0][1].split("Passages:")[0]
+    assert "length_includes_power_head" not in variables
+    assert "unit_length_m" in variables
+
+
+STEP_PASSAGE = passage(
+    "(2) Internal steps for external access shall have a minimum depth of 240 mm between the "
+    "vertical edges of the step and a maximum height of 200 mm. The height of each step may be "
+    "increased to a maximum of 230 mm if it can be demonstrated that this achieves a reduction "
+    "of one in the total number of steps required.",
+    id_="tsi-prm:Annex §4.2.2.11.2#1",
+    section="Annex §4.2.2.11.2",
+)
+EXCEPTION_QUOTE = (
+    "The height of each step may be increased to a maximum of 230 mm if it can be demonstrated "
+    "that this achieves a reduction of one in the total number of steps required."
+)
+
+
+def exception_draft(contingency):
+    rule = RequirementCore(
+        parameter="steps.internal_step_height_mm", subject="internal_step", comparator="<=",
+        value=230, unit="mm", contingency=contingency,
+    )  # fmt: skip
+    return RequirementDraft(
+        found=True, passage_id=STEP_PASSAGE.id, quote=EXCEPTION_QUOTE, rule=rule
+    )
+
+
+def test_an_exception_keeps_its_contingency_on_the_requirement():
+    # run 01 g03/g16: the 230 mm exception was extracted as an unconditional rule
+    draft = exception_draft("a demonstrated reduction of one in the total number of steps")
+    result, _ = run(draft, passages=(STEP_PASSAGE,), parameter="steps.internal_step_height_mm")
+    assert result.status == "found"
+    assert (
+        result.requirement.contingency
+        == "a demonstrated reduction of one in the total number of steps"
+    )
+
+
+def test_a_contingency_the_quote_does_not_support_is_unverified():
+    draft = exception_draft("an inspection by the national authority")
+    draft = draft.model_copy(update={"quote": "a maximum height of 200 mm"})
+    result, _ = run(draft, passages=(STEP_PASSAGE,), parameter="steps.internal_step_height_mm")
+    assert result.status == "unverified"
+    assert "contingency" in result.reason
