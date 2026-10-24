@@ -73,3 +73,7 @@ def test_replay_needs_a_file(tmp_path):
     recorded = tmp_path / "r.json"
     recorded.write_text("{}", encoding="utf-8")
     assert isinstance(make_search_backend(s, replay_file=recorded), ReplayBackend)
+
+
+def test_the_default_request_rate_stays_under_the_free_tier_limit_of_15_a_minute():
+    assert 0 < Settings(_env_file=None).llm_requests_per_minute <= 14

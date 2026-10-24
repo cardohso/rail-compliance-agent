@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     groq_api_key: SecretStr = SecretStr("")
     agent_provider: Literal["gemini", "groq"] = "gemini"
     agent_model: str = ""  # empty = provider default
+    # Gemini's free tier allows 15 requests a minute; stay under it. 0 = no client-side limit.
+    llm_requests_per_minute: int = 12
 
     search_backend: Literal["local", "live", "replay"] = "local"
     rail_rag_data_dir: Path = REPO_ROOT.parent / "rail-regulation-rag" / "data"

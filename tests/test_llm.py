@@ -141,3 +141,50 @@ def test_unparseable_model_output_becomes_a_structured_output_error():
 
     with pytest.raises(StructuredOutputError, match="both value and bands"):
         LangChainStructuredLLM(Broken(), "x").extract("s", "u", Answer)
+
+
+def test_every_model_call_waits_on_the_shared_throttle():
+    class Counting:
+        waits = 0
+
+        def wait(self):
+            Counting.waits += 1
+
+    chat = ScriptedChatModel(script=[ai(text="a"), ai(text="b")])
+    throttle = Counting()
+    llm = ChatAgentLLM(chat, [], "x", throttle=throttle)
+    llm.invoke([HumanMessage("h")])
+    llm.invoke([HumanMessage("h")])
+
+    class Structured:
+        def with_structured_output(self, schema):
+            return type("R", (), {"invoke": lambda self, msgs: schema(value=1)})()
+
+    LangChainStructuredLLM(Structured(), "x", throttle=throttle).extract("s", "u", Answer)
+    assert Counting.waits == 3
+
+
+def test_a_retried_call_waits_on_the_throttle_again(monkeypatch):
+    class RateLimited(Exception):
+        status_code = 429
+
+    waits = []
+
+    class Counting:
+        def wait(self):
+            waits.append(1)
+
+    chat = ScriptedChatModel(script=[ai(text="ok")])
+    original = chat._generate
+    attempts = []
+
+    def flaky(*a, **kw):
+        attempts.append(1)
+        if len(attempts) == 1:
+            raise RateLimited("x")
+        return original(*a, **kw)
+
+    monkeypatch.setattr(chat, "_generate", flaky)
+    monkeypatch.setattr("rail_compliance.retry.time.sleep", lambda s: None)
+    ChatAgentLLM(chat, [], "x", throttle=Counting()).invoke([HumanMessage("h")])
+    assert len(waits) == 2

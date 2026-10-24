@@ -23,6 +23,7 @@ from pydantic import BaseModel
 
 from rail_compliance.config import Settings
 from rail_compliance.retry import with_retries
+from rail_compliance.throttle import Throttle
 from rail_compliance.tools.extract import StructuredOutputError
 
 DEFAULT_MODELS = {"gemini": "gemini-3.5-flash-lite", "groq": "openai/gpt-oss-120b"}
@@ -42,12 +43,23 @@ class AgentLLM(Protocol):
 class ChatAgentLLM:
     """A chat model with the agent's tools bound. Tool calls come back on `AIMessage.tool_calls`."""
 
-    def __init__(self, chat_model: BaseChatModel, tools: Sequence[BaseTool], name: str):
+    def __init__(
+        self,
+        chat_model: BaseChatModel,
+        tools: Sequence[BaseTool],
+        name: str,
+        throttle: Throttle | None = None,
+    ):
         self.name = name
         self._model = chat_model.bind_tools(list(tools))
+        self._throttle = throttle or Throttle(0)
+
+    def _call(self, messages: Sequence[BaseMessage]):
+        self._throttle.wait()  # every attempt, retries included, counts against the quota
+        return self._model.invoke(list(messages))
 
     def invoke(self, messages: Sequence[BaseMessage]) -> AIMessage:
-        reply = with_retries(lambda: self._model.invoke(list(messages)))
+        reply = with_retries(lambda: self._call(messages))
         if not isinstance(reply, AIMessage):
             raise TypeError(f"expected an AIMessage, got {type(reply).__name__}")
         return reply
@@ -56,14 +68,19 @@ class ChatAgentLLM:
 class LangChainStructuredLLM:
     """Implements `StructuredLLM` with the model's structured-output mode."""
 
-    def __init__(self, chat_model: BaseChatModel, name: str):
+    def __init__(self, chat_model: BaseChatModel, name: str, throttle: Throttle | None = None):
         self.name = name
         self._model = chat_model
+        self._throttle = throttle or Throttle(0)
+
+    def _call(self, runnable, system: str, user: str):
+        self._throttle.wait()
+        return runnable.invoke([("system", system), ("human", user)])
 
     def extract[T: BaseModel](self, system: str, user: str, schema: type[T]) -> T:
         runnable = self._model.with_structured_output(schema)
         try:
-            reply = with_retries(lambda: runnable.invoke([("system", system), ("human", user)]))
+            reply = with_retries(lambda: self._call(runnable, system, user))
         except OutputParserException as exc:
             raise StructuredOutputError(str(exc)) from exc
         return reply if isinstance(reply, schema) else schema.model_validate(reply)

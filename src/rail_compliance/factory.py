@@ -14,6 +14,7 @@ from rail_compliance.llm import (
     LangChainStructuredLLM,
     make_chat_model,
 )
+from rail_compliance.throttle import Throttle
 from rail_compliance.tools.search import (
     CachingBackend,
     LiveBackend,
@@ -48,8 +49,9 @@ def build_agent(
     max_calls: int = 10,
 ) -> ComplianceAgent:
     chat, name = make_chat_model(settings)
-    llm = ChatAgentLLM(chat, tool_definitions(), name)
-    extractor = LangChainStructuredLLM(chat, name)
+    throttle = Throttle(settings.llm_requests_per_minute)  # shared: both roles use one quota
+    llm = ChatAgentLLM(chat, tool_definitions(), name, throttle)
+    extractor = LangChainStructuredLLM(chat, name, throttle)
     if use_cache:
         llm = CachedAgentLLM(llm, settings.llm_cache_dir)
         extractor = CachedStructuredLLM(extractor, settings.llm_cache_dir)
