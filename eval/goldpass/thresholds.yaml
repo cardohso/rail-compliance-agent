@@ -1,0 +1,8 @@
+# Retrieval, citation and grounding gate, run by goldpass over the passages the agent consulted
+# and cited (one golden item per scored parameter). Set on 2026-10-24 before the first full run.
+# Escalation is not scored here: needs_human is measured by this repo's own metrics.
+metrics:
+  recall_at_k:  {min: 0.85}   # the passage holding the rule was among those the agent retrieved
+  hit_rate:     {min: 0.90}   # at least one gold passage was retrieved
+  grounding:    {min: 0.95, min_n: 10}   # every cited document is the PRM TSI
+  errors:       {max: 0}

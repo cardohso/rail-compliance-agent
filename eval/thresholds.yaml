@@ -1,0 +1,28 @@
+# Quality gate for the tool-use evaluation (eval.yml fails the build below these numbers).
+#
+# SET ON 2026-10-24, BEFORE THE FIRST FULL EVALUATION RUN, and not tuned to its results.
+# If a later run fails a threshold, either fix the agent or change a number in a commit that
+# says why: the history of this file is the record.
+#
+# Basis (expectations, not measurements):
+#  - a 3-spec smoke run matched 21 of 21 hand-checked verdicts, so ordinary cases should pass;
+#  - the golden set deliberately holds cases I expect the current agent to miss (g10, g19, and
+#    probably g03/g16), 43 scored verdicts in all, so about 4-6 misses are plausible: 0.80 leaves
+#    room for 8 wrong verdicts;
+#  - only 5 verdicts expect needs_human, so one case moves recall by 0.20: its floor is low and
+#    says little beyond "it escalates sometimes";
+#  - a compliance tool is judged mostly on false passes, so that rate has its own tight limit.
+metrics:
+  verdict_accuracy:        {min: 0.80}   # agent verdict == golden verdict, over all scored parameters
+  unsafe_pass_rate:        {max: 0.05}   # says "pass" where the golden verdict is fail or needs_human
+  needs_human_recall:      {min: 0.40}   # of the expected escalations, the share it escalated
+  needs_human_precision:   {min: 0.60}   # of its escalations, the share that were expected
+  tool_selection_accuracy: {min: 0.80}   # expected tools called, in order (search, extract, check/needs_human)
+  argument_correctness:    {min: 0.95}   # check() called with the right parameter and the spec's value
+  citation_hit_rate:       {min: 0.90}   # a cited passage is the gold passage that holds the rule
+  tool_calls_per_parameter: {max: 6.0}   # cost guard: mean agent tool calls per scored parameter
+  errors:                  {max: 0}      # a spec whose run crashed counts as an error, not a miss
+tags:
+  exact-limit:     {verdict_accuracy: {min: 0.85}}   # values exactly at a limit: arithmetic, no excuse
+  table-boundary:  {verdict_accuracy: {min: 0.85}}
+# Not gated: latency and model calls per spec. They depend on the free tier's rate limit.
