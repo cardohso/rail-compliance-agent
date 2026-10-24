@@ -611,8 +611,8 @@ def review(cases: list[GoldenCase]) -> str:
         "# Golden set: review draft",
         "",
         "Written by hand from the text of the PRM TSI (Regulation (EU) No 1300/2014, point 4.2.2 "
-        "and 5.3.2) by one reviewer (the author, with Claude drafting). **Not yet reviewed by "
-        "anyone else, and not yet used by any evaluation.**",
+        "and 5.3.2): drafted with Claude, reviewed by the repository owner, who confirmed the four "
+        "judgment calls below on 2026-10-24. One reviewer only.",
         "",
         f"**{len(cases)} specs, {n_params} scored parameter verdicts:** "
         + ", ".join(f"{n} {v.replace('_', ' ')}" for v, n in sorted(verdicts.items()))
@@ -638,7 +638,7 @@ def review(cases: list[GoldenCase]) -> str:
         "rolling stock for platforms below 380 mm skip the step rules (2) and (5); the spec has no "
         "platform height, so a step above the limit is a `fail`, not `needs_human`.",
         "",
-        "## Judgment calls: please decide",
+        "## Judgment calls (confirmed as drafted)",
         "",
         "- **g13** design speed exactly 250 km/h: I expect `pass` (literal reading of 'lower than "
         "250 km/h'). Alternative: `needs_human` because the boundary may be unintended.",

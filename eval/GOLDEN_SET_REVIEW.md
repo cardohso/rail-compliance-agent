@@ -1,6 +1,6 @@
 # Golden set: review draft
 
-Written by hand from the text of the PRM TSI (Regulation (EU) No 1300/2014, point 4.2.2 and 5.3.2) by one reviewer (the author, with Claude drafting). **Not yet reviewed by anyone else, and not yet used by any evaluation.**
+Written by hand from the text of the PRM TSI (Regulation (EU) No 1300/2014, point 4.2.2 and 5.3.2): drafted with Claude, reviewed by the repository owner, who confirmed the four judgment calls below on 2026-10-24. One reviewer only.
 
 **20 specs, 43 scored parameter verdicts:** 16 fail, 5 needs human, 1 not applicable, 21 pass.
 
@@ -11,7 +11,7 @@ Written by hand from the text of the PRM TSI (Regulation (EU) No 1300/2014, poin
 3. **Only the listed parameters are scored per spec.** The report always has 7 parameters; those a spec does not supply are `needs_human` (missing data) by construction, decided in code without a model call, and are not scored here.
 4. **Exemptions that need data the spec lacks are not applied.** 4.2.2.11.2(8) lets some rolling stock for platforms below 380 mm skip the step rules (2) and (5); the spec has no platform height, so a step above the limit is a `fail`, not `needs_human`.
 
-## Judgment calls: please decide
+## Judgment calls (confirmed as drafted)
 
 - **g13** design speed exactly 250 km/h: I expect `pass` (literal reading of 'lower than 250 km/h'). Alternative: `needs_human` because the boundary may be unintended.
 - **g03 / g16** internal step in (200, 230] mm: I expect `needs_human` (the exception needs a demonstration). Alternative: `fail` against the 200 mm default.
