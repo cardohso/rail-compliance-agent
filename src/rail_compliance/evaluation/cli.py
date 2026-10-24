@@ -95,6 +95,14 @@ def main(argv: list[str] | None = None, build: Callable = build_agent) -> int:
         )
         print((args.out / "summary.md").read_text(encoding="utf-8"))
         return 0 if (passed(checks) or not args.gate) else 1
-    except (ValueError, ThresholdError, ConfigError, SearchError, LLMUnavailable) as exc:
+    except LLMUnavailable as exc:
+        print(f"error: {exc}")
+        print(
+            "The provider is out of quota or unavailable. Nothing was scored. Every call that did "
+            "succeed is cached, so run the same command again later (or with another API key) and "
+            "it resumes where it stopped without repeating them."
+        )
+        return 2
+    except (ValueError, ThresholdError, ConfigError, SearchError) as exc:
         print(f"error: {exc}")
         return 2

@@ -1,0 +1,832 @@
+{
+  "meta": {
+    "model": "gemini:gemini-3.5-flash-lite",
+    "search": "local",
+    "cases": [
+      "g01",
+      "g02",
+      "g03",
+      "g04",
+      "g05",
+      "g06",
+      "g07"
+    ]
+  },
+  "metrics": {
+    "n_cases": 7,
+    "n_items": 18,
+    "errors": 0,
+    "rates": {
+      "verdict_accuracy": {
+        "value": 1.0,
+        "k": 18,
+        "n": 18,
+        "low": 0.8241,
+        "high": 1.0
+      },
+      "unsafe_pass_rate": {
+        "value": 0.0,
+        "k": 0,
+        "n": 18,
+        "low": 0.0,
+        "high": 0.1759
+      },
+      "needs_human_recall": {
+        "value": 1.0,
+        "k": 1,
+        "n": 1,
+        "low": 0.2065,
+        "high": 1.0
+      },
+      "needs_human_precision": {
+        "value": 1.0,
+        "k": 1,
+        "n": 1,
+        "low": 0.2065,
+        "high": 1.0
+      },
+      "tool_selection_accuracy": {
+        "value": 1.0,
+        "k": 18,
+        "n": 18,
+        "low": 0.8241,
+        "high": 1.0
+      },
+      "argument_correctness": {
+        "value": 1.0,
+        "k": 22,
+        "n": 22,
+        "low": 0.8513,
+        "high": 1.0
+      },
+      "citation_hit_rate": {
+        "value": 1.0,
+        "k": 18,
+        "n": 18,
+        "low": 0.8241,
+        "high": 1.0
+      }
+    },
+    "tool_calls_per_parameter": 3.4444444444444446,
+    "by_tag": {
+      "baseline": {
+        "verdict_accuracy": {
+          "value": 1.0,
+          "k": 7,
+          "n": 7,
+          "low": 0.6457,
+          "high": 1.0
+        },
+        "unsafe_pass_rate": {
+          "value": 0.0,
+          "k": 0,
+          "n": 7,
+          "low": 0.0,
+          "high": 0.3543
+        },
+        "needs_human_recall": {
+          "value": null,
+          "k": 0,
+          "n": 0,
+          "low": null,
+          "high": null
+        },
+        "needs_human_precision": {
+          "value": null,
+          "k": 0,
+          "n": 0,
+          "low": null,
+          "high": null
+        },
+        "tool_selection_accuracy": {
+          "value": 1.0,
+          "k": 7,
+          "n": 7,
+          "low": 0.6457,
+          "high": 1.0
+        },
+        "argument_correctness": {
+          "value": 1.0,
+          "k": 8,
+          "n": 8,
+          "low": 0.6756,
+          "high": 1.0
+        },
+        "citation_hit_rate": {
+          "value": 1.0,
+          "k": 7,
+          "n": 7,
+          "low": 0.6457,
+          "high": 1.0
+        }
+      },
+      "exact-limit": {
+        "verdict_accuracy": {
+          "value": 1.0,
+          "k": 5,
+          "n": 5,
+          "low": 0.5655,
+          "high": 1.0
+        },
+        "unsafe_pass_rate": {
+          "value": 0.0,
+          "k": 0,
+          "n": 5,
+          "low": 0.0,
+          "high": 0.4345
+        },
+        "needs_human_recall": {
+          "value": 1.0,
+          "k": 1,
+          "n": 1,
+          "low": 0.2065,
+          "high": 1.0
+        },
+        "needs_human_precision": {
+          "value": 1.0,
+          "k": 1,
+          "n": 1,
+          "low": 0.2065,
+          "high": 1.0
+        },
+        "tool_selection_accuracy": {
+          "value": 1.0,
+          "k": 5,
+          "n": 5,
+          "low": 0.5655,
+          "high": 1.0
+        },
+        "argument_correctness": {
+          "value": 1.0,
+          "k": 6,
+          "n": 6,
+          "low": 0.6097,
+          "high": 1.0
+        },
+        "citation_hit_rate": {
+          "value": 1.0,
+          "k": 5,
+          "n": 5,
+          "low": 0.5655,
+          "high": 1.0
+        }
+      },
+      "exception": {
+        "verdict_accuracy": {
+          "value": 1.0,
+          "k": 1,
+          "n": 1,
+          "low": 0.2065,
+          "high": 1.0
+        },
+        "unsafe_pass_rate": {
+          "value": 0.0,
+          "k": 0,
+          "n": 1,
+          "low": 0.0,
+          "high": 0.7935
+        },
+        "needs_human_recall": {
+          "value": 1.0,
+          "k": 1,
+          "n": 1,
+          "low": 0.2065,
+          "high": 1.0
+        },
+        "needs_human_precision": {
+          "value": 1.0,
+          "k": 1,
+          "n": 1,
+          "low": 0.2065,
+          "high": 1.0
+        },
+        "tool_selection_accuracy": {
+          "value": 1.0,
+          "k": 1,
+          "n": 1,
+          "low": 0.2065,
+          "high": 1.0
+        },
+        "argument_correctness": {
+          "value": 1.0,
+          "k": 2,
+          "n": 2,
+          "low": 0.3424,
+          "high": 1.0
+        },
+        "citation_hit_rate": {
+          "value": 1.0,
+          "k": 1,
+          "n": 1,
+          "low": 0.2065,
+          "high": 1.0
+        }
+      },
+      "length-dependent": {
+        "verdict_accuracy": {
+          "value": 1.0,
+          "k": 10,
+          "n": 10,
+          "low": 0.7225,
+          "high": 1.0
+        },
+        "unsafe_pass_rate": {
+          "value": 0.0,
+          "k": 0,
+          "n": 10,
+          "low": 0.0,
+          "high": 0.2775
+        },
+        "needs_human_recall": {
+          "value": null,
+          "k": 0,
+          "n": 0,
+          "low": null,
+          "high": null
+        },
+        "needs_human_precision": {
+          "value": null,
+          "k": 0,
+          "n": 0,
+          "low": null,
+          "high": null
+        },
+        "tool_selection_accuracy": {
+          "value": 1.0,
+          "k": 10,
+          "n": 10,
+          "low": 0.7225,
+          "high": 1.0
+        },
+        "argument_correctness": {
+          "value": 1.0,
+          "k": 12,
+          "n": 12,
+          "low": 0.7575,
+          "high": 1.0
+        },
+        "citation_hit_rate": {
+          "value": 1.0,
+          "k": 10,
+          "n": 10,
+          "low": 0.7225,
+          "high": 1.0
+        }
+      },
+      "needs-human": {
+        "verdict_accuracy": {
+          "value": 1.0,
+          "k": 1,
+          "n": 1,
+          "low": 0.2065,
+          "high": 1.0
+        },
+        "unsafe_pass_rate": {
+          "value": 0.0,
+          "k": 0,
+          "n": 1,
+          "low": 0.0,
+          "high": 0.7935
+        },
+        "needs_human_recall": {
+          "value": 1.0,
+          "k": 1,
+          "n": 1,
+          "low": 0.2065,
+          "high": 1.0
+        },
+        "needs_human_precision": {
+          "value": 1.0,
+          "k": 1,
+          "n": 1,
+          "low": 0.2065,
+          "high": 1.0
+        },
+        "tool_selection_accuracy": {
+          "value": 1.0,
+          "k": 1,
+          "n": 1,
+          "low": 0.2065,
+          "high": 1.0
+        },
+        "argument_correctness": {
+          "value": 1.0,
+          "k": 2,
+          "n": 2,
+          "low": 0.3424,
+          "high": 1.0
+        },
+        "citation_hit_rate": {
+          "value": 1.0,
+          "k": 1,
+          "n": 1,
+          "low": 0.2065,
+          "high": 1.0
+        }
+      },
+      "table-boundary": {
+        "verdict_accuracy": {
+          "value": 1.0,
+          "k": 4,
+          "n": 4,
+          "low": 0.5101,
+          "high": 1.0
+        },
+        "unsafe_pass_rate": {
+          "value": 0.0,
+          "k": 0,
+          "n": 4,
+          "low": 0.0,
+          "high": 0.4899
+        },
+        "needs_human_recall": {
+          "value": null,
+          "k": 0,
+          "n": 0,
+          "low": null,
+          "high": null
+        },
+        "needs_human_precision": {
+          "value": null,
+          "k": 0,
+          "n": 0,
+          "low": null,
+          "high": null
+        },
+        "tool_selection_accuracy": {
+          "value": 1.0,
+          "k": 4,
+          "n": 4,
+          "low": 0.5101,
+          "high": 1.0
+        },
+        "argument_correctness": {
+          "value": 1.0,
+          "k": 4,
+          "n": 4,
+          "low": 0.5101,
+          "high": 1.0
+        },
+        "citation_hit_rate": {
+          "value": 1.0,
+          "k": 4,
+          "n": 4,
+          "low": 0.5101,
+          "high": 1.0
+        }
+      },
+      "violation": {
+        "verdict_accuracy": {
+          "value": 1.0,
+          "k": 6,
+          "n": 6,
+          "low": 0.6097,
+          "high": 1.0
+        },
+        "unsafe_pass_rate": {
+          "value": 0.0,
+          "k": 0,
+          "n": 6,
+          "low": 0.0,
+          "high": 0.3903
+        },
+        "needs_human_recall": {
+          "value": null,
+          "k": 0,
+          "n": 0,
+          "low": null,
+          "high": null
+        },
+        "needs_human_precision": {
+          "value": null,
+          "k": 0,
+          "n": 0,
+          "low": null,
+          "high": null
+        },
+        "tool_selection_accuracy": {
+          "value": 1.0,
+          "k": 6,
+          "n": 6,
+          "low": 0.6097,
+          "high": 1.0
+        },
+        "argument_correctness": {
+          "value": 1.0,
+          "k": 8,
+          "n": 8,
+          "low": 0.6756,
+          "high": 1.0
+        },
+        "citation_hit_rate": {
+          "value": 1.0,
+          "k": 6,
+          "n": 6,
+          "low": 0.6097,
+          "high": 1.0
+        }
+      }
+    },
+    "confusion": {
+      "fail": {
+        "fail": 8
+      },
+      "needs_human": {
+        "needs_human": 1
+      },
+      "pass": {
+        "pass": 9
+      }
+    },
+    "per_spec": {
+      "tool_calls_mean": 8.857142857142858,
+      "model_calls_mean": 10.857142857142858,
+      "seconds_mean": 18.832428571428572,
+      "seconds_p50": 8.709,
+      "seconds_p95": 45.42169999999999
+    }
+  },
+  "items": [
+    {
+      "case": "g01",
+      "parameter": "wheelchair_spaces",
+      "tags": [
+        "baseline"
+      ],
+      "expected": "pass",
+      "verdict": "pass",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-prm:Annex §4.2.2.2#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "g01",
+      "parameter": "exterior_doors.clear_width_mm",
+      "tags": [
+        "baseline"
+      ],
+      "expected": "pass",
+      "verdict": "pass",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-prm:Annex §4.2.2.3.2#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "g01",
+      "parameter": "exterior_doors.wheelchair_door_clear_width_mm",
+      "tags": [
+        "baseline"
+      ],
+      "expected": "pass",
+      "verdict": "pass",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 5,
+      "check_calls": 2,
+      "correct_check_calls": 2,
+      "cited": [
+        "tsi-prm:Annex §4.2.2.3.2#1",
+        "tsi-prm:Annex §4.2.2.3.2#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "g01",
+      "parameter": "steps.external_step_height_mm",
+      "tags": [
+        "baseline"
+      ],
+      "expected": "pass",
+      "verdict": "pass",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-prm:Annex §4.2.2.11.2#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "g01",
+      "parameter": "steps.internal_step_height_mm",
+      "tags": [
+        "baseline"
+      ],
+      "expected": "pass",
+      "verdict": "pass",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-prm:Annex §4.2.2.11.2#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "g01",
+      "parameter": "toilets.universal",
+      "tags": [
+        "baseline"
+      ],
+      "expected": "pass",
+      "verdict": "pass",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-prm:Annex §4.2.2.5#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "g01",
+      "parameter": "toilets.universal_door_clear_width_mm",
+      "tags": [
+        "baseline"
+      ],
+      "expected": "pass",
+      "verdict": "pass",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-prm:Annex §5.3.2.4#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "g02",
+      "parameter": "wheelchair_spaces",
+      "tags": [
+        "violation",
+        "length-dependent"
+      ],
+      "expected": "fail",
+      "verdict": "fail",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-prm:Annex §4.2.2.2#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "g02",
+      "parameter": "exterior_doors.clear_width_mm",
+      "tags": [
+        "violation",
+        "length-dependent"
+      ],
+      "expected": "fail",
+      "verdict": "fail",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-prm:Annex §4.2.2.3.2#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "g02",
+      "parameter": "exterior_doors.wheelchair_door_clear_width_mm",
+      "tags": [
+        "violation",
+        "length-dependent"
+      ],
+      "expected": "fail",
+      "verdict": "fail",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 5,
+      "check_calls": 2,
+      "correct_check_calls": 2,
+      "cited": [
+        "tsi-prm:Annex §4.2.2.3.2#1",
+        "tsi-prm:Annex §4.2.2.3.2#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "g02",
+      "parameter": "steps.external_step_height_mm",
+      "tags": [
+        "violation",
+        "length-dependent"
+      ],
+      "expected": "fail",
+      "verdict": "fail",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-prm:Annex §4.2.2.11.2#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "g02",
+      "parameter": "steps.internal_step_height_mm",
+      "tags": [
+        "violation",
+        "length-dependent"
+      ],
+      "expected": "fail",
+      "verdict": "fail",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 5,
+      "check_calls": 2,
+      "correct_check_calls": 2,
+      "cited": [
+        "tsi-prm:Annex §4.2.2.11.2#1",
+        "tsi-prm:Annex §4.2.2.11.2#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "g02",
+      "parameter": "toilets.universal",
+      "tags": [
+        "violation",
+        "length-dependent"
+      ],
+      "expected": "fail",
+      "verdict": "fail",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-prm:Annex §4.2.2.5#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "g03",
+      "parameter": "steps.internal_step_height_mm",
+      "tags": [
+        "needs-human",
+        "exception",
+        "exact-limit"
+      ],
+      "expected": "needs_human",
+      "verdict": "needs_human",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 5,
+      "check_calls": 2,
+      "correct_check_calls": 2,
+      "cited": [
+        "tsi-prm:Annex §4.2.2.11.2#1",
+        "tsi-prm:Annex §4.2.2.11.2#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "g04",
+      "parameter": "wheelchair_spaces",
+      "tags": [
+        "table-boundary",
+        "length-dependent",
+        "exact-limit"
+      ],
+      "expected": "fail",
+      "verdict": "fail",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-prm:Annex §4.2.2.2#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "g05",
+      "parameter": "wheelchair_spaces",
+      "tags": [
+        "table-boundary",
+        "length-dependent",
+        "exact-limit"
+      ],
+      "expected": "pass",
+      "verdict": "pass",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-prm:Annex §4.2.2.2#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "g06",
+      "parameter": "wheelchair_spaces",
+      "tags": [
+        "table-boundary",
+        "length-dependent",
+        "exact-limit"
+      ],
+      "expected": "pass",
+      "verdict": "pass",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-prm:Annex §4.2.2.2#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "g07",
+      "parameter": "wheelchair_spaces",
+      "tags": [
+        "table-boundary",
+        "length-dependent",
+        "exact-limit"
+      ],
+      "expected": "fail",
+      "verdict": "fail",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-prm:Annex §4.2.2.2#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    }
+  ],
+  "errors": {}
+}

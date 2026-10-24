@@ -221,3 +221,18 @@ def test_cli_records_a_crashed_case_as_an_error_in_the_results(tmp_path):
     )
     payload = json.loads((out / "metrics.json").read_text("utf-8"))
     assert payload["metrics"]["errors"] == 1 and "kaboom" in payload["errors"]["g04"]
+
+
+def test_cli_explains_how_to_resume_after_the_provider_runs_out_of_quota(tmp_path, capsys):
+    class Outage:
+        def run(self, spec):
+            raise LLMUnavailable("429 RESOURCE_EXHAUSTED: requests per day")
+
+    code = cli.main(
+        ["run", "--cases", "g04", "--out", str(tmp_path / "run")], build=lambda s, **k: Outage()
+    )
+    text = capsys.readouterr().out
+    assert code == 2
+    assert "RESOURCE_EXHAUSTED" in text
+    assert "cached" in text and "same command" in text
+    assert not (tmp_path / "run" / "metrics.json").exists()  # no results from a partial run
