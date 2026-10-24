@@ -1,0 +1,15 @@
+{
+  "name": "High-speed train with missing and ambiguous data",
+  "description": "Example: design speed is not supplied although the wheelchair door width rule depends on it, and the unit length includes a power head so it is not on the TSI's basis.",
+  "unit_length_m": 210.0,
+  "length_includes_power_head": true,
+  "wheelchair_spaces": 3,
+  "exterior_doors": {
+    "clear_width_mm": 900,
+    "wheelchair_door_clear_width_mm": 900,
+    "wheelchair_door_level_access": true
+  },
+  "steps": {
+    "external_step_height_mm": 220
+  }
+}

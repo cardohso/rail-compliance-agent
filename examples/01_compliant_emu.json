@@ -1,0 +1,22 @@
+{
+  "name": "Regional EMU, compliant on every supplied parameter",
+  "description": "Example: a 105 m electric multiple unit that meets each rule the spec supplies. No value sits on a limit.",
+  "unit_length_m": 105.0,
+  "length_includes_power_head": false,
+  "design_speed_kmh": 160,
+  "wheelchair_spaces": 2,
+  "exterior_doors": {
+    "clear_width_mm": 850,
+    "wheelchair_door_clear_width_mm": 1100,
+    "wheelchair_door_level_access": true
+  },
+  "steps": {
+    "external_step_height_mm": 200,
+    "internal_step_height_mm": 180
+  },
+  "toilets": {
+    "fitted": 2,
+    "universal": 1,
+    "universal_door_clear_width_mm": 900
+  }
+}

@@ -1,0 +1,261 @@
+{
+  "$defs": {
+    "ExteriorDoors": {
+      "additionalProperties": false,
+      "properties": {
+        "clear_width_mm": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 5000,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Minimum clear useable width, when open, of the narrowest exterior passenger doorway.",
+          "title": "Clear Width Mm"
+        },
+        "wheelchair_door_clear_width_mm": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 5000,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Minimum clear useable width, when open, of the doorways designated for wheelchair access.",
+          "title": "Wheelchair Door Clear Width Mm"
+        },
+        "wheelchair_door_level_access": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Whether the wheelchair access doorways give level access as the TSI defines it (gap to the platform at most 75 mm horizontal and 50 mm vertical, no internal step between sill and vestibule).",
+          "title": "Wheelchair Door Level Access"
+        }
+      },
+      "title": "ExteriorDoors",
+      "type": "object"
+    },
+    "Steps": {
+      "additionalProperties": false,
+      "properties": {
+        "external_step_height_mm": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 5000,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Height of the highest external access step, fixed or moveable.",
+          "title": "External Step Height Mm"
+        },
+        "internal_step_height_mm": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 5000,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Height of the highest internal step used for external access.",
+          "title": "Internal Step Height Mm"
+        }
+      },
+      "title": "Steps",
+      "type": "object"
+    },
+    "Toilets": {
+      "additionalProperties": false,
+      "properties": {
+        "fitted": {
+          "anyOf": [
+            {
+              "maximum": 50,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Toilets fitted in the unit.",
+          "title": "Fitted"
+        },
+        "universal": {
+          "anyOf": [
+            {
+              "maximum": 50,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Of those, toilets designed as universal toilets.",
+          "title": "Universal"
+        },
+        "universal_door_clear_width_mm": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 5000,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Clear useable width of the universal toilet access door.",
+          "title": "Universal Door Clear Width Mm"
+        }
+      },
+      "title": "Toilets",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "spec_version": {
+      "default": "1",
+      "description": "Version of this spec format.",
+      "title": "Spec Version",
+      "type": "string"
+    },
+    "name": {
+      "description": "Label for reports.",
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "description": {
+      "anyOf": [
+        {
+          "maxLength": 500,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Description"
+    },
+    "unit_length_m": {
+      "description": "Length of the unit in metres, excluding any locomotive or power head (the basis the TSI uses for the wheelchair-space table).",
+      "exclusiveMinimum": 0,
+      "maximum": 500,
+      "title": "Unit Length M",
+      "type": "number"
+    },
+    "length_includes_power_head": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Set true if unit_length_m includes a locomotive or power head: the length is then not on the TSI's basis.",
+      "title": "Length Includes Power Head"
+    },
+    "design_speed_kmh": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "maximum": 500,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Design speed of the train in km/h.",
+      "title": "Design Speed Kmh"
+    },
+    "wheelchair_spaces": {
+      "anyOf": [
+        {
+          "maximum": 50,
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Accessible wheelchair spaces in the unit.",
+      "title": "Wheelchair Spaces"
+    },
+    "exterior_doors": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ExteriorDoors"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "steps": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Steps"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "toilets": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Toilets"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "name",
+    "unit_length_m"
+  ],
+  "title": "TrainSpec",
+  "type": "object"
+}

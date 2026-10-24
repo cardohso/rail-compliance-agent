@@ -1,0 +1,21 @@
+{
+  "name": "Regional train with several violations",
+  "description": "Example: a 120 m unit with too few wheelchair spaces, a narrow door, a wheelchair door below the level-access minimum, a tall external step and toilets but no universal toilet.",
+  "unit_length_m": 120.0,
+  "length_includes_power_head": false,
+  "design_speed_kmh": 160,
+  "wheelchair_spaces": 1,
+  "exterior_doors": {
+    "clear_width_mm": 780,
+    "wheelchair_door_clear_width_mm": 900,
+    "wheelchair_door_level_access": true
+  },
+  "steps": {
+    "external_step_height_mm": 250,
+    "internal_step_height_mm": 190
+  },
+  "toilets": {
+    "fitted": 2,
+    "universal": 0
+  }
+}

@@ -6,7 +6,9 @@ readme = "README.md"
 license = "MIT"
 authors = [{ name = "João Pedro Cardoso" }]
 requires-python = ">=3.12,<3.13"
-dependencies = []
+dependencies = [
+    "pydantic>=2.14.1",
+]
 
 [dependency-groups]
 dev = [
