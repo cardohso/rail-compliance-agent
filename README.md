@@ -86,7 +86,8 @@ git clone https://github.com/cardohso/rail-compliance-agent
 cd rail-compliance-agent
 uv sync --group local
 
-# 2. get the rail assistant's corpus at the pinned commit and build its search index (about a minute)
+# 2. get the rail assistant's corpus at the pinned commit and build its search index
+#    (embeds ~1,600 passages on CPU: about 3 minutes, mostly the first-time model download and encoding)
 git clone https://github.com/cardohso/rail-regulation-rag ../rail-regulation-rag
 git -C ../rail-regulation-rag checkout d63cc5f37fcc93100b7bc25a61a63d4507d24248
 RAIL_RAG_DATA_DIR=../rail-regulation-rag/data uv run python -m rail_rag.index
@@ -97,6 +98,9 @@ cp .env.example .env     # then edit .env and set GEMINI_API_KEY=...
 # 4. check a spec
 uv run python -m rail_compliance check examples/02_noncompliant_regional.json
 ```
+
+I followed exactly these steps in a clean clone (no cache, no `.env`, no sibling folders) on
+2026-10-24 (macOS, uv 0.12, Python 3.12) and they work as written.
 
 This writes `reports/02_noncompliant_regional.json` and `.md` and prints a verdict per parameter. A
 check makes roughly 5 to 30 model requests (see [Cost](#cost-and-quota)). Without a key or the
@@ -128,7 +132,32 @@ drop a parameter. [`examples/`](examples) has three specs.
 Per parameter: verdict, requirement, spec value, citations (document, section, EUR-Lex link, the
 exact quote), plus the agent's tool-call trace and cost. Verdicts are `pass`, `fail`, `needs_human`,
 and `not_applicable` for a rule whose conditions are false for this spec (a toilet rule on a train
-with no toilets). EXAMPLE_PLACEHOLDER
+with no toilets).
+
+A real report, from a fresh clone running `examples/02_noncompliant_regional.json` with
+`gemini-3.5-flash-lite` (20 tool calls, 24 model calls, 51 s; abridged):
+
+```markdown
+# Compliance report: Regional train with several violations
+
+**Summary:** 1 pass, 5 fail, 1 needs human
+
+| Parameter | Spec value | Requirement | Verdict |
+|---|---|---|---|
+| `wheelchair_spaces` | 1 | ≥ 2 | **fail** |
+| `exterior_doors.clear_width_mm` | 780 mm | ≥ 800 mm | **fail** |
+| `exterior_doors.wheelchair_door_clear_width_mm` | 900 mm | ≥ 1000 mm; ≥ 800 mm | **fail** |
+| `steps.external_step_height_mm` | 250 mm | ≤ 230 mm | **fail** |
+| `steps.internal_step_height_mm` | 190 mm | ≤ 200 mm | **pass** |
+| `toilets.universal` | 0 | ≥ 1 | **fail** |
+| `toilets.universal_door_clear_width_mm` | not supplied | - | **needs human** |
+
+## `exterior_doors.wheelchair_door_clear_width_mm`: fail
+900 mm violates >= 1000 mm
+[PRM TSI, Annex §4.2.2.3.2](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:02014R1300-20230928):
+> (2) On trains with a design speed lower than 250 km/h, wheelchair access doors offering a level
+> access as defined in point 2.3 shall have a minimum clear useable width of 1 000 mm when open.
+```
 
 ## The tools
 
