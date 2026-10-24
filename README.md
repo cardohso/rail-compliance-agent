@@ -237,7 +237,9 @@ docker run --rm -p 8000:8000 --env-file .env rail-compliance-agent
 
 The image holds the rail assistant's corpus at a pinned commit with its vector index built at
 build time (so search needs no network), runs as a non-root user (uid 1000) and has a `HEALTHCHECK`.
-The model key is passed at run time, never baked in. **Not yet built or run by me:** there is no
+The model key is passed at run time, never baked in. Qdrant's local mode lets only one process open the
+index, so the API runs a single worker and nothing else (for example the MCP server) may open the same
+index at the same time in that container. **Not yet built or run by me:** there is no
 Docker on my development machine. The `docker` workflow builds the image on GitHub and probes it
 (non-root, `/health` ready, a spec settled without a model call, a search over the baked-in index,
 Docker's own health status); it has not run yet either, so treat this section as unverified until it

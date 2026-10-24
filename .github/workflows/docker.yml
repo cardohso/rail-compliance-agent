@@ -47,9 +47,11 @@ jobs:
           grep -q '"needs_human"' check.json
           grep -q 'Not legal advice' check.json
 
+      # A separate container: Qdrant's local mode lets only one process open an index, and the API
+      # in `app` already holds its copy.
       - name: The baked-in index answers a search (no network, no model)
         run: |
-          docker exec app python -c "
+          docker run --rm --network none --entrypoint python rail-compliance-agent:ci -c "
           from rail_compliance.tools.search import LocalBackend
           b = LocalBackend.from_rail_rag('/data/rail')
           r = b.search('minimum clear useable width of exterior passenger doorways', 5)
