@@ -7,7 +7,7 @@ A tool-using agent that checks a train design spec (JSON) against the EU PRM TSI
 [rail-regulation-rag](https://github.com/cardohso/rail-regulation-rag) as its regulation search
 tool, and evaluated on its tool use, not only on its final verdicts.
 
-**Status: work in progress.** The tools, agent, report, evaluation harness, API and MCP server are built and tested offline. The first full evaluation failed its gate and a second is part-way (see Evaluation); the Docker image is written but not yet built.
+**Status: work in progress.** The tools, agent, report, evaluation harness, API and MCP server are built and tested offline. The first full evaluation failed its gate, the fixes pass it on the same set (see Evaluation); the Docker image is written but not yet built.
 
 > Not legal advice. Reports are an engineering aid; conformity is assessed by a notified body.
 
@@ -138,15 +138,30 @@ uv run python -m rail_compliance.evaluation gate eval/results/local
 uv run goldpass run --config eval/goldpass/goldpass.yaml
 ```
 
-**Cost.** A fresh full run makes roughly 250-300 model requests (about 10 agent turns per spec plus
-the extraction calls; an estimate, not a meter). Gemini's free tier allows 500 requests per day per
+**Cost.** A fresh full run makes about 245 model requests (measured as the cache entries a full run leaves;
+retries after rate-limit errors may add a few). Gemini's free tier allows 500 requests per day per
 Google project for this model and 15 per minute, so about one fresh full run a day fits, and the
 CI workflow draws on the same key's quota. Every successful call is cached by its full prompt, so
 a run that stops on the quota resumes where it stopped (re-run the same command), and a re-run
 of unchanged code costs nothing. This happened during development: see
 [`eval/results/run-02-partial`](eval/results/run-02-partial/NOTE.md).
 
-**Results:** none yet. They go here from a real run, with nothing rounded up.
+**Results** (Gemini `gemini-3.5-flash-lite`, 20 specs, 43 verdicts; full tables and caveats in
+[`eval/results/run-02/RESULT.md`](eval/results/run-02/RESULT.md)):
+
+| | Run 01 (first run) | Run 02 (after fixes) | Required |
+|---|---|---|---|
+| verdict accuracy | 34/43 = 0.79 | 43/43 = 1.00 | ≥ 0.80 |
+| false passes (said pass, golden fail or needs_human) | 0/43 | 0/43 | ≤ 0.05 |
+| escalation recall / precision | 3/5 / 3/9 | 5/5 / 5/5 | ≥ 0.40 / ≥ 0.60 |
+| tool selection / argument correctness / citation hit | 43/43 / 59/59 / 43/43 | 43/43 / 56/56 / 43/43 | ≥ 0.80 / 0.95 / 0.90 |
+| quality gate | **failed** (4 checks) | passed | |
+
+Run 01 failed the gate and its nine misses are diagnosed in
+[`eval/results/run-01/DIAGNOSIS.md`](eval/results/run-01/DIAGNOSIS.md). The fixes were designed after
+reading those misses on this same set, so run 02 is a **development-set result**, not a measure of how
+the agent does on new specs. One run each; the model's sampling cannot be fixed, so a fresh run can
+differ.
 
 ## API
 

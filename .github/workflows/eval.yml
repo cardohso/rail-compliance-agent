@@ -4,7 +4,7 @@ name: eval
 # metric is below eval/thresholds.yaml (tool use, verdicts, escalation) or eval/goldpass/
 # thresholds.yaml (retrieval, citations, grounding). On pull requests and by hand, not on every
 # push, to stay inside the free tier's limits (15 requests a minute, 500 a day per Google project;
-# a fresh full run needs roughly 250-300 of them, so about one per day). Needs the repository secret GEMINI_API_KEY;
+# a fresh full run needs about 245 of them, so one per day). Needs the repository secret GEMINI_API_KEY;
 # pull requests from forks do not get secrets, so the job is skipped for them.
 on:
   pull_request:

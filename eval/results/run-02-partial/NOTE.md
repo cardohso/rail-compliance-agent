@@ -1,5 +1,7 @@
 # Run 02: PARTIAL (g01-g07 only), 2026-10-24
 
+> Superseded: the full run 02 finished after the quota reset; see `../run-02/RESULT.md`.
+
 The full run 02 stopped after 7 of 20 specs: Gemini's free tier allows 500 requests per day for
 this model, and the daily limit was reached ("retry in 4h59m"). Nothing was scored by the run
 itself. These numbers come from replaying g01-g07 from the cache (the calls were made during that
