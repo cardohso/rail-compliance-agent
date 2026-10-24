@@ -1,0 +1,36 @@
+{
+  "id": "h10",
+  "title": "Wheelchair door exactly 1000 mm, design speed not given",
+  "tags": [
+    "heldout",
+    "known-limit",
+    "judgment-call",
+    "missing-data"
+  ],
+  "why": "Whether the 1000 mm rule applies is unknown, but the door meets it either way. KNOWN LIMIT: the agent's check treats an unknown condition as needs_human.",
+  "spec": {
+    "spec_version": "1",
+    "name": "Wheelchair door exactly 1000 mm, design speed not given",
+    "unit_length_m": 100.0,
+    "exterior_doors": {
+      "wheelchair_door_clear_width_mm": 1000.0,
+      "wheelchair_door_level_access": true
+    }
+  },
+  "expected": {
+    "exterior_doors.wheelchair_door_clear_width_mm": {
+      "verdict": "pass",
+      "required": "≥ 1000 mm if design speed < 250 km/h, else ≥ 800 mm; 1000 mm meets both",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.3.2#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "If the speed is below 250 km/h, 4.2.2.3.2(2) applies and 1000 ≥ 1000; otherwise only (1) applies and 1000 ≥ 800. The outcome does not depend on the missing speed. Expected to be missed: `check` returns needs_human whenever a condition is unknown, even when both branches pass. A person would call it a pass; the tool is more cautious."
+    }
+  }
+}

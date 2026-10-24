@@ -1,0 +1,13 @@
+# Same metric floors as eval/thresholds.yaml, applied to the held-out set, with no tag slices (a tag
+# would hold one or two cases). Committed before the held-out set was run. With 19 verdicts one
+# miss moves accuracy by 5 points, so read the result as a measurement, not a pass/fail verdict.
+metrics:
+  verdict_accuracy:        {min: 0.80}
+  unsafe_pass_rate:        {max: 0.05}
+  needs_human_recall:      {min: 0.40}
+  needs_human_precision:   {min: 0.60}
+  tool_selection_accuracy: {min: 0.80}
+  argument_correctness:    {min: 0.95}
+  citation_hit_rate:       {min: 0.90}
+  tool_calls_per_parameter: {max: 6.0}
+  errors:                  {max: 0}

@@ -45,10 +45,10 @@ class GoldenCase(_Strict):
     expected: dict[str, Expected]
 
 
-def load_golden(directory: Path = GOLDEN_DIR) -> list[GoldenCase]:
+def load_golden(directory: Path = GOLDEN_DIR, pattern: str = "g*.json") -> list[GoldenCase]:
     return [
         GoldenCase.model_validate_json(p.read_text(encoding="utf-8"))
-        for p in sorted(directory.glob("g*.json"))
+        for p in sorted(Path(directory).glob(pattern))
     ]
 
 

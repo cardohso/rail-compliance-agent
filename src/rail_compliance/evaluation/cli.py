@@ -58,6 +58,9 @@ def main(argv: list[str] | None = None, build: Callable = build_agent) -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     run = sub.add_parser("run", help="run the agent on the golden set and score it")
     run.add_argument("--cases", help="comma-separated case ids (default: all)")
+    run.add_argument(
+        "--golden-dir", type=Path, help="score another set of cases (default: eval/specs)"
+    )
     run.add_argument("--out", type=Path, default=EVAL / "results" / "local")
     run.add_argument("--no-cache", action="store_true", help="ignore and do not write caches")
     run.add_argument("--thresholds", type=Path, default=EVAL / "thresholds.yaml")
@@ -69,7 +72,8 @@ def main(argv: list[str] | None = None, build: Callable = build_agent) -> int:
     args = ap.parse_args(argv)
 
     try:
-        cases = load_golden()
+        custom = getattr(args, "golden_dir", None)
+        cases = load_golden(custom, "*.json") if custom else load_golden()
         if args.cmd == "goldpass-golden":
             (EVAL / "goldpass" / "golden.jsonl").write_text(golden_jsonl(cases), encoding="utf-8")
             print(f"wrote {EVAL / 'goldpass' / 'golden.jsonl'}")

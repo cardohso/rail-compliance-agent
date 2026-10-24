@@ -1,0 +1,56 @@
+{
+  "id": "h08",
+  "title": "Both steps at 229.9 mm",
+  "tags": [
+    "heldout",
+    "needs-human",
+    "exception",
+    "exact-limit"
+  ],
+  "why": "229.9 mm meets the external step limit but exceeds the internal default, within the exception band.",
+  "spec": {
+    "spec_version": "1",
+    "name": "Both steps at 229.9 mm",
+    "unit_length_m": 100.0,
+    "steps": {
+      "external_step_height_mm": 229.9,
+      "internal_step_height_mm": 229.9
+    }
+  },
+  "expected": {
+    "steps.external_step_height_mm": {
+      "verdict": "pass",
+      "required": "≤ 230 mm",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.11.2#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.11.2(5): 229.9 ≤ 230."
+    },
+    "steps.internal_step_height_mm": {
+      "verdict": "needs_human",
+      "required": "≤ 200 mm, or ≤ 230 mm if it reduces the number of steps",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.11.2#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "needs_human"
+      ],
+      "alt_tools": [
+        [
+          "search_regulation",
+          "extract_requirement",
+          "check"
+        ]
+      ],
+      "rationale": "4.2.2.11.2(2): 229.9 exceeds 200 but not 230; allowed only if a reduction of one step is demonstrated, which the spec cannot show."
+    }
+  }
+}

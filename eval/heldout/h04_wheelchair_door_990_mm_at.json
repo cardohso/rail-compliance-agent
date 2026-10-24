@@ -1,0 +1,36 @@
+{
+  "id": "h04",
+  "title": "Wheelchair door 990 mm at 250.1 km/h",
+  "tags": [
+    "heldout",
+    "conditional-rule",
+    "exact-limit"
+  ],
+  "why": "Just above 250 km/h the 1000 mm rule no longer applies, so 990 mm meets the 800 mm rule.",
+  "spec": {
+    "spec_version": "1",
+    "name": "Wheelchair door 990 mm at 250.1 km/h",
+    "unit_length_m": 100.0,
+    "design_speed_kmh": 250.1,
+    "exterior_doors": {
+      "wheelchair_door_clear_width_mm": 990.0,
+      "wheelchair_door_level_access": true
+    }
+  },
+  "expected": {
+    "exterior_doors.wheelchair_door_clear_width_mm": {
+      "verdict": "pass",
+      "required": "≥ 800 mm (the 1000 mm rule needs a speed below 250)",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.3.2#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.3.2(2) does not apply at 250.1 km/h; 4.2.2.3.2(1): 990 ≥ 800."
+    }
+  }
+}
