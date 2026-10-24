@@ -7,7 +7,7 @@ A tool-using agent that checks a train design spec (JSON) against the EU PRM TSI
 [rail-regulation-rag](https://github.com/cardohso/rail-regulation-rag) as its regulation search
 tool, and evaluated on its tool use, not only on its final verdicts.
 
-**Status: work in progress.** The tools, agent and report are built and tested offline; the evaluation, API and MCP server are not built yet.
+**Status: work in progress.** The tools, agent, report, evaluation harness, API and MCP server are built and tested offline. The first full evaluation failed its gate and a second is part-way (see Evaluation); the Docker image is written but not yet built.
 
 > Not legal advice. Reports are an engineering aid; conformity is assessed by a notified body.
 
@@ -147,6 +147,87 @@ of unchanged code costs nothing. This happened during development: see
 [`eval/results/run-02-partial`](eval/results/run-02-partial/NOTE.md).
 
 **Results:** none yet. They go here from a real run, with nothing rounded up.
+
+## API
+
+```bash
+uv run uvicorn rail_compliance.api:create_app --factory --port 8000
+```
+
+`GET /health` always answers while the process is up; `ready` says whether `/check` can run (it
+needs a model key and the rail assistant's index). `POST /check` takes a spec and returns the
+report (`?format=markdown` for the Markdown version). It is rate-limited per client (2 a minute,
+20 a day by default), because one check can use ~30 of the free tier's 500 daily model requests.
+Real responses (the model calls behind the last one were replayed from the cache of an earlier
+run, which is why it needed no quota):
+
+```console
+$ curl -s localhost:8000/health
+{"status":"ok","version":"0.1.0","ready":true,"reason":null,"search_backend":"local","agent_provider":"gemini"}
+
+$ curl -s -X POST localhost:8000/check -H 'content-type: application/json' \
+    -d '{"name":"x","unit_length_m":30,"wheelchair_space":1}'      # typo: wheelchair_space
+{"detail":[{"type":"extra_forbidden","loc":["body","wheelchair_space"],"msg":"Extra inputs are not permitted","input":1}]}
+
+$ curl -s -X POST 'localhost:8000/check?format=markdown' -H 'content-type: application/json' \
+    -d '{"name":"Length exactly 30 m with one wheelchair space","unit_length_m":30.0,"wheelchair_spaces":1}'
+# Compliance report: Length exactly 30 m with one wheelchair space
+**Summary:** 1 fail, 6 needs human
+| `wheelchair_spaces` | 1 | ≥ 2 | **fail** |
+| `exterior_doors.clear_width_mm` | not supplied | - | **needs human** |
+...
+> Table 5 Minimum number of wheelchair spaces per unit length ... Less than 30 m | 1 wheelchair
+> space 30 to 205 metres | 2 wheelchair spaces ...
+```
+
+## MCP server
+
+The four tools (`search_regulation`, `extract_requirement`, `check`, `needs_human`) and a
+`rail://parameters` resource, for any MCP client over stdio. `check` and `needs_human` need nothing;
+`search_regulation` needs the rail assistant (`uv sync --group local` and its index, or
+`SEARCH_BACKEND=live`); `extract_requirement` needs a model key. Missing pieces come back as a
+readable tool error naming the fix, not a crash.
+
+```bash
+claude mcp add rail-compliance -- uv run --directory /path/to/rail-compliance-agent python -m rail_compliance.mcp_server
+```
+
+Claude Desktop (`claude_desktop_config.json`), same command:
+
+```json
+{"mcpServers": {"rail-compliance": {"command": "uv",
+  "args": ["run", "--directory", "/path/to/rail-compliance-agent", "python", "-m", "rail_compliance.mcp_server"]}}}
+```
+
+What a client sees, from [`examples/mcp_client_demo.py`](examples/mcp_client_demo.py), which starts
+the server as a subprocess and talks MCP over stdio (real output). The two registration commands
+above are the standard ones for those clients; I tested the server with the Python MCP client only,
+not with Claude Desktop or Claude Code themselves:
+
+```console
+$ uv run python examples/mcp_client_demo.py
+tools: search_regulation, extract_requirement, check, needs_human
+check(780 mm): fail, 780 mm violates >= 800 mm
+check(800 mm): pass, 800 mm meets >= 800 mm
+needs_human: {"parameter": null, "category": "weak_citation", "reason": "The rule points to an external standard."}
+rail://parameters: 7 parameters, first: wheelchair_spaces
+```
+
+## Docker
+
+```bash
+docker build -t rail-compliance-agent .
+docker run --rm -p 8000:8000 --env-file .env rail-compliance-agent
+```
+
+The image holds the rail assistant's corpus at a pinned commit with its vector index built at
+build time (so search needs no network), runs as a non-root user (uid 1000) and has a `HEALTHCHECK`.
+The model key is passed at run time, never baked in. **Not yet built or run by me:** there is no
+Docker on my development machine. The `docker` workflow builds the image on GitHub and probes it
+(non-root, `/health` ready, a spec settled without a model call, a search over the baked-in index,
+Docker's own health status); it has not run yet either, so treat this section as unverified until it
+has. Static tests in `tests/test_docker_files.py` guard the properties that can be checked without
+building (non-root user, healthcheck, no secrets, the same corpus commit in every place it is pinned).
 
 ## Development
 
