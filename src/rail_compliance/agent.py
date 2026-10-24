@@ -50,7 +50,7 @@ from rail_compliance.report import (
 from rail_compliance.retry import LLMUnavailable
 from rail_compliance.spec import TrainSpec, parameter_info, spec_values, unit_of
 from rail_compliance.tools.check import check as check_tool
-from rail_compliance.tools.extract import StructuredLLM
+from rail_compliance.tools.extract import StructuredLLM, StructuredOutputError
 from rail_compliance.tools.extract import extract_requirement as extract_tool
 from rail_compliance.tools.needs_human import needs_human as needs_human_tool
 from rail_compliance.tools.search import SearchBackend, SearchError
@@ -215,11 +215,8 @@ class _Runner:
             result = extract_tool(
                 [scratch.passages[i] for i in a.passage_ids], a.parameter, self.extractor, a.focus
             )
-        except ValidationError as exc:
-            return (
-                False,
-                f"the extraction model returned an invalid answer: {exc.errors()[0]['msg']}",
-            )
+        except (ValidationError, StructuredOutputError) as exc:
+            return False, f"the extraction model returned an unusable answer: {str(exc)[:300]}"
         if result.status != "found":
             return True, f"{result.status}: {result.reason}"
         req = result.requirement

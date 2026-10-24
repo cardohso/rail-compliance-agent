@@ -62,14 +62,18 @@ class Condition(_Strict):
     value: float
 
 
-class Band(_Strict):
-    """One row of a table: the required value when the selecting variable falls in this range."""
+class BandDraft(_Strict):
+    """A table row as the model proposes it: not yet checked for consistency."""
 
     lower: float | None = None
     lower_inclusive: bool = True
     upper: float | None = None
     upper_inclusive: bool = True
     value: float
+
+
+class Band(BandDraft):
+    """One row of a table: the required value when the selecting variable falls in this range."""
 
     @model_validator(mode="after")
     def _ordered(self) -> Band:
@@ -88,16 +92,23 @@ class Band(_Strict):
         )
 
 
-class RequirementCore(_Strict):
-    """The rule itself. Exactly one of `value` (a single limit) or `bands` (a table)."""
+class RuleDraft(_Strict):
+    """A rule as the model proposes it. Parsing it never fails on inconsistency: the extraction
+    tool validates it afterwards (as `RequirementCore`) and reports a bad one as unverified."""
 
     parameter: str  # the spec parameter path the rule constrains, e.g. "wheelchair_spaces"
     comparator: Comparator  # spec_value <comparator> required
     value: float | None = None
     unit: str | None = None
-    bands: list[Band] = Field(default_factory=list)
+    bands: list[BandDraft] = Field(default_factory=list)
     band_variable: str | None = None  # spec parameter path that selects the band
     conditions: list[Condition] = Field(default_factory=list)
+
+
+class RequirementCore(RuleDraft):
+    """The rule itself. Exactly one of `value` (a single limit) or `bands` (a table)."""
+
+    bands: list[Band] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _value_xor_bands(self) -> RequirementCore:
@@ -140,7 +151,7 @@ class RequirementDraft(_Strict):
     note: str | None = None  # when not found: why (e.g. "refers to an external standard")
     passage_id: str | None = None
     quote: str | None = None  # copied word for word from the passage
-    rule: RequirementCore | None = None
+    rule: RuleDraft | None = None
 
 
 ExtractionStatus = Literal["found", "not_found", "unverified"]

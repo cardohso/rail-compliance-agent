@@ -13,13 +13,14 @@ import re
 from collections.abc import Sequence
 from typing import Protocol, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from rail_compliance.models import (
     Citation,
     ExtractionResult,
     Passage,
     Requirement,
+    RequirementCore,
     RequirementDraft,
 )
 from rail_compliance.spec import parameter_info
@@ -40,7 +41,9 @@ Rules:
   250 km/h") goes in `conditions`, using only the spec parameters listed in the request. Express
   true/false parameters as 1/0.
 - A table whose required value depends on another parameter (for example unit length) goes in
-  `bands`, one band per row, with `band_variable` naming the spec parameter that selects the row.
+  `bands`: one band for every row of the table, none left out, and `quote` must contain the whole
+  table. Set `value` to null when you give `bands`, and `bands` to an empty list when you give
+  `value`; never both. `band_variable` names the spec parameter that selects the row.
   Mind inclusive/exclusive bounds: "less than 30 m" excludes 30, "30 to 205 metres" includes both.
 - If the passages do not state a number for this parameter (they refer to an external standard,
   describe something else, or are ambiguous), set `found` to false and explain in `note`.
@@ -62,6 +65,10 @@ WORDS = {
 _EXISTENCE = re.compile(
     r"\b(?:a|an)\s+[\w\- ]{0,40}?\bshall be (?:provided|fitted|installed)\b", re.IGNORECASE
 )
+
+
+class StructuredOutputError(RuntimeError):
+    """The model's reply could not be parsed into the requested schema."""
 
 
 class StructuredLLM(Protocol):
@@ -127,7 +134,11 @@ def extract_requirement(
         )
     if draft.rule is None or not draft.quote or not draft.passage_id:
         return _unverified("the model said it found a rule but gave no rule, quote or passage")
-    rule = draft.rule
+    try:
+        rule = RequirementCore.model_validate(draft.rule.model_dump())
+    except ValidationError as exc:
+        problem = exc.errors()[0]["msg"].removeprefix("Value error, ")
+        return _unverified(f"the model's rule is malformed: {problem}")
     if rule.parameter != parameter:
         return _unverified(f"the model extracted a rule for {rule.parameter}, not for {parameter}")
     source = next((p for p in passages if p.id == draft.passage_id), None)

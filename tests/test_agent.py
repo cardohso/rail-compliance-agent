@@ -443,3 +443,25 @@ def test_an_escalation_after_a_passing_check_is_still_needs_human():
     result = report.result_for(DOOR)
     assert result.checks[0].verdict == "pass"
     assert result.verdict == "needs_human"
+
+
+def test_an_unparseable_extraction_is_a_rejected_call_the_model_can_recover_from():
+    from rail_compliance.tools.extract import StructuredOutputError
+
+    class Flaky(FakeExtractor):
+        def extract(self, system, user, schema):
+            if not self.prompts:
+                self.prompts.append(user)
+                raise StructuredOutputError("could not parse the extraction reply")
+            return super().extract(system, user, schema)
+
+    llm = ScriptedAgentLLM(
+        [search_call(), extract_call(DOOR), extract_call(DOOR), check_call(DOOR, 850), DONE]
+    )
+    extractor = Flaky([door_draft()])
+    agent = ComplianceAgent(llm, extractor, FakeSearch())
+    report = agent.run(spec(exterior_doors={"clear_width_mm": 850}))
+    extracts = [t for t in report.trace if t.name == "extract_requirement"]
+    assert [t.ok for t in extracts] == [False, True]
+    assert "could not parse" in extracts[0].summary
+    assert report.result_for(DOOR).verdict == "pass"

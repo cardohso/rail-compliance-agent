@@ -15,6 +15,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Protocol
 
+from langchain_core.exceptions import OutputParserException
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage, messages_from_dict, messages_to_dict
 from langchain_core.tools import BaseTool
@@ -22,6 +23,7 @@ from pydantic import BaseModel
 
 from rail_compliance.config import Settings
 from rail_compliance.retry import with_retries
+from rail_compliance.tools.extract import StructuredOutputError
 
 DEFAULT_MODELS = {"gemini": "gemini-3.5-flash-lite", "groq": "openai/gpt-oss-120b"}
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"
@@ -60,7 +62,10 @@ class LangChainStructuredLLM:
 
     def extract[T: BaseModel](self, system: str, user: str, schema: type[T]) -> T:
         runnable = self._model.with_structured_output(schema)
-        reply = with_retries(lambda: runnable.invoke([("system", system), ("human", user)]))
+        try:
+            reply = with_retries(lambda: runnable.invoke([("system", system), ("human", user)]))
+        except OutputParserException as exc:
+            raise StructuredOutputError(str(exc)) from exc
         return reply if isinstance(reply, schema) else schema.model_validate(reply)
 
 
@@ -117,7 +122,8 @@ def make_chat_model(settings: Settings) -> tuple[BaseChatModel, str]:
     if provider == "gemini":
         from langchain_google_genai import ChatGoogleGenerativeAI
 
-        chat = ChatGoogleGenerativeAI(model=model, google_api_key=key, temperature=0.0)
+        # no temperature: this model family fixes its sampling and warns if one is passed
+        chat = ChatGoogleGenerativeAI(model=model, google_api_key=key)
     else:
         from langchain_openai import ChatOpenAI
 

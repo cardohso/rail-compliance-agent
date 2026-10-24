@@ -125,3 +125,19 @@ def test_make_chat_model_builds_the_configured_provider_without_calling_it():
     assert chat is not None
     groq = Settings(_env_file=None, groq_api_key="not-a-real-key", agent_provider="groq")
     assert make_chat_model(groq)[1] == "groq:openai/gpt-oss-120b"
+
+
+def test_unparseable_model_output_becomes_a_structured_output_error():
+    from langchain_core.exceptions import OutputParserException
+
+    from rail_compliance.tools.extract import StructuredOutputError
+
+    class Broken:
+        def with_structured_output(self, schema):
+            def boom(msgs):
+                raise OutputParserException("Failed to parse: both value and bands")
+
+            return type("R", (), {"invoke": lambda self, msgs: boom(msgs)})()
+
+    with pytest.raises(StructuredOutputError, match="both value and bands"):
+        LangChainStructuredLLM(Broken(), "x").extract("s", "u", Answer)

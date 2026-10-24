@@ -1,4 +1,11 @@
-from rail_compliance.models import Band, Condition, RequirementCore, RequirementDraft
+from rail_compliance.models import (
+    Band,
+    BandDraft,
+    Condition,
+    RequirementCore,
+    RequirementDraft,
+    RuleDraft,
+)
 from rail_compliance.tools.extract import extract_requirement, numbers_in
 from tests.factories import passage
 
@@ -318,3 +325,51 @@ def test_focus_is_passed_to_the_model():
 def test_without_focus_the_prompt_has_no_focus_line():
     _, llm = run(door_draft())
     assert "Focus" not in llm.calls[0][1]
+
+
+# --- malformed model output (seen in the first real run) --------------------------------------
+
+
+def lenient_rule(**fields) -> RuleDraft:
+    return RuleDraft(**{"parameter": "wheelchair_spaces", "comparator": ">=", **fields})
+
+
+def test_a_rule_with_both_value_and_bands_is_unverified_not_a_crash():
+    # Gemini returned this for Table 5: a single value AND one band
+    rule = lenient_rule(
+        value=1,
+        bands=[BandDraft(upper=30, upper_inclusive=False, value=1)],
+        band_variable="unit_length_m",
+    )
+    draft = RequirementDraft(
+        found=True,
+        passage_id=TABLE_PASSAGE.id,
+        quote="Less than 30 m | 1 wheelchair space",
+        rule=rule,
+    )
+    result, _ = run(draft, passages=(TABLE_PASSAGE,), parameter="wheelchair_spaces")
+    assert result.status == "unverified"
+    assert "malformed" in result.reason
+    assert "exactly one of" in result.reason
+
+
+def test_a_band_with_lower_above_upper_is_unverified():
+    rule = lenient_rule(
+        bands=[BandDraft(lower=300, upper=30, value=1)], band_variable="unit_length_m"
+    )
+    draft = RequirementDraft(
+        found=True,
+        passage_id=TABLE_PASSAGE.id,
+        quote="Less than 30 m | 1 wheelchair space",
+        rule=rule,
+    )
+    result, _ = run(draft, passages=(TABLE_PASSAGE,), parameter="wheelchair_spaces")
+    assert result.status == "unverified"
+    assert "malformed" in result.reason
+
+
+def test_the_system_prompt_tells_the_model_to_give_a_whole_table():
+    from rail_compliance.tools.extract import SYSTEM
+
+    assert "every row" in SYSTEM
+    assert "to null" in SYSTEM
