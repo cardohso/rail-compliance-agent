@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import time
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Protocol
@@ -21,9 +22,11 @@ from langchain_core.messages import AIMessage, BaseMessage, messages_from_dict, 
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel
 
+from rail_compliance import cachefile
 from rail_compliance.config import Settings
 from rail_compliance.retry import with_retries
 from rail_compliance.throttle import Throttle
+from rail_compliance.timing import Timing
 from rail_compliance.tools.extract import StructuredOutputError
 
 DEFAULT_MODELS = {"gemini": "gemini-3.5-flash-lite", "groq": "openai/gpt-oss-120b"}
@@ -91,8 +94,9 @@ def _key(*parts: str) -> str:
 
 
 class CachedAgentLLM:
-    def __init__(self, inner: AgentLLM, cache_dir: Path):
+    def __init__(self, inner: AgentLLM, cache_dir: Path, timing: Timing | None = None):
         self.inner, self.cache_dir, self.name = inner, Path(cache_dir), inner.name
+        self.timing = timing
         self.hits = self.misses = 0
 
     def invoke(self, messages: Sequence[BaseMessage]) -> AIMessage:
@@ -100,17 +104,21 @@ class CachedAgentLLM:
         path = self.cache_dir / f"agent-{_key(self.inner.name, payload)}.json"
         if path.exists():
             self.hits += 1
-            return messages_from_dict([json.loads(path.read_text(encoding="utf-8"))])[0]
+            value, seconds = cachefile.read(path)
+            if self.timing:
+                self.timing.add_cached(seconds)  # replay the original call's latency
+            return messages_from_dict([value])[0]
         self.misses += 1
+        now = self.timing.clock if self.timing else time.perf_counter
+        started = now()
         reply = self.inner.invoke(messages)
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(messages_to_dict([reply])[0], default=str), encoding="utf-8")
+        cachefile.write(path, messages_to_dict([reply])[0], now() - started)
         return reply
 
 
 class CachedStructuredLLM:
-    def __init__(self, inner, cache_dir: Path):
-        self.inner, self.cache_dir = inner, Path(cache_dir)
+    def __init__(self, inner, cache_dir: Path, timing: Timing | None = None):
+        self.inner, self.cache_dir, self.timing = inner, Path(cache_dir), timing
         self.name = getattr(inner, "name", "structured")
         self.hits = self.misses = 0
 
@@ -118,11 +126,15 @@ class CachedStructuredLLM:
         path = self.cache_dir / f"extract-{_key(self.name, schema.__name__, system, user)}.json"
         if path.exists():
             self.hits += 1
-            return schema.model_validate_json(path.read_text(encoding="utf-8"))
+            value, seconds = cachefile.read(path)
+            if self.timing:
+                self.timing.add_cached(seconds)
+            return schema.model_validate(value)
         self.misses += 1
+        now = self.timing.clock if self.timing else time.perf_counter
+        started = now()
         result = self.inner.extract(system, user, schema)
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
-        path.write_text(result.model_dump_json(), encoding="utf-8")
+        cachefile.write(path, result.model_dump(mode="json"), now() - started)
         return result
 
 

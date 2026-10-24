@@ -1,0 +1,11 @@
+# Retrieval, citation and grounding gate over what the agent retrieved and cited, run by
+#   uv run goldpass run --config eval/goldpass/goldpass.yaml      (or uses: cardohso/goldpass@v0)
+# after `python -m rail_compliance.evaluation run` has written eval/results/local/goldpass/records.json.
+golden: golden.jsonl
+thresholds: thresholds.yaml
+out: ../results/local/goldpass-gate.json
+k: 8
+system:
+  type: replay
+  path: ../results/local/goldpass/records.json
+  fields: {refused: null}   # needs_human is scored by this repo's own metrics, not as a refusal

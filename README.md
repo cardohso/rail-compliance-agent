@@ -95,6 +95,41 @@ uv run python -m rail_compliance check examples/02_noncompliant_regional.json
 
 Model replies and search results are cached on disk (`eval/.cache/`), so a re-run costs no quota.
 
+## Evaluation
+
+The point of the project: the agent is scored on **how it used its tools**, not only on its final
+text. The golden set is 20 specs and 43 scored verdicts written from the TSI text
+([review notes and limits](eval/GOLDEN_SET_REVIEW.md)). Metrics, all deterministic (no model
+judges anything), each with its numerator, denominator and a 95% Wilson interval:
+
+| Metric | Meaning |
+|---|---|
+| `verdict_accuracy` | agent verdict equals the golden verdict |
+| `unsafe_pass_rate` | agent says `pass` where the golden verdict is `fail` or `needs_human` |
+| `needs_human_recall` / `_precision` | share of expected escalations it made / share of its escalations that were expected |
+| `tool_selection_accuracy` | the expected tools were called, in order (search, extract, then check or needs_human) |
+| `argument_correctness` | `check` was called with the right parameter and the spec's own value |
+| `citation_hit_rate` | a cited passage is the gold passage that holds the rule |
+| `tool_calls_per_parameter`, latency | cost; latency excludes the rate-limit waits and replays cached calls' original time |
+
+Retrieval, citation and grounding are also run through [goldpass](https://github.com/cardohso/goldpass)
+(recall@k, hit rate, grounding, its report and gate). The tool-use metrics live in this repo because
+goldpass has no notion of tool calls.
+
+[`eval/thresholds.yaml`](eval/thresholds.yaml) was written **before the first full run** and is not
+tuned to it; its history is the record. `eval.yml` runs the set on pull requests and by hand and fails
+the build below those numbers.
+
+```bash
+uv sync --group local --group eval
+uv run python -m rail_compliance.evaluation run                  # all 20; ~20 min the first time
+uv run python -m rail_compliance.evaluation run --cases g04,g05  # a few
+uv run python -m rail_compliance.evaluation gate eval/results/local
+uv run goldpass run --config eval/goldpass/goldpass.yaml
+```
+
+**Results:** none yet. They go here from a real run, with nothing rounded up.
+
 ## Development
 
 ```bash

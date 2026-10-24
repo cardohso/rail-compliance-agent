@@ -1,0 +1,124 @@
+name: eval
+
+# Runs the agent on the 20-spec golden set with a real (free-tier) model and fails the build if a
+# metric is below eval/thresholds.yaml (tool use, verdicts, escalation) or eval/goldpass/
+# thresholds.yaml (retrieval, citations, grounding). On pull requests and by hand, not on every
+# push, to stay inside the free tier's rate limit. Needs the repository secret GEMINI_API_KEY;
+# pull requests from forks do not get secrets, so the job is skipped for them.
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      cases:
+        description: "Comma-separated case ids to run (empty = all 20), e.g. g04,g05"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: eval-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The rail assistant's code and corpus, pinned to the same commit as the `local` dependency.
+  RAIL_RAG_REF: d63cc5f37fcc93100b7bc25a61a63d4507d24248
+
+jobs:
+  golden-set:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      SEARCH_BACKEND: local
+      RAIL_RAG_DATA_DIR: ${{ github.workspace }}/rail-regulation-rag/data
+      LLM_REQUESTS_PER_MINUTE: "12"  # the free tier allows 15
+      HF_HUB_DISABLE_TELEMETRY: "1"
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check the secret is present
+        run: |
+          if [ -z "$GEMINI_API_KEY" ]; then
+            echo "::error::Missing repository secret GEMINI_API_KEY (Settings > Secrets and variables > Actions)"
+            exit 1
+          fi
+
+      - name: Check out the rail assistant's corpus
+        uses: actions/checkout@v7
+        with:
+          repository: cardohso/rail-regulation-rag
+          ref: ${{ env.RAIL_RAG_REF }}
+          path: rail-regulation-rag
+
+      - uses: astral-sh/setup-uv@v10.3.0
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      - run: uv sync --frozen --group local --group eval
+
+      - name: Cache the embedding model
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/fastembed
+          key: fastembed-${{ env.RAIL_RAG_REF }}
+
+      - name: Cache the vector index
+        id: index
+        uses: actions/cache@v6
+        with:
+          path: rail-regulation-rag/data/index
+          key: index-${{ env.RAIL_RAG_REF }}-${{ hashFiles('uv.lock') }}
+
+      - name: Build the vector index
+        if: steps.index.outputs.cache-hit != 'true'
+        run: uv run python -m rail_rag.index
+
+      # Model replies and search results are cached on disk, keyed by the full prompt, so a re-run
+      # of unchanged code costs no quota. Saved even when the gate fails.
+      - name: Restore the model and search cache
+        id: llm-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: eval/.cache
+          key: eval-cache-${{ github.sha }}
+          restore-keys: eval-cache-
+
+      - name: Run the agent on the golden set
+        env:
+          CASES: ${{ inputs.cases }}  # via the environment, never interpolated into the script
+        run: |
+          if [ -n "$CASES" ]; then
+            uv run python -m rail_compliance.evaluation run --out eval/results/local --cases "$CASES"
+          else
+            uv run python -m rail_compliance.evaluation run --out eval/results/local
+          fi
+
+      - name: Save the model and search cache
+        if: always()
+        uses: actions/cache/save@v6
+        with:
+          path: eval/.cache
+          key: eval-cache-${{ github.sha }}
+
+      - name: Gate on tool use, verdicts and escalation
+        run: |
+          status=0
+          uv run python -m rail_compliance.evaluation gate eval/results/local > gate.md || status=$?
+          cat gate.md
+          cat eval/results/local/summary.md gate.md >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+
+      - name: Gate on retrieval, citations and grounding (goldpass)
+        run: uv run goldpass run --config eval/goldpass/goldpass.yaml --summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: eval-results
+          path: eval/results/local/
+          if-no-files-found: ignore

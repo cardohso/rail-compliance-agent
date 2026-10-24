@@ -17,8 +17,10 @@ class Throttle:
         per_minute: int,
         clock: Callable[[], float] = time.monotonic,
         sleep: Callable[[float], None] = time.sleep,
+        on_wait: Callable[[float], None] | None = None,
     ):
         self.per_minute, self._clock, self._sleep = per_minute, clock, sleep
+        self._on_wait = on_wait  # told how long each wait was, so latency can exclude it
         self._stamps: deque[float] = deque()
         self._lock = threading.Lock()
 
@@ -30,7 +32,10 @@ class Throttle:
             while self._stamps and now - self._stamps[0] >= 60:
                 self._stamps.popleft()
             if len(self._stamps) >= self.per_minute:
-                self._sleep(self._stamps[0] + 60 - now)
+                wait = self._stamps[0] + 60 - now
+                self._sleep(wait)
+                if self._on_wait:
+                    self._on_wait(wait)
                 now = self._clock()
                 while self._stamps and now - self._stamps[0] >= 60:
                     self._stamps.popleft()

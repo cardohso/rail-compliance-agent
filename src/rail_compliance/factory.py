@@ -15,6 +15,7 @@ from rail_compliance.llm import (
     make_chat_model,
 )
 from rail_compliance.throttle import Throttle
+from rail_compliance.timing import Timing
 from rail_compliance.tools.search import (
     CachingBackend,
     LiveBackend,
@@ -25,7 +26,11 @@ from rail_compliance.tools.search import (
 
 
 def make_search_backend(
-    settings: Settings, *, replay_file: Path | None = None, use_cache: bool = True
+    settings: Settings,
+    *,
+    replay_file: Path | None = None,
+    use_cache: bool = True,
+    timing: Timing | None = None,
 ) -> SearchBackend:
     kind = settings.search_backend
     if kind == "replay":
@@ -37,7 +42,7 @@ def make_search_backend(
         if kind == "local"
         else LiveBackend(settings.rail_api_url)
     )
-    return CachingBackend(backend, settings.search_cache_dir) if use_cache else backend
+    return CachingBackend(backend, settings.search_cache_dir, timing) if use_cache else backend
 
 
 def build_agent(
@@ -47,13 +52,18 @@ def build_agent(
     replay_file: Path | None = None,
     k: int = 8,
     max_calls: int = 10,
+    timing: Timing | None = None,
 ) -> ComplianceAgent:
+    timing = timing or Timing()
     chat, name = make_chat_model(settings)
-    throttle = Throttle(settings.llm_requests_per_minute)  # shared: both roles use one quota
+    # shared: both roles use one quota; its waits are our own pacing, not model latency
+    throttle = Throttle(settings.llm_requests_per_minute, on_wait=timing.add_throttle)
     llm = ChatAgentLLM(chat, tool_definitions(), name, throttle)
     extractor = LangChainStructuredLLM(chat, name, throttle)
     if use_cache:
-        llm = CachedAgentLLM(llm, settings.llm_cache_dir)
-        extractor = CachedStructuredLLM(extractor, settings.llm_cache_dir)
-    search = make_search_backend(settings, replay_file=replay_file, use_cache=use_cache)
-    return ComplianceAgent(llm, extractor, search, k=k, max_calls=max_calls)
+        llm = CachedAgentLLM(llm, settings.llm_cache_dir, timing)
+        extractor = CachedStructuredLLM(extractor, settings.llm_cache_dir, timing)
+    search = make_search_backend(
+        settings, replay_file=replay_file, use_cache=use_cache, timing=timing
+    )
+    return ComplianceAgent(llm, extractor, search, k=k, max_calls=max_calls, clock=timing.clock)

@@ -21,6 +21,9 @@ dev = [
     "pytest>=9.1.1",
     "ruff>=0.17.1",
 ]
+eval = [
+    "goldpass",
+]
 local = [
     "rail-rag",
 ]
@@ -48,3 +51,4 @@ addopts = "-q"
 
 [tool.uv.sources]
 rail-rag = { git = "https://github.com/cardohso/rail-regulation-rag", rev = "d63cc5f37fcc93100b7bc25a61a63d4507d24248" }
+goldpass = { git = "https://github.com/cardohso/goldpass", rev = "v0.2.0" }

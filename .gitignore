@@ -21,6 +21,8 @@ htmlcov/
 reports/
 eval/.cache/
 eval/results/scratch/
+eval/results/local/
+eval/goldpass/results/
 
 # OS / editors / local tool config
 .DS_Store

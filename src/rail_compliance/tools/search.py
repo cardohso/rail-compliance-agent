@@ -26,7 +26,9 @@ from typing import Protocol
 
 import httpx
 
+from rail_compliance import cachefile
 from rail_compliance.models import Passage, SearchResult
+from rail_compliance.timing import Timing
 
 MIN_QUESTION, MAX_QUESTION = 3, 500  # the live API rejects anything outside this
 RETRYABLE = {429, 502, 503, 504}
@@ -207,8 +209,8 @@ class ReplayBackend:
 class CachingBackend:
     """Disk cache around another backend, so a re-run costs no retrieval and no live calls."""
 
-    def __init__(self, inner: SearchBackend, cache_dir: Path):
-        self.inner, self.cache_dir = inner, Path(cache_dir)
+    def __init__(self, inner: SearchBackend, cache_dir: Path, timing: Timing | None = None):
+        self.inner, self.cache_dir, self.timing = inner, Path(cache_dir), timing
         self.name = inner.name
         self.hits = self.misses = 0
 
@@ -220,9 +222,13 @@ class CachingBackend:
         path = self._path(question, k)
         if path.exists():
             self.hits += 1
-            return SearchResult.model_validate_json(path.read_text(encoding="utf-8"))
+            value, seconds = cachefile.read(path)
+            if self.timing:
+                self.timing.add_cached(seconds)
+            return SearchResult.model_validate(value)
         self.misses += 1
+        now = self.timing.clock if self.timing else time.perf_counter
+        started = now()
         result = self.inner.search(question, k)
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
-        path.write_text(result.model_dump_json(indent=1), encoding="utf-8")
+        cachefile.write(path, result.model_dump(mode="json"), now() - started)
         return result
