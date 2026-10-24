@@ -7,13 +7,18 @@ license = "MIT"
 authors = [{ name = "João Pedro Cardoso" }]
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "httpx>=0.28.1",
     "pydantic>=2.14.1",
+    "pydantic-settings>=2.16.1",
 ]
 
 [dependency-groups]
 dev = [
     "pytest>=9.1.1",
     "ruff>=0.17.1",
+]
+local = [
+    "rail-rag",
 ]
 
 [build-system]
@@ -33,3 +38,6 @@ select = ["E", "F", "I", "B", "UP", "SIM"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+
+[tool.uv.sources]
+rail-rag = { git = "https://github.com/cardohso/rail-regulation-rag", rev = "d63cc5f37fcc93100b7bc25a61a63d4507d24248" }

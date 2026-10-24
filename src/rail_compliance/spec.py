@@ -14,7 +14,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, get_args
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
@@ -98,6 +98,56 @@ class TrainSpec(_Strict):
     exterior_doors: ExteriorDoors | None = None
     steps: Steps | None = None
     toilets: Toilets | None = None
+
+
+def spec_values(spec: TrainSpec) -> dict[str, float]:
+    """Every parameter the spec supplies, keyed by dotted path ("steps.external_step_height_mm").
+
+    Booleans become 1.0 / 0.0 so a condition such as "level access" is a plain number test.
+    Parameters the spec leaves out are absent, which is how `check` knows data is missing.
+    """
+    out: dict[str, float] = {}
+
+    def walk(model: BaseModel, prefix: str) -> None:
+        for name in type(model).model_fields:
+            value = getattr(model, name)
+            if isinstance(value, BaseModel):
+                walk(value, f"{prefix}{name}.")
+            elif isinstance(value, bool):
+                out[f"{prefix}{name}"] = 1.0 if value else 0.0
+            elif isinstance(value, int | float):
+                out[f"{prefix}{name}"] = float(value)
+
+    walk(spec, "")
+    return out
+
+
+def parameter_info() -> dict[str, tuple[str | None, str]]:
+    """Every checkable parameter path -> (unit, description), for prompts and tool descriptions."""
+    out: dict[str, tuple[str | None, str]] = {}
+
+    def walk(model: type[BaseModel], prefix: str) -> None:
+        for name, field in model.model_fields.items():
+            nested = [
+                t
+                for t in (field.annotation, *get_args(field.annotation))
+                if isinstance(t, type) and issubclass(t, BaseModel)
+            ]
+            if nested:
+                walk(nested[0], f"{prefix}{name}.")
+            elif name not in {"spec_version", "name", "description"}:
+                out[f"{prefix}{name}"] = (unit_of(name), field.description or "")
+
+    walk(TrainSpec, "")
+    return out
+
+
+UNIT_SUFFIXES = {"_mm": "mm", "_m": "m", "_kmh": "km/h"}
+
+
+def unit_of(parameter: str) -> str | None:
+    """The unit a spec parameter is expressed in, from its name suffix (None for counts/flags)."""
+    return next((u for suffix, u in UNIT_SUFFIXES.items() if parameter.endswith(suffix)), None)
 
 
 def load_spec(path: Path | str) -> TrainSpec:

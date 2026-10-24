@@ -4,7 +4,14 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from rail_compliance.spec import TrainSpec, load_spec, schema_json
+from rail_compliance.spec import (
+    TrainSpec,
+    load_spec,
+    parameter_info,
+    schema_json,
+    spec_values,
+    unit_of,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES = sorted((ROOT / "examples").glob("*.json"))
@@ -83,3 +90,54 @@ def test_committed_json_schema_matches_the_model():
     assert committed == json.loads(schema_json()), (
         "schema/train-spec.schema.json is stale: run `uv run python -m rail_compliance.spec schema`"
     )
+
+
+def test_spec_values_flattens_nested_parameters_and_drops_missing_ones():
+    spec = load_spec(ROOT / "examples" / "03_incomplete_highspeed.json")
+    values = spec_values(spec)
+    assert values["unit_length_m"] == 210.0
+    assert values["exterior_doors.wheelchair_door_clear_width_mm"] == 900.0
+    assert values["steps.external_step_height_mm"] == 220.0
+    assert "design_speed_kmh" not in values  # the spec leaves it out
+    assert "toilets.fitted" not in values
+
+
+def test_spec_values_turns_booleans_into_numbers():
+    spec = load_spec(ROOT / "examples" / "03_incomplete_highspeed.json")
+    values = spec_values(spec)
+    assert values["length_includes_power_head"] == 1.0
+    assert values["exterior_doors.wheelchair_door_level_access"] == 1.0
+
+
+def test_false_is_a_value_not_a_missing_parameter():
+    spec = load_spec(ROOT / "examples" / "01_compliant_emu.json")
+    assert spec_values(spec)["length_includes_power_head"] == 0.0
+
+
+@pytest.mark.parametrize(
+    ("parameter", "unit"),
+    [
+        ("unit_length_m", "m"),
+        ("design_speed_kmh", "km/h"),
+        ("exterior_doors.clear_width_mm", "mm"),
+        ("wheelchair_spaces", None),
+        ("toilets.fitted", None),
+    ],
+)
+def test_unit_of(parameter, unit):
+    assert unit_of(parameter) == unit
+
+
+def test_parameter_info_lists_every_checkable_path_with_unit_and_description():
+    info = parameter_info()
+    assert info["unit_length_m"][0] == "m"
+    assert info["exterior_doors.clear_width_mm"][0] == "mm"
+    assert info["toilets.fitted"][0] is None
+    assert "level access" in info["exterior_doors.wheelchair_door_level_access"][1]
+    assert "name" not in info
+    assert all(description for _, description in info.values())
+
+
+def test_every_spec_value_path_is_in_parameter_info():
+    spec = load_spec(ROOT / "examples" / "01_compliant_emu.json")
+    assert set(spec_values(spec)) <= set(parameter_info())
