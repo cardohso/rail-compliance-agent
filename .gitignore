@@ -17,7 +17,8 @@ dist/
 .coverage
 htmlcov/
 
-# Eval caches and scratch outputs
+# Eval caches, scratch outputs and local reports
+reports/
 eval/.cache/
 eval/results/scratch/
 

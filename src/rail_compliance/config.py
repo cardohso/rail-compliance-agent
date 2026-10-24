@@ -6,7 +6,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import SecretStr
+from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -24,6 +24,13 @@ class Settings(BaseSettings):
     rail_rag_data_dir: Path = REPO_ROOT.parent / "rail-regulation-rag" / "data"
     rail_api_url: str = "https://rail-rag.calmcliff-0073b8b6.switzerlandnorth.azurecontainerapps.io"
     search_cache_dir: Path = REPO_ROOT / "eval" / ".cache" / "search"
+    llm_cache_dir: Path = REPO_ROOT / "eval" / ".cache" / "llm"
+
+    @field_validator("rail_rag_data_dir", "search_cache_dir", "llm_cache_dir")
+    @classmethod
+    def _relative_to_repo(cls, path: Path) -> Path:
+        """A relative path in .env means relative to this repo, wherever the command is run."""
+        return path if path.is_absolute() else (REPO_ROOT / path).resolve()
 
     def api_key(self, provider: str) -> str:
         secret = getattr(self, f"{provider}_api_key", None)

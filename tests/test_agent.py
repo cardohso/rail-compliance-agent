@@ -402,3 +402,44 @@ def test_a_provider_outage_aborts_the_run_instead_of_recording_garbage():
 
     with pytest.raises(LLMUnavailable):
         run(spec(exterior_doors={"clear_width_mm": 850}), [outage])
+
+
+def test_one_rule_passing_does_not_hide_an_unresolved_one():
+    general = door_draft(
+        rule=RequirementCore(parameter=WC_DOOR, comparator=">=", value=800, unit="mm")
+    )
+    speed_rule = RequirementCore(
+        parameter=WC_DOOR,
+        comparator=">=",
+        value=1000,
+        unit="mm",
+        conditions=[Condition(variable="design_speed_kmh", op="<", value=250)],
+    )
+    conditional = door_draft(quote=DOORS[DOORS.index("On trains") :], rule=speed_rule)
+    script = [
+        search_call(),
+        extract_call(WC_DOOR, focus="the general minimum"),
+        check_call(WC_DOOR, 900, "R1"),  # passes
+        extract_call(WC_DOOR, focus="the rule for slow trains"),
+        check_call(WC_DOOR, 900, "R2"),  # depends on design speed, which the spec omits
+        DONE,
+    ]
+    no_speed = spec(exterior_doors={"wheelchair_door_clear_width_mm": 900})
+    report, *_ = run(no_speed, script, [general, conditional])
+    result = report.result_for(WC_DOOR)
+    assert [c.verdict for c in result.checks] == ["pass", "needs_human"]
+    assert result.verdict == "needs_human"
+
+
+def test_an_escalation_after_a_passing_check_is_still_needs_human():
+    script = [
+        search_call(),
+        extract_call(DOOR),
+        check_call(DOOR, 850),
+        ai(tool_call("needs_human", reason="A footnote may allow an exception.",
+                     category="ambiguous_law")),
+    ]  # fmt: skip
+    report, *_ = run(spec(exterior_doors={"clear_width_mm": 850}), script, [door_draft()])
+    result = report.result_for(DOOR)
+    assert result.checks[0].verdict == "pass"
+    assert result.verdict == "needs_human"
