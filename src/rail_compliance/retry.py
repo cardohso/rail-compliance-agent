@@ -42,7 +42,7 @@ def with_retries[T](
     attempts: int = 6,
     base_delay: float = 2.0,
     max_delay: float = 60.0,
-    sleep: Callable[[float], None] = time.sleep,
+    sleep: Callable[[float], None] | None = None,
 ) -> T:
     for attempt in range(attempts):
         try:
@@ -53,5 +53,5 @@ def with_retries[T](
             if attempt == attempts - 1:
                 raise LLMUnavailable(f"gave up after {attempts} attempts: {exc}") from exc
             delay = _retry_after(exc) or min(max_delay, base_delay * 2**attempt)
-            sleep(delay * random.uniform(0.9, 1.1))
+            (sleep or time.sleep)(delay * random.uniform(0.9, 1.1))
     raise AssertionError("unreachable")
