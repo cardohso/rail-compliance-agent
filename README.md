@@ -157,6 +157,14 @@ of unchanged code costs nothing. This happened during development: see
 | tool selection / argument correctness / citation hit | 43/43 / 59/59 / 43/43 | 43/43 / 56/56 / 43/43 | ≥ 0.80 / 0.95 / 0.90 |
 | quality gate | **failed** (4 checks) | passed | |
 
+**Held-out check.** To test the fixes on specs they were not designed from, I wrote 10 new specs
+(19 verdicts) from the TSI text and committed them before running the agent on them, once:
+**18/19 correct, 0 false passes**, same floors passed. The one miss (h10) was predicted beforehand and
+labelled a known limit: `check` returns `needs_human` when a condition is unknown even if the value
+passes on both sides of it. These specs vary values and combinations, not rules (all seven rules
+were in the dev set), and 19 verdicts is small, so 18/19 and 43/43 are not distinguishable. See
+[`eval/results/heldout-01/RESULT.md`](eval/results/heldout-01/RESULT.md).
+
 Run 01 failed the gate and its nine misses are diagnosed in
 [`eval/results/run-01/DIAGNOSIS.md`](eval/results/run-01/DIAGNOSIS.md). The fixes were designed after
 reading those misses on this same set, so run 02 is a **development-set result**, not a measure of how

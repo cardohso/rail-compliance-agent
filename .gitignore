@@ -22,6 +22,7 @@ reports/
 eval/.cache/
 eval/results/scratch/
 eval/results/local/
+eval/results/heldout/
 eval/goldpass/results/
 
 # OS / editors / local tool config
