@@ -1,5 +1,7 @@
 # rail-compliance-agent
 
+[![ci](https://github.com/cardohso/rail-compliance-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/cardohso/rail-compliance-agent/actions/workflows/ci.yml)
+
 A tool-using agent that checks a train design spec (JSON) against the EU PRM TSI
 (Regulation (EU) No 1300/2014), using
 [rail-regulation-rag](https://github.com/cardohso/rail-regulation-rag) as its regulation search
