@@ -7,7 +7,7 @@ A tool-using agent that checks a train design spec (JSON) against the EU PRM TSI
 [rail-regulation-rag](https://github.com/cardohso/rail-regulation-rag) as its regulation search
 tool, and evaluated on its tool use, not only on its final verdicts.
 
-**Status: work in progress.** The tools, agent, report, evaluation harness, API and MCP server are built and tested offline. The first full evaluation failed its gate, the fixes pass it on the same set (see Evaluation); the Docker image is written but not yet built.
+**Status: work in progress.** The tools, agent, report, evaluation harness, API and MCP server are built and tested offline. The first full evaluation failed its gate, the fixes pass it on the same set (see Evaluation); the Docker image builds and passes its probes on GitHub.
 
 > Not legal advice. Reports are an engineering aid; conformity is assessed by a notified body.
 
@@ -239,12 +239,16 @@ The image holds the rail assistant's corpus at a pinned commit with its vector i
 build time (so search needs no network), runs as a non-root user (uid 1000) and has a `HEALTHCHECK`.
 The model key is passed at run time, never baked in. Qdrant's local mode lets only one process open the
 index, so the API runs a single worker and nothing else (for example the MCP server) may open the same
-index at the same time in that container. **Not yet built or run by me:** there is no
-Docker on my development machine. The `docker` workflow builds the image on GitHub and probes it
-(non-root, `/health` ready, a spec settled without a model call, a search over the baked-in index,
-Docker's own health status); it has not run yet either, so treat this section as unverified until it
-has. Static tests in `tests/test_docker_files.py` guard the properties that can be checked without
-building (non-root user, healthcheck, no secrets, the same corpus commit in every place it is pinned).
+index at the same time in that container.
+
+**Verified on GitHub** (the `docker` workflow, run `40092466060`): the image builds (611 MB), the
+container runs as uid 1000, Docker's own healthcheck reports `healthy`, `/health` reports
+`ready: true`, `/check` rejects an invalid spec (422) and settles a spec that needs no model, and a
+second container with no network answers a search from the baked-in index. **Not verified:** a real
+`/check` inside the container with a real model key (it costs quota, and the same code path was
+exercised outside Docker), and I have not run the image on my own machine (no Docker installed there).
+Static checks in `tests/test_docker_files.py` guard non-root, the healthcheck, no baked-in secrets and
+the pinned corpus commit.
 
 ## Development
 
