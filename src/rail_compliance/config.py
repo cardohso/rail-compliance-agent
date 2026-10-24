@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     agent_model: str = ""  # empty = provider default
     # Gemini's free tier allows 15 requests a minute; stay under it. 0 = no client-side limit.
     llm_requests_per_minute: int = 12
+    # /check is rate-limited per client: one check can use ~30 of the 500 daily model requests
+    api_checks_per_minute: int = 2
+    api_checks_per_day: int = 20
 
     search_backend: Literal["local", "live", "replay"] = "local"
     rail_rag_data_dir: Path = REPO_ROOT.parent / "rail-regulation-rag" / "data"

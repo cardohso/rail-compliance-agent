@@ -7,14 +7,22 @@ license = "MIT"
 authors = [{ name = "João Pedro Cardoso" }]
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "fastapi>=0.162.0",
     "httpx>=0.28.1",
     "langchain-core>=1.7.0",
     "langchain-google-genai>=4.4.2",
     "langchain-openai>=1.7.2",
     "langgraph>=1.2.16",
+    "mcp>=2.3.0",
     "pydantic>=2.14.1",
     "pydantic-settings>=2.16.1",
+    "uvicorn>=0.54.0",
 ]
+
+[project.scripts]
+rail-compliance = "rail_compliance.cli:main"
+rail-compliance-mcp = "rail_compliance.mcp_server:main"
+rail-compliance-eval = "rail_compliance.evaluation.cli:main"
 
 [dependency-groups]
 dev = [

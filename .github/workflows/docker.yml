@@ -1,0 +1,72 @@
+name: docker
+
+# Builds the image and probes it: it starts as a non-root user, /health answers and reports ready,
+# a spec the agent can settle without any model call goes through /check, the baked-in index
+# answers a search, and Docker's own HEALTHCHECK turns healthy. No real API key is used.
+on:
+  push:
+    branches: [main]
+    paths: [Dockerfile, .dockerignore, pyproject.toml, uv.lock, "src/**", .github/workflows/docker.yml]
+  pull_request:
+    paths: [Dockerfile, .dockerignore, pyproject.toml, uv.lock, "src/**", .github/workflows/docker.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build image
+        run: docker build -t rail-compliance-agent:ci .
+
+      - name: Start container
+        run: docker run -d --name app -p 8000:8000 -e GEMINI_API_KEY=dummy-not-used rail-compliance-agent:ci
+
+      - name: Wait for /health and check it is ready
+        run: |
+          for i in $(seq 1 60); do
+            if body=$(curl -sf localhost:8000/health); then echo "$body"; break; fi
+            sleep 2
+          done
+          [ -n "$body" ] || { docker logs app; exit 1; }
+          echo "$body" | grep -q '"ready":true' || { docker logs app; exit 1; }
+
+      - name: /check rejects an invalid spec and settles a spec that needs no model
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST localhost:8000/check \
+            -H 'content-type: application/json' -d '{"name":"x"}')
+          test "$code" = 422
+          # no parameter is supplied, so every verdict is decided in code: no model call
+          curl -sf -X POST localhost:8000/check -H 'content-type: application/json' \
+            -d '{"name":"smoke","unit_length_m":100}' | tee check.json
+          grep -q '"needs_human"' check.json
+          grep -q 'Not legal advice' check.json
+
+      - name: The baked-in index answers a search (no network, no model)
+        run: |
+          docker exec app python -c "
+          from rail_compliance.tools.search import LocalBackend
+          b = LocalBackend.from_rail_rag('/data/rail')
+          r = b.search('minimum clear useable width of exterior passenger doorways', 5)
+          ids = [p.id for p in r.passages]
+          print(ids)
+          assert any('4.2.2.3.2' in i for i in ids), ids
+          "
+
+      - name: Non-root user and Docker healthcheck
+        run: |
+          test "$(docker exec app id -u)" = "1000"
+          for i in $(seq 1 30); do
+            s=$(docker inspect -f '{{.State.Health.Status}}' app)
+            echo "health: $s"; [ "$s" = healthy ] && exit 0; sleep 5
+          done
+          docker logs app; exit 1
+
+      - name: Image size
+        if: always()
+        run: docker image ls rail-compliance-agent:ci --format '{{.Repository}}:{{.Tag}} {{.Size}}'
