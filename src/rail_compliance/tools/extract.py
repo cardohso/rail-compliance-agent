@@ -47,7 +47,21 @@ Rules:
 """
 
 _DASHES = str.maketrans({"‘": "'", "’": "'", "“": '"', "”": '"', "–": "-", "—": "-", "−": "-"})
-_NUMBER = re.compile(r"\d{1,3}(?: \d{3})+(?!\d)(?:[.,]\d+)?|\d+(?:[.,]\d+)?")
+_NUMBER = re.compile(
+    r"\d{1,3}(?: \d{3})+(?!\d)(?:[.,]\d+)?|\d+(?:[.,]\d+)?"
+    r"|\b(?:one|two|three|four|five|six|seven|eight|nine|ten)\b",
+    re.IGNORECASE,
+)
+WORDS = {
+    w: float(i)
+    for i, w in enumerate(
+        ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"], 1
+    )
+}
+# "a universal toilet shall be provided": the article is the number 1 only in this construction
+_EXISTENCE = re.compile(
+    r"\b(?:a|an)\s+[\w\- ]{0,40}?\bshall be (?:provided|fitted|installed)\b", re.IGNORECASE
+)
 
 
 class StructuredLLM(Protocol):
@@ -65,8 +79,8 @@ def numbers_in(text: str) -> set[float]:
     """Numbers written in the text, reading "1 000" (a space as thousands separator) as 1000."""
     out = set()
     for token in _NUMBER.findall(_norm(text)):
-        digits = token.replace(" ", "").replace(",", ".")
-        out.add(float(digits))
+        word = token.lower()
+        out.add(WORDS[word] if word in WORDS else float(token.replace(" ", "").replace(",", ".")))
     return out
 
 
@@ -76,16 +90,20 @@ def _quote_in(quote: str, passage_text: str) -> bool:
     return bool(parts) and all(_norm(p) in haystack for p in parts)
 
 
-def _prompt(parameter: str, passages: Sequence[Passage]) -> str:
+def _prompt(parameter: str, passages: Sequence[Passage], focus: str | None) -> str:
     info = parameter_info()
     unit, description = info.get(parameter, (None, ""))
     variables = "\n".join(
         f"- {path}" + (f" ({u})" if u else "") + f": {d}" for path, (u, d) in info.items()
     )
     blocks = "\n\n".join(f"[{p.id}] {p.document}, {p.section}\n{p.text}" for p in passages)
+    focus_line = f"Focus: {focus}\n\n" if focus else ""
     return (
-        f"Parameter: {parameter}" + (f" (unit: {unit})" if unit else "") + f"\n{description}\n\n"
-        f"Spec parameters you may use in conditions and bands:\n{variables}\n\n"
+        f"Parameter: {parameter}"
+        + (f" (unit: {unit})" if unit else "")
+        + f"\n{description}\n\n"
+        + focus_line
+        + f"Spec parameters you may use in conditions and bands:\n{variables}\n\n"
         f"Passages:\n{blocks}"
     )
 
@@ -95,11 +113,13 @@ def _unverified(reason: str) -> ExtractionResult:
 
 
 def extract_requirement(
-    passages: Sequence[Passage], parameter: str, llm: StructuredLLM
+    passages: Sequence[Passage], parameter: str, llm: StructuredLLM, focus: str | None = None
 ) -> ExtractionResult:
+    """Extract one rule for `parameter`. A parameter can have several rules (a general minimum and
+    a stricter one for some cases): `focus` names the one to extract on this call."""
     if not passages:
         return ExtractionResult(status="not_found", reason="no passages were given")
-    draft = llm.extract(SYSTEM, _prompt(parameter, passages), RequirementDraft)
+    draft = llm.extract(SYSTEM, _prompt(parameter, passages, focus), RequirementDraft)
 
     if not draft.found:
         return ExtractionResult(
@@ -121,6 +141,13 @@ def extract_requirement(
     for band in rule.bands:
         claimed += [band.value, band.lower, band.upper]
     claimed += [c.value for c in rule.conditions if c.value not in (0.0, 1.0)]  # 1/0 = booleans
+    if (
+        rule.comparator == ">="
+        and rule.value == 1
+        and not rule.bands
+        and _EXISTENCE.search(_norm(draft.quote))
+    ):
+        stated.add(1.0)
     missing = sorted({x for x in claimed if x is not None and x not in stated})
     if missing:
         shown = ", ".join(f"{x:g}" for x in missing)

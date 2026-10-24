@@ -255,3 +255,66 @@ def test_numbers_in():
     assert numbers_in("30 to 205 metres | 2 wheelchair spaces") == {30.0, 205.0, 2.0}
     assert numbers_in("a depth of 0,5 m or 2.5 m") == {0.5, 2.5}
     assert numbers_in("no digits here") == set()
+
+
+# --- focus, number words and existence rules ------------------------------------------------
+
+TOILET = passage(
+    "(1) When toilets are fitted in a train, a universal toilet shall be provided accessible "
+    "from the wheelchair space.\n(2) The standard toilet shall be compliant with the "
+    "requirements of points 5.3.2.2 and 5.3.2.3.",
+    id_="tsi-prm:Annex §4.2.2.5#1",
+    section="Annex §4.2.2.5",
+)
+
+
+def toilet_draft(**over) -> RequirementDraft:
+    rule = RequirementCore(
+        parameter="toilets.universal",
+        comparator=">=",
+        value=1,
+        conditions=[Condition(variable="toilets.fitted", op=">", value=0)],
+    )
+    fields = {
+        "found": True,
+        "passage_id": TOILET.id,
+        "quote": "When toilets are fitted in a train, a universal toilet shall be provided",
+        "rule": rule,
+    }
+    return RequirementDraft(**{**fields, **over})
+
+
+def test_an_existence_rule_with_an_article_is_verified_as_at_least_one():
+    result, _ = run(toilet_draft(), passages=(TOILET,), parameter="toilets.universal")
+    assert result.status == "found"
+    assert result.requirement.value == 1
+
+
+def test_the_article_only_counts_as_one_for_a_shall_be_provided_rule():
+    rule = RequirementCore(
+        parameter="exterior_doors.clear_width_mm", comparator=">=", value=1, unit="mm"
+    )
+    result, _ = run(door_draft(rule=rule))  # quote: "...minimum clear useable width of 800 mm"
+    assert result.status == "unverified"
+
+
+def test_number_words_count_as_numbers():
+    assert numbers_in("not less than two wheelchair spaces") == {2.0}
+    assert numbers_in("One step and Ten doors") == {1.0, 10.0}
+    assert numbers_in("someone, nonetheless") == set()  # words inside other words do not count
+
+
+def test_focus_is_passed_to_the_model():
+    llm = FakeLLM(door_draft())
+    extract_requirement(
+        [DOOR_PASSAGE],
+        "exterior_doors.clear_width_mm",
+        llm,
+        focus="the rule for ordinary doorways, not wheelchair doors",
+    )
+    assert "ordinary doorways" in llm.calls[0][1]
+
+
+def test_without_focus_the_prompt_has_no_focus_line():
+    _, llm = run(door_draft())
+    assert "Focus" not in llm.calls[0][1]
