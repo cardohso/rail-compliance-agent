@@ -203,13 +203,13 @@ Gemini `gemini-3.5-flash-lite`, local search. Full tables and caveats:
 [run 01 diagnosis](eval/results/run-01/DIAGNOSIS.md), [run 02](eval/results/run-02/RESULT.md),
 [held-out](eval/results/heldout-01/RESULT.md).
 
-| | Run 01 (first run) | Run 02 (after fixes) | Held-out (10 new specs) | Required |
-|---|---|---|---|---|
-| verdict accuracy | 34/43 = 0.79 | 43/43 = 1.00 | 18/19 = 0.95 | ≥ 0.80 |
-| false passes (said pass; golden fail or needs_human) | 0/43 | 0/43 | 0/19 | ≤ 0.05 |
-| escalation recall / precision | 3/5 / 3/9 | 5/5 / 5/5 | 2/2 / 2/3 | ≥ 0.40 / 0.60 |
-| tool selection / argument correctness / citation hit | 43/43 / 59/59 / 43/43 | 43/43 / 56/56 / 43/43 | 19/19 / 23/23 / 19/19 | ≥ 0.80 / 0.95 / 0.90 |
-| quality gate | **failed** (4 checks) | passed | passed | |
+| | Run 01 (first run) | Run 02 (after fixes) | Held-out (10 new specs) | **GitHub CI, same code as run 02** | Required |
+|---|---|---|---|---|---|
+| verdict accuracy | 34/43 = 0.79 | 43/43 = 1.00 | 18/19 = 0.95 | **40/43 = 0.93** | ≥ 0.80 |
+| false passes (said pass; golden fail or needs_human) | 0/43 | 0/43 | 0/19 | 0/43 | ≤ 0.05 |
+| escalation recall / precision | 3/5 / 3/9 | 5/5 / 5/5 | 2/2 / 2/3 | 5/5 / 5/8 | ≥ 0.40 / 0.60 |
+| tool selection / argument correctness / citation hit | 43/43 / 59/59 / 43/43 | 43/43 / 56/56 / 43/43 | 19/19 / 23/23 / 19/19 | 40/43 / 55/55 / 40/40 | ≥ 0.80 / 0.95 / 0.90 |
+| quality gate | **failed** (4 checks) | passed | passed | passed; **goldpass grounding failed** (0.93 < 0.95) | |
 
 How to read this:
 
@@ -226,8 +226,18 @@ How to read this:
   beforehand: `check` returns `needs_human` when a condition is unknown even if the value passes
   either way. It tests new values and combinations, **not new rules** (all seven rules were in the
   dev set). 18/19 and 43/43 cannot be told apart at this size (95% interval for 18/19 is 0.75-0.99).
-- **Tool selection, argument and citation scores were 100% in both runs**, so they did not separate
-  a failing run from a passing one: they show an orderly process, not a correct verdict.
+- **The same code scored differently on GitHub.** `eval.yml`'s first full run, from a fresh cache, got
+  40/43 where local run 02 got 43/43, and its goldpass gate **failed** on grounding (0.93 against
+  0.95). All three differences were one parameter (`toilets.universal`) in three specs: the
+  extraction model, called without a focus, did not read "a universal toilet shall be provided" as a
+  minimum of one and the agent escalated without a check. That is a real gap in the extraction prompt
+  (the verifier handles that wording, the prompt does not), exposed by sampling. I have **not** fixed it
+  or touched a threshold; see [`eval/results/ci-run-01/RESULT.md`](eval/results/ci-run-01/RESULT.md) and
+  [the run](https://github.com/cardohso/rail-compliance-agent/actions/runs/40175097116). It is the first
+  measurement of run-to-run variance, and it says the 43/43 and 18/19 above are single, partly
+  favourable draws.
+- **Tool selection, argument and citation scores were at or near 100% in every run**, so they did not
+  separate a failing run from a passing one: they show an orderly process, not a correct verdict.
 
 ```bash
 uv sync --group local --group eval
@@ -342,12 +352,16 @@ index, so the API runs one worker and nothing else may open the same index in th
   the misses; the held-out set tests new values, not new rules, and has 19 verdicts. No cross-document
   case exists because the rest of the corpus says nothing about these parameters.
 - **One model, not reproducible to the digit.** Results are for `gemini-3.5-flash-lite`, whose sampling
-  the provider fixes; a fresh run (empty cache) can differ and I have not measured by how much. The
-  cache pins a run, not the model. Other models are untested.
+  the provider fixes. A fresh run of the same code differed: 40/43 on GitHub against 43/43 locally
+  (one run each, so the size of the variance is still only roughly known). The cache pins a run, not
+  the model. Other models are untested.
 - **A known weakness (h10).** An unknown condition makes a rule `needs_human` even when the value
   passes whether or not the condition applies. Safe, but unhelpful.
 - **Verdicts are right more reliably than explanations.** In one case the verdict was correct but the
   model's written reason rambled and contradicted itself. No metric scores explanations.
+- **A known prompt gap.** The extraction prompt does not say that "X shall be provided" is a minimum of
+  one; the verifier does. When the agent calls extraction without a focus the model can answer "no numeric
+  requirement" and the agent escalates (the CI run's three misses). Unfixed.
 - **Free-tier limits shape everything.** 500 requests a day means about one fresh full evaluation
   a day, and CI shares that quota. A fork's pull request gets no secret, so its eval is skipped.
 - **Untested surfaces.** The MCP server was exercised with the Python client only; the Docker image
