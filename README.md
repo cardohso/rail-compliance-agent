@@ -314,6 +314,16 @@ index, so the API runs one worker and nothing else may open the same index in th
   overruled; failed checks stay in the report); otherwise `fail` beats a check that needed a person,
   which beats `pass`. Run 01 showed why: the model had escalated correctly and my aggregation threw it
   away.
+- **A coverage check guards against a rule the agent never extracted.** A verdict is computed from the
+  rules that were extracted, so code cannot otherwise know one is missing (CI run 2, g14). The check
+  looks in the passages the agent *did* extract from, for a sentence on the same measure (a numbered
+  point that names a subject governing the parameter, a sentence that names the measure and carries a
+  millimetre figure) that no extracted rule's value matches. If it could change the verdict for this
+  spec value (a stricter figure the value fails, or an exception beside a value that is already
+  rejected), the parameter is `needs_human`; a standing `fail` is kept. Replayed over the 148 saved real
+  verdicts it changes exactly one, the g14 false pass, and raises no false alarm. The relevance filter
+  that removed four false alarms was added after seeing them in that same data, so that figure is a fit
+  to the dev data, not an independent test.
 - **`check` is exact and never guesses.** "30 to 205 metres" includes both ends, "more than 205"
   excludes 205, metres convert to millimetres without float error; missing data, an unconvertible
   unit or a table with a gap is `needs_human`.
@@ -363,12 +373,12 @@ index, so the API runs one worker and nothing else may open the same index in th
   passes whether or not the condition applies. Safe, but unhelpful.
 - **Verdicts are right more reliably than explanations.** In one case the verdict was correct but the
   model's written reason rambled and contradicted itself. No metric scores explanations.
-- **A false pass is possible by omission.** The verdict is computed from the rules the agent extracted,
-  and code cannot know a rule is missing: if the model never extracts a conditional or special-case rule,
-  `check` judges only the rules it was given (CI run 2, g14: `pass` where `needs_human` was right). The
-  earlier "0 false passes" results partly relied on the model extracting every applicable rule each time.
-  A coverage check that flags passage sentences about the same measure that no extracted rule covers is
-  the obvious next safeguard; it is not built.
+- **The check for omitted rules is narrow.** It covers the five millimetre-valued parameters only (not
+  wheelchair spaces or universal toilets), and only sentences in passages the agent already extracted a
+  rule from: a rule in another passage, in different wording, or in a sentence that names no subject
+  (4.2.2.11.2 (8), the low-platform exemption) is not found. Before it existed, a rule the model never
+  extracted could become a false pass (CI run 2, g14), and the earlier "0 false passes" partly relied on the
+  model extracting every applicable rule each time.
 - **A prompt gap found by CI, since fixed.** The extraction prompt did not say that "X shall be provided"
   is a minimum of one (the verifier did), so a call without a focus could be answered "no numeric
   requirement" and the agent escalated (the CI run's three misses). The prompt now says it; tests pin the
