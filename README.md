@@ -203,13 +203,13 @@ Gemini `gemini-3.5-flash-lite`, local search. Full tables and caveats:
 [run 01 diagnosis](eval/results/run-01/DIAGNOSIS.md), [run 02](eval/results/run-02/RESULT.md),
 [held-out](eval/results/heldout-01/RESULT.md).
 
-| | Run 01 (first run) | Run 02 (after fixes) | Held-out (10 new specs) | **GitHub CI, same code as run 02** | Required |
-|---|---|---|---|---|---|
-| verdict accuracy | 34/43 = 0.79 | 43/43 = 1.00 | 18/19 = 0.95 | **40/43 = 0.93** | ≥ 0.80 |
-| false passes (said pass; golden fail or needs_human) | 0/43 | 0/43 | 0/19 | 0/43 | ≤ 0.05 |
-| escalation recall / precision | 3/5 / 3/9 | 5/5 / 5/5 | 2/2 / 2/3 | 5/5 / 5/8 | ≥ 0.40 / 0.60 |
-| tool selection / argument correctness / citation hit | 43/43 / 59/59 / 43/43 | 43/43 / 56/56 / 43/43 | 19/19 / 23/23 / 19/19 | 40/43 / 55/55 / 40/40 | ≥ 0.80 / 0.95 / 0.90 |
-| quality gate | **failed** (4 checks) | passed | passed | passed; **goldpass grounding failed** (0.93 < 0.95) | |
+| | Run 01 (first run) | Run 02 (after fixes) | Held-out (10 new specs) | GitHub CI 1 (same code as run 02) | **GitHub CI 2 (after prompt fix)** | Required |
+|---|---|---|---|---|---|---|
+| verdict accuracy | 34/43 = 0.79 | 43/43 = 1.00 | 18/19 = 0.95 | 40/43 = 0.93 | **42/43 = 0.98** | ≥ 0.80 |
+| false passes (said pass; golden fail or needs_human) | 0/43 | 0/43 | 0/19 | 0/43 | **1/43** | ≤ 0.05 |
+| escalation recall / precision | 3/5 / 3/9 | 5/5 / 5/5 | 2/2 / 2/3 | 5/5 / 5/8 | 4/5 / 4/4 | ≥ 0.40 / 0.60 |
+| tool selection / argument correctness / citation hit | 43/43 / 59/59 / 43/43 | 43/43 / 56/56 / 43/43 | 19/19 / 23/23 / 19/19 | 40/43 / 55/55 / 40/40 | 43/43 / 57/57 / 43/43 | ≥ 0.80 / 0.95 / 0.90 |
+| quality gate | **failed** (4 checks) | passed | passed | passed; **goldpass grounding failed** (0.93) | **passed (both gates)** | |
 
 How to read this:
 
@@ -232,8 +232,11 @@ How to read this:
   extraction model, called without a focus, did not read "a universal toilet shall be provided" as a
   minimum of one and the agent escalated without a check. That is a real gap in the extraction prompt
   (the verifier handled that wording, the prompt did not), exposed by sampling. I then fixed the prompt
-  (it now says "shall be provided" is a minimum of one) without touching a threshold; the re-run's
-  result is recorded next to this one. See [`eval/results/ci-run-01/RESULT.md`](eval/results/ci-run-01/RESULT.md) and
+  (it now says "shall be provided" is a minimum of one) without touching a threshold, and re-ran:
+  **42/43, both gates passed**, the three toilet cases fixed. But the re-run produced the **first false
+  pass** in any full run (g14: the conditional 1000 mm door rule was never extracted, so an unknown
+  design speed never forced `needs_human`). See [`eval/results/ci-run-02/RESULT.md`](eval/results/ci-run-02/RESULT.md),
+  [that run](https://github.com/cardohso/rail-compliance-agent/actions/runs/40230125813) and [`eval/results/ci-run-01/RESULT.md`](eval/results/ci-run-01/RESULT.md) and
   [the run](https://github.com/cardohso/rail-compliance-agent/actions/runs/40175097116). It is the first
   measurement of run-to-run variance, and it says the 43/43 and 18/19 above are single, partly
   favourable draws.
@@ -360,6 +363,12 @@ index, so the API runs one worker and nothing else may open the same index in th
   passes whether or not the condition applies. Safe, but unhelpful.
 - **Verdicts are right more reliably than explanations.** In one case the verdict was correct but the
   model's written reason rambled and contradicted itself. No metric scores explanations.
+- **A false pass is possible by omission.** The verdict is computed from the rules the agent extracted,
+  and code cannot know a rule is missing: if the model never extracts a conditional or special-case rule,
+  `check` judges only the rules it was given (CI run 2, g14: `pass` where `needs_human` was right). The
+  earlier "0 false passes" results partly relied on the model extracting every applicable rule each time.
+  A coverage check that flags passage sentences about the same measure that no extracted rule covers is
+  the obvious next safeguard; it is not built.
 - **A prompt gap found by CI, since fixed.** The extraction prompt did not say that "X shall be provided"
   is a minimum of one (the verifier did), so a call without a focus could be answered "no numeric
   requirement" and the agent escalated (the CI run's three misses). The prompt now says it; tests pin the
