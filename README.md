@@ -231,8 +231,9 @@ How to read this:
   0.95). All three differences were one parameter (`toilets.universal`) in three specs: the
   extraction model, called without a focus, did not read "a universal toilet shall be provided" as a
   minimum of one and the agent escalated without a check. That is a real gap in the extraction prompt
-  (the verifier handles that wording, the prompt does not), exposed by sampling. I have **not** fixed it
-  or touched a threshold; see [`eval/results/ci-run-01/RESULT.md`](eval/results/ci-run-01/RESULT.md) and
+  (the verifier handled that wording, the prompt did not), exposed by sampling. I then fixed the prompt
+  (it now says "shall be provided" is a minimum of one) without touching a threshold; the re-run's
+  result is recorded next to this one. See [`eval/results/ci-run-01/RESULT.md`](eval/results/ci-run-01/RESULT.md) and
   [the run](https://github.com/cardohso/rail-compliance-agent/actions/runs/40175097116). It is the first
   measurement of run-to-run variance, and it says the 43/43 and 18/19 above are single, partly
   favourable draws.
@@ -359,9 +360,10 @@ index, so the API runs one worker and nothing else may open the same index in th
   passes whether or not the condition applies. Safe, but unhelpful.
 - **Verdicts are right more reliably than explanations.** In one case the verdict was correct but the
   model's written reason rambled and contradicted itself. No metric scores explanations.
-- **A known prompt gap.** The extraction prompt does not say that "X shall be provided" is a minimum of
-  one; the verifier does. When the agent calls extraction without a focus the model can answer "no numeric
-  requirement" and the agent escalates (the CI run's three misses). Unfixed.
+- **A prompt gap found by CI, since fixed.** The extraction prompt did not say that "X shall be provided"
+  is a minimum of one (the verifier did), so a call without a focus could be answered "no numeric
+  requirement" and the agent escalated (the CI run's three misses). The prompt now says it; tests pin the
+  wording, and only a model run shows whether the model follows it (see the re-run).
 - **Free-tier limits shape everything.** 500 requests a day means about one fresh full evaluation
   a day, and CI shares that quota. A fork's pull request gets no secret, so its eval is skipped.
 - **Untested surfaces.** The MCP server was exercised with the Python client only; the Docker image

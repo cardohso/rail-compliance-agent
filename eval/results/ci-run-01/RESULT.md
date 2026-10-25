@@ -46,5 +46,6 @@ should count against grounding is a metric-design question I have not decided.
 - **Run-to-run variance is now measured, once:** same code, same model, 43/43 locally and 40/43 here,
   with every difference traced to one extraction outcome. The local 43/43 and the held-out 18/19 are
   each a single draw and were, at least in part, a favourable one.
-- Not fixed yet, on purpose: the fix (tell the extractor that "shall be provided" states a minimum of
-  one) would change every extraction prompt and so invalidate the caches behind the earlier runs.
+- Not fixed when this run was recorded, on purpose: the fix (tell the extractor that "shall be provided"
+  states a minimum of one) changes every extraction prompt and so invalidates the caches behind the
+  earlier runs. It was then made, without touching any threshold; the re-run is in `../ci-run-02/`.

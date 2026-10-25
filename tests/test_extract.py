@@ -628,3 +628,42 @@ def test_a_contingency_the_quote_does_not_support_is_unverified():
     result, _ = run(draft, passages=(STEP_PASSAGE,), parameter="steps.internal_step_height_mm")
     assert result.status == "unverified"
     assert "contingency" in result.reason
+
+
+# --- found by the first full CI run: "a universal toilet shall be provided" read as "no number" ---
+
+
+def normalised_system():
+    from rail_compliance.tools.extract import SYSTEM
+
+    return " ".join(SYSTEM.split())
+
+
+def test_the_prompt_says_that_shall_be_provided_states_a_minimum_of_one():
+    text = normalised_system()
+    assert '"shall be provided"' in text and "minimum of one" in text
+    assert "value` 1" in text and '">="' in text
+    assert "not a case of" in text and "no numeric requirement" in text
+
+
+def test_that_instruction_comes_before_the_not_found_rule_so_it_is_not_overridden():
+    text = normalised_system()
+    assert text.index("minimum of one") < text.index("set `found` to false")
+
+
+def test_the_rule_the_prompt_asks_for_is_exactly_what_the_verifier_accepts():
+    """The prompt and the verifier must agree: value 1, comparator >=, quoting the sentence."""
+    draft = toilet_rule(Condition(variable="toilets.fitted", op=">", value=0))
+    result = run_toilet(draft)
+    assert result.status == "found"
+    assert result.requirement.value == 1 and result.requirement.comparator == ">="
+    assert "shall be provided" in result.requirement.citation.quote
+
+
+def test_an_unfocused_extraction_gets_the_same_instruction():
+    # run 01 of CI: the agent called extraction with no focus; the instruction is in the system
+    # prompt, so it does not depend on how the agent words the call
+    _, llm = run(toilet_rule(Condition(variable="toilets.fitted", op=">", value=0)),
+                 passages=(TOILET,), parameter="toilets.universal")  # fmt: skip
+    system, user, _schema = llm.calls[0]
+    assert "minimum of one" in system and "Focus:" not in user

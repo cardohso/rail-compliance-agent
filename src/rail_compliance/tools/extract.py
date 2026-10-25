@@ -65,6 +65,9 @@ Rules:
   null when you give `bands`, and `bands` to an empty list when you give `value`; never both.
   `band_variable` names the spec parameter that selects the row. Mind inclusive/exclusive bounds:
   "less than 30 m" excludes 30, "30 to 205 metres" includes both.
+- A requirement that something "shall be provided", "shall be fitted" or "shall be installed" (for
+  example "a universal toilet shall be provided") states a minimum of one: give `value` 1 with
+  comparator ">=" and quote that sentence. It is a rule, not a case of "no numeric requirement".
 - If the passages do not state a number for this parameter (they refer to an external standard,
   describe something else, or are ambiguous), set `found` to false and explain in `note`.
 """
