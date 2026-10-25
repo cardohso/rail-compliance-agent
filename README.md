@@ -240,6 +240,12 @@ How to read this:
   [the run](https://github.com/cardohso/rail-compliance-agent/actions/runs/40175097116). It is the first
   measurement of run-to-run variance, and it says the 43/43 and 18/19 above are single, partly
   favourable draws.
+- **The coverage check, on CI run 2's draw.** A third `eval.yml` run replayed run 2's cached model outputs
+  (all 20 traces identical) with the check on: **43/43, 0 false passes**; the only change is g14,
+  `pass` → `needs_human`. That isolates the check's effect on one draw; it is **not** a fresh sample, and
+  the check was shaped by these same cases. See
+  [`eval/results/ci-run-03/RESULT.md`](eval/results/ci-run-03/RESULT.md) and
+  [the run](https://github.com/cardohso/rail-compliance-agent/actions/runs/40235005513).
 - **Tool selection, argument and citation scores were at or near 100% in every run**, so they did not
   separate a failing run from a passing one: they show an orderly process, not a correct verdict.
 
