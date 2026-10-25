@@ -50,3 +50,32 @@ def accepted_subjects(parameter: str) -> list[str]:
         out.append(subject)
         subject = WITHIN.get(subject)
     return out
+
+
+# --- the coverage check (tools/coverage.py) ------------------------------------------------------
+# How a passage refers to each subject, in the regulation's own words. A numbered point is "about" a
+# parameter when it names one of the subjects that govern it.
+SUBJECT_TERMS: dict[str, tuple[str, ...]] = {
+    "wheelchair_space": ("wheelchair space",),
+    "exterior_doorway": ("exterior passenger doorway", "exterior doorway"),
+    "wheelchair_doorway": (
+        "wheelchair access door",
+        "doorways designated for wheelchair",
+        "wheelchair exterior accessible doorway",
+    ),
+    "external_step": ("external access step", "external step"),
+    "internal_step": ("internal step",),
+    "universal_toilet": ("universal toilet",),
+    "universal_toilet_door": ("toilet access door",),
+}
+
+# What a sentence must name to state a rule on the same measure as the parameter. Only the
+# parameters measured in millimetres have one: for counts (spaces, universal toilets) a rule is a
+# table or "shall be provided", and the check does not look at them.
+MEASURES: dict[str, tuple[str, ...]] = {
+    "exterior_doors.clear_width_mm": ("clear useable width",),
+    "exterior_doors.wheelchair_door_clear_width_mm": ("clear useable width",),
+    "steps.external_step_height_mm": ("height",),
+    "steps.internal_step_height_mm": ("height",),
+    "toilets.universal_door_clear_width_mm": ("clear useable width",),
+}

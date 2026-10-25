@@ -38,6 +38,14 @@ class ToolCall(_Strict):
     source: Literal["agent", "runtime"] = "agent"  # runtime = decided by code, not the model
 
 
+class CoverageGap(_Strict):
+    """A sentence in a passage the agent used that states another rule on the same measure, which
+    no extracted rule covers (see tools/coverage.py)."""
+
+    passage_id: str
+    sentence: str
+
+
 class ParameterResult(_Strict):
     parameter: str
     verdict: FinalVerdict
@@ -49,6 +57,7 @@ class ParameterResult(_Strict):
     reviews: list[HumanReview] = Field(default_factory=list)
     citations: list[Citation] = Field(default_factory=list)
     consulted: list[str] = Field(default_factory=list)  # passage ids the searches returned
+    coverage_gaps: list[CoverageGap] = Field(default_factory=list)
 
 
 class Stats(_Strict):
@@ -118,6 +127,8 @@ def to_markdown(report: Report) -> str:
                 "",
                 f"- Needs a person ({review.category.replace('_', ' ')}): {review.reason}",
             ]
+        for gap in r.coverage_gaps:
+            lines += ["", f"- Possible missed rule in `{gap.passage_id}`: {gap.sentence}"]
         for c in r.citations:
             link = (
                 f"[{c.document}, {c.section}]({c.url})" if c.url else f"{c.document}, {c.section}"

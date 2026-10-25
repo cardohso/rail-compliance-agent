@@ -41,6 +41,7 @@ from rail_compliance.models import (
 )
 from rail_compliance.parameters import CHECKED_PARAMETERS, accepted_subjects
 from rail_compliance.report import (
+    CoverageGap,
     ParameterResult,
     Report,
     Stats,
@@ -50,6 +51,7 @@ from rail_compliance.report import (
 from rail_compliance.retry import LLMUnavailable
 from rail_compliance.spec import TrainSpec, parameter_info, spec_intervals, spec_values, unit_of
 from rail_compliance.tools.check import check as check_tool
+from rail_compliance.tools.coverage import find_gaps
 from rail_compliance.tools.extract import StructuredLLM, StructuredOutputError
 from rail_compliance.tools.extract import extract_requirement as extract_tool
 from rail_compliance.tools.needs_human import needs_human as needs_human_tool
@@ -310,7 +312,8 @@ def _settle(scratch: Scratch, values: dict[str, float]) -> ParameterResult:
        overrule; failed checks stay in the report);
     2. a check failed: fail, unless a contingent exception would allow the value, in which case
        it is needs_human (the exception cannot be shown from the spec);
-    3. a check needed a person (missing data): needs_human;
+    3. a check needed a person (missing data), or a passage the agent used states another rule on
+       the same measure that no extracted rule covers (a coverage gap): needs_human;
     4. the runtime cut the work short: needs_human;
     5. an ordinary rule passed: pass; only a contingent exception passed: needs_human;
     6. every rule was not applicable: not_applicable.
@@ -323,6 +326,14 @@ def _settle(scratch: Scratch, values: dict[str, float]) -> ParameterResult:
     passes = [c for c in checks if c.verdict == "pass" and not c.contingency]
     exceptions = [c for c in checks if c.verdict == "pass" and c.contingency]
     runtime = [r for r in reviews if r not in scratch.escalations]
+    gaps = find_gaps(
+        parameter, scratch.passages, scratch.requirements.values(), spec_value=values[parameter]
+    )
+    gap_reasons = [
+        f'{g.passage_id} also states "{g.sentence[:300]}", which no extracted rule covers: '
+        "a person should check whether it applies"
+        for g in gaps
+    ]
 
     if scratch.escalations:
         verdict = "needs_human"
@@ -337,8 +348,15 @@ def _settle(scratch: Scratch, values: dict[str, float]) -> ParameterResult:
         )
     elif fails:
         verdict, reason = "fail", "; ".join(c.reason for c in fails)
-    elif mechanical:
-        verdict, reason = "needs_human", "; ".join(c.reason for c in mechanical)
+    elif mechanical or gaps:
+        verdict = "needs_human"
+        notes = [c.reason for c in mechanical] + gap_reasons
+        notes += [f"allowed only if {c.contingency}" for c in exceptions]
+        reason = "; ".join(notes)
+        if gaps:
+            reviews.append(
+                HumanReview(parameter=parameter, category="other", reason=gap_reasons[0])
+            )
     elif runtime:
         verdict, reason = "needs_human", "; ".join(r.reason for r in runtime)
     elif passes:
@@ -375,6 +393,7 @@ def _settle(scratch: Scratch, values: dict[str, float]) -> ParameterResult:
         reviews=reviews,
         citations=citations,
         consulted=list(scratch.passages),
+        coverage_gaps=[CoverageGap(passage_id=g.passage_id, sentence=g.sentence) for g in gaps],
     )
 
 

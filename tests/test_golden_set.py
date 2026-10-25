@@ -132,3 +132,54 @@ def test_gold_quotes_and_passage_ids_exist_in_the_real_corpus():
     for case in CASES:
         for x in case.expected.values():
             assert all(g in passages for g in x.gold_passages)
+
+
+def _real_passages():
+    pytest.importorskip("rail_rag")
+    import os
+
+    from rail_compliance.config import get_settings
+
+    data = get_settings().rail_rag_data_dir
+    if not (data / "processed" / "tsi-prm.jsonl").exists():
+        pytest.skip(f"no corpus at {data}")
+    os.environ.setdefault("RAIL_RAG_DATA_DIR", str(data))
+    from rail_rag.chunking import load_passages
+
+    from rail_compliance.models import Passage
+
+    return {
+        p.id: Passage(
+            id=p.id, doc_id=p.doc_id, document=p.doc_short, section=p.section, text=p.text
+        )
+        for p in load_passages(data / "processed")
+    }
+
+
+def test_the_coverage_check_raises_no_false_alarm_on_perfect_extraction_of_the_real_text():
+    """With the gold rules as the extractor, no real passage trips the check for any parameter."""
+    from rail_compliance.parameters import MEASURES
+    from rail_compliance.tools.coverage import find_gaps
+
+    passages = _real_passages()
+    for parameter in MEASURES:
+        gaps = find_gaps(parameter, passages, GOLD_RULES[parameter])
+        assert gaps == [], f"{parameter}: false alarm on {gaps}"
+
+
+def test_the_coverage_check_fires_on_the_real_text_when_a_gold_rule_is_dropped():
+    from rail_compliance.golden import (
+        INTERNAL_GENERAL,
+        WHEELCHAIR_GENERAL,
+        WHEELCHAIR_LEVEL,
+    )
+    from rail_compliance.tools.coverage import find_gaps
+
+    passages = _real_passages()
+    wc = "exterior_doors.wheelchair_door_clear_width_mm"
+    only_general = find_gaps(wc, passages, [WHEELCHAIR_GENERAL])
+    assert len(only_general) == 1 and "1 000 mm" in only_general[0].sentence
+    only_special = find_gaps(wc, passages, [WHEELCHAIR_LEVEL])
+    assert len(only_special) == 1 and "800 mm" in only_special[0].sentence
+    internal = find_gaps("steps.internal_step_height_mm", passages, [INTERNAL_GENERAL])
+    assert len(internal) == 1 and "230 mm" in internal[0].sentence

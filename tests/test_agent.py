@@ -655,3 +655,136 @@ def test_the_task_message_lists_the_subjects_that_govern_the_parameter():
     clear = messages["Parameter to check: exterior_doors.clear_width_mm (mm)"]
     assert "(own subject first): exterior_doorway" in clear
     assert "wheelchair_doorway" not in clear
+
+
+# --- the coverage check in the agent (found by CI run 2, g14) -------------------------------------
+
+
+def general_door_draft(parameter):
+    rule = RequirementCore(
+        parameter=parameter, subject="exterior_doorway", comparator=">=", value=800, unit="mm"
+    )
+    return door_draft(rule=rule)
+
+
+def door_run(spec_, drafts, script):
+    class DoorSearch(FakeSearch):
+        def search(self, question, k):
+            return SearchResult(question=question, passages=[DOOR_PASSAGE], backend="fake")
+
+    agent = ComplianceAgent(ScriptedAgentLLM(script), FakeExtractor(drafts), DoorSearch())
+    return agent.run(spec_).result_for(WC_DOOR)
+
+
+def g14_script(value):
+    return [
+        search_call("wheelchair door width"),
+        extract_call(WC_DOOR, focus="wheelchair doors width"),
+        extract_call(WC_DOOR, focus="all exterior passenger doorways width"),
+        check_call(WC_DOOR, value, "R1"),
+        check_call(WC_DOOR, value, "R2"),
+        DONE,
+    ]
+
+
+def test_g14_an_omitted_conditional_rule_can_no_longer_become_a_pass():
+    # CI run 2: the 1000 mm rule was never extracted, only the 800 mm rule, twice; 900 >= 800 passed
+    spec_ = spec(
+        exterior_doors={"wheelchair_door_clear_width_mm": 900, "wheelchair_door_level_access": True}
+    )
+    drafts = [general_door_draft(WC_DOOR), general_door_draft(WC_DOOR)]
+    result = door_run(spec_, drafts, g14_script(900))
+    assert [c.verdict for c in result.checks] == ["pass", "pass"]  # the checks themselves are fine
+    assert result.verdict == "needs_human"
+    assert "1 000 mm" in result.reason and "no extracted rule" in result.reason
+    assert len(result.coverage_gaps) == 1
+    assert result.coverage_gaps[0].passage_id == DOOR_PASSAGE.id
+    assert "wheelchair access doors" in result.coverage_gaps[0].sentence
+    assert result.reviews and result.reviews[0].category == "other"
+
+
+def test_the_same_extraction_with_both_rules_is_not_flagged():
+    speed_rule = RequirementCore(
+        parameter=WC_DOOR, subject="wheelchair_doorway", comparator=">=", value=1000, unit="mm",
+        conditions=[Condition(variable="design_speed_kmh", op="<", value=250)],
+    )  # fmt: skip
+    slow = door_draft(quote=DOORS[DOORS.index("On trains") :], rule=speed_rule)
+    spec_ = spec(
+        design_speed_kmh=300,
+        exterior_doors={
+            "wheelchair_door_clear_width_mm": 900,
+            "wheelchair_door_level_access": True,
+        },
+    )
+    result = door_run(spec_, [general_door_draft(WC_DOOR), slow], g14_script(900))
+    assert [c.verdict for c in result.checks] == ["pass", "not_applicable"]
+    assert result.verdict == "pass" and result.coverage_gaps == []
+
+
+def test_a_standing_fail_is_not_hidden_by_a_gap():
+    spec_ = spec(
+        exterior_doors={"wheelchair_door_clear_width_mm": 780, "wheelchair_door_level_access": True}
+    )
+    drafts = [general_door_draft(WC_DOOR), general_door_draft(WC_DOOR)]
+    result = door_run(spec_, drafts, g14_script(780))
+    assert result.verdict == "fail"  # 780 < 800 whatever the missing rule says
+    assert len(result.coverage_gaps) == 1  # still recorded for the reader
+
+
+def test_the_models_own_escalation_still_wins_over_everything():
+    spec_ = spec(exterior_doors={"wheelchair_door_clear_width_mm": 900})
+    script = [
+        search_call(),
+        extract_call(WC_DOOR),
+        check_call(WC_DOOR, 900, "R1"),
+        ai(tool_call("needs_human", reason="I am not sure.", category="ambiguous_law")),
+    ]
+    result = door_run(spec_, [general_door_draft(WC_DOOR)], script)
+    assert result.verdict == "needs_human" and "I am not sure" in result.reason
+
+
+def test_an_omitted_lenient_exception_does_not_stop_a_pass_it_cannot_undo():
+    from tests.test_coverage import STEPS
+
+    general, _ = internal_step_drafts()
+
+    class StepSearch(FakeSearch):
+        def search(self, question, k):
+            return SearchResult(question=question, passages=[STEPS], backend="fake")
+
+    script = [
+        search_call("internal step height"),
+        extract_call(INT, ids=[STEPS.id]),
+        check_call(INT, 180, "R1"),
+        DONE,
+    ]
+    agent = ComplianceAgent(ScriptedAgentLLM(script), FakeExtractor([general]), StepSearch())
+    result = agent.run(spec(steps={"internal_step_height_mm": 180.0})).result_for(INT)
+    # 180 mm meets the 200 mm limit, and the missed 230 mm exception only relaxes it: still a pass
+    assert result.verdict == "pass" and result.coverage_gaps == []
+
+
+def test_count_parameters_are_never_flagged():
+    report, *_ = run(
+        spec(wheelchair_spaces=2, unit_length_m=100.0),
+        [search_call(), extract_call("wheelchair_spaces", ids=[TABLE_PASSAGE.id]), DONE],
+        [None],
+    )
+    assert report.result_for("wheelchair_spaces").coverage_gaps == []
+
+
+def test_the_markdown_report_shows_the_possible_missed_rule():
+    from rail_compliance.report import to_markdown
+
+    spec_ = spec(
+        exterior_doors={"wheelchair_door_clear_width_mm": 900, "wheelchair_door_level_access": True}
+    )
+    drafts = [general_door_draft(WC_DOOR), general_door_draft(WC_DOOR)]
+    result = door_run(spec_, drafts, g14_script(900))
+    assert result.coverage_gaps
+    from rail_compliance.report import Report, Stats
+
+    stats = Stats(tool_calls=0, llm_calls=0, seconds=0, agent_model="x", search_backend="y")
+    report = Report(spec_name="t", spec={}, results=[result], trace=[], stats=stats)
+    text = to_markdown(report)
+    assert "Possible missed rule" in text and "1 000 mm" in text
