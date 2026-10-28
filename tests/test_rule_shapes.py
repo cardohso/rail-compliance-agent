@@ -186,3 +186,34 @@ def test_choices_are_read_from_literal_fields():
 
     assert _choices(Literal["new", "renewed"] | None) == ("new", "renewed")
     assert _choices(float | None) == ()
+
+
+STAIRS = passage(
+    "(1) On double-deck units the minimum step depth shall be 270 mm.",
+    id_="tsi-prm:Annex §4.2.2.8#1",
+)
+STEP = "steps.internal_step_height_mm"
+
+
+def category_draft(deck, quote="On double-deck units the minimum step depth shall be 270 mm."):
+    deck_is = Condition(variable="deck", op="==", value=deck)
+    rule = RequirementCore(parameter=STEP, subject=SUBJECT_OF[STEP], comparator=">=", value=270,
+                           unit="mm", conditions=[deck_is])  # fmt: skip
+    return RequirementDraft(found=True, passage_id=STAIRS.id, quote=quote, rule=rule)
+
+
+@pytest.fixture
+def deck_field(monkeypatch):
+    from rail_compliance.tools import extract
+
+    real = extract.parameter_kinds()
+    monkeypatch.setattr(extract, "parameter_kinds", lambda: {**real, **KINDS})
+    monkeypatch.setattr(extract, "parameter_choices", lambda: CHOICES)
+
+
+@pytest.mark.parametrize(
+    ("deck", "status"), [("double_deck", "found"), ("single_deck", "unverified")]
+)
+def test_extraction_verifies_the_category_against_the_quote(deck_field, deck, status):
+    result = extract_requirement([STAIRS], STEP, FakeLLM(category_draft(deck)))
+    assert result.status == status, result.reason
