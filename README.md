@@ -167,7 +167,7 @@ Four plain functions with typed inputs and outputs in
 | Tool | What it does | LLM? |
 |---|---|---|
 | `search_regulation(question)` | passages of the regulation that answer the question | no (`local`) |
-| `extract_requirement(passages, parameter)` | the numeric rule as a typed `Requirement` (a limit or a table, unit, conditions) | yes, then **verified without it** |
+| `extract_requirement(passages, parameter)` | the numeric rule as a typed `Requirement` (a limit, a range or a table, unit, conditions on numbers, flags or categories) | yes, then **verified without it** |
 | `check(spec_value, requirement)` | `pass` / `fail` / `needs_human` / `not_applicable` by exact comparison | no |
 | `needs_human(reason)` | records an escalation: ambiguous law, missing data, weak citation; rejects a reason over one sentence or 300 characters, or one that thinks out loud | no |
 
