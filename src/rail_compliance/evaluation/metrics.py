@@ -9,10 +9,11 @@ from __future__ import annotations
 
 import math
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from rail_compliance.explanations import explanation_problems
 from rail_compliance.golden import Expected, GoldenCase
 from rail_compliance.report import Report
 from rail_compliance.spec import spec_values
@@ -165,6 +166,18 @@ def percentile(values: Sequence[float], q: float) -> float | None:
     return ordered[lo] + (ordered[hi] - ordered[lo]) * (pos - lo)
 
 
+def explanation_quality(reports: Iterable[Report]) -> Rate:
+    """Clean reasons / reasons the agent recorded. A rejected call was rewritten, and runtime
+    reasons are written by code, so neither is the agent's explanation."""
+    reasons = [
+        str(t.args.get("reason", ""))
+        for r in reports
+        for t in r.trace
+        if t.name == "needs_human" and t.ok and t.source == "agent"
+    ]
+    return rate(sum(1 for text in reasons if not explanation_problems(text)), len(reasons))
+
+
 class Metrics(_Strict):
     n_cases: int
     n_items: int
@@ -174,6 +187,9 @@ class Metrics(_Strict):
     by_tag: dict[str, dict[str, Rate]]
     confusion: dict[str, dict[str, int]]  # expected verdict -> actual verdict -> count
     per_spec: dict[str, float | None]  # tool calls, model calls, seconds (mean) and p50/p95 seconds
+    # Report only, never gated: share of the agent's recorded escalation reasons with no problem
+    # (see explanations.py). Added after the thresholds were set, so it has none.
+    explanation_quality: Rate | None = None
 
 
 def compute_metrics(
@@ -209,4 +225,5 @@ def compute_metrics(
             "seconds_p50": percentile(seconds, 0.5),
             "seconds_p95": percentile(seconds, 0.95),
         },
+        explanation_quality=explanation_quality(done),
     )

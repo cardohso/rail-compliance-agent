@@ -788,3 +788,43 @@ def test_the_markdown_report_shows_the_possible_missed_rule():
     report = Report(spec_name="t", spec={}, results=[result], trace=[], stats=stats)
     text = to_markdown(report)
     assert "Possible missed rule" in text and "1 000 mm" in text
+
+
+def test_a_rambling_escalation_is_sent_back_and_the_short_retry_is_recorded():
+    rambling = "The rule is unclear. Wait, actually it may be in EN 16584-1. Let me re-check."
+    script = [
+        ai(tool_call("needs_human", reason=rambling, category="ambiguous_law")),
+        ai(tool_call("needs_human", reason="The rule is in EN 16584-1, outside the corpus.",
+                     category="weak_citation")),
+    ]  # fmt: skip
+    report, *_ = run(spec(exterior_doors={"clear_width_mm": 850}), script)
+    calls = agent_calls(report, DOOR)
+    assert [t.ok for t in calls] == [False, True]
+    assert "one sentence" in calls[0].summary
+    result = report.result_for(DOOR)
+    assert result.verdict == "needs_human"
+    assert result.reason == "The rule is in EN 16584-1, outside the corpus."
+
+
+def test_an_escalation_can_name_the_requirement_it_is_about():
+    script = [
+        search_call(),
+        extract_call(DOOR),
+        ai(tool_call("needs_human", reason="Whether R1 covers folding doors is unclear.",
+                     category="ambiguous_law", requirement_id="R1")),
+    ]  # fmt: skip
+    report, *_ = run(spec(exterior_doors={"clear_width_mm": 850}), script, [door_draft()])
+    review = report.result_for(DOOR).reviews[0]
+    assert review.requirement_id == "R1"
+
+
+def test_an_escalation_naming_an_unknown_requirement_is_rejected():
+    script = [
+        ai(tool_call("needs_human", reason="R7 is unclear.", category="other",
+                     requirement_id="R7")),
+        ai(tool_call("needs_human", reason="No rule was found.", category="other")),
+    ]  # fmt: skip
+    report, *_ = run(spec(exterior_doors={"clear_width_mm": 850}), script)
+    calls = agent_calls(report, DOOR)
+    assert [t.ok for t in calls] == [False, True]
+    assert "unknown requirement id" in calls[0].summary

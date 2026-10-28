@@ -156,6 +156,7 @@ class HumanReview(_Strict):
     parameter: str | None = None
     category: HumanReason
     reason: str
+    requirement_id: str | None = None  # the extracted rule the escalation is about
 
 
 class RequirementDraft(_Strict):

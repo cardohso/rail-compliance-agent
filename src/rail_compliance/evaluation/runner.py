@@ -70,6 +70,8 @@ def results_markdown(
         out.append(f"| `{name}` | {cell(r)} |")
     out.append(f"| `tool_calls_per_parameter` | {metrics.tool_calls_per_parameter or 0:.2f} |")
     out.append(f"| `errors` | {metrics.errors} |")
+    if metrics.explanation_quality is not None:
+        out.append(f"| `explanation_quality` (report only) | {cell(metrics.explanation_quality)} |")
     ps = metrics.per_spec
     out += [
         "",

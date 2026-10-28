@@ -78,10 +78,12 @@ Procedure:
 3. check(parameter, spec_value, requirement_id): compare the spec with a requirement. Pass the
    spec value exactly as given. A result of not_applicable means that rule's conditions are false
    for this spec: that is not a failure, so look for the other rule that applies.
-4. needs_human(reason, category): call this, and then stop, when the law is ambiguous or has an
-   exception you cannot evaluate from the spec (ambiguous_law), when the rule depends on data the
-   spec does not supply (missing_data), or when extraction fails, the citation is weak or the rule
-   sits in an external standard (weak_citation).
+4. needs_human(reason, category, requirement_id): call this, and then stop, when the law is
+   ambiguous or has an exception you cannot evaluate from the spec (ambiguous_law), when the rule
+   depends on data the spec does not supply (missing_data), or when extraction fails, the
+   citation is weak or the rule sits in an external standard (weak_citation). The reason is one
+   sentence of at most 300 characters that states what a person must decide; work it out before
+   you call, not in it.
 When every rule that applies has been checked, reply with one short sentence and no tool call.
 Never use a number from memory: only rules returned by extract_requirement count.
 """
@@ -109,8 +111,14 @@ class CheckArgs(BaseModel):
 
 
 class NeedsHumanArgs(BaseModel):
-    reason: str = Field(description="What a person must decide, and why.")
+    reason: str = Field(
+        description="One sentence, at most 300 characters: what a person must decide, and why. "
+        "State the conclusion only; do not reason out loud."
+    )
     category: HumanReason = Field(description="ambiguous_law, missing_data, weak_citation, other")
+    requirement_id: str | None = Field(
+        default=None, description="Id of the extracted requirement this is about, if any."
+    )
 
 
 TOOL_ARGS: dict[str, type[BaseModel]] = {
@@ -275,8 +283,12 @@ class _Runner:
         return True, f"{result.verdict}: {result.reason}"
 
     def _needs_human(self, a: NeedsHumanArgs, scratch: Scratch, values) -> tuple[bool, str]:
+        if a.requirement_id is not None and a.requirement_id not in scratch.requirements:
+            return False, (
+                f"unknown requirement id {a.requirement_id}. Known: {list(scratch.requirements)}"
+            )
         try:
-            review = needs_human_tool(a.reason, scratch.parameter, a.category)
+            review = needs_human_tool(a.reason, scratch.parameter, a.category, a.requirement_id)
         except ValueError as exc:
             return False, str(exc)
         scratch.reviews.append(review)

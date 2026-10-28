@@ -227,3 +227,27 @@ def test_percentile():
     assert percentile([1, 2, 3, 4], 0.5) == 2.5
     assert percentile([10], 0.95) == 10
     assert percentile(list(range(101)), 0.95) == 95
+
+
+def test_explanation_quality_scores_the_agents_own_escalation_reasons():
+    from rail_compliance.evaluation.metrics import explanation_quality
+
+    clean = call(SPACES, "needs_human", {"reason": "The table is ambiguous at 205 m."})
+    rambling = call(SPACES, "needs_human",
+                    {"reason": "It is 205 m. Wait, it is 210 m, so let me re-check."})  # fmt: skip
+    rejected = call(SPACES, "needs_human", {"reason": "x. Wait."}, ok=False)
+    runtime = call(SPACES, "needs_human", {"reason": "a. b. c."}, source="runtime")
+    reports = {
+        "g04": report_for("g04", calls={SPACES: [clean]}),
+        "g05": report_for("g05", calls={SPACES: [rambling, rejected, runtime]}),
+    }
+    r = explanation_quality(reports.values())
+    assert (r.k, r.n) == (1, 2)  # rejected and runtime-written reasons are not the agent's record
+
+
+def test_metrics_carry_explanation_quality_but_the_gate_does_not_know_it():
+    from rail_compliance.evaluation.gate import KNOWN
+
+    m = metrics(["g16"], perfect(["g16"]))
+    assert m.explanation_quality is not None
+    assert "explanation_quality" not in KNOWN
