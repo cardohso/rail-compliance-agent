@@ -11,7 +11,11 @@ parameter came out `pass`. This finds that situation deterministically:
 - a sentence that names the parameter's measure and carries a millimetre figure is a candidate;
 - it is covered if some extracted rule's value is one of those figures; otherwise it is a gap.
 
-Deliberately narrow: only millimetre parameters, only cited passages, and a sentence that names no
+Counts (wheelchair spaces, universal toilets) use "<n> <noun>" and "a <noun> shall be provided" as
+figures; a passage that states a whole table of counts must be extracted as a table (every row's
+figure covered), because reducing it to one value bypasses the deterministic row selection.
+
+Deliberately narrow: only these seven parameters, only cited passages, and a sentence that names no
 subject (for example 4.2.2.11.2 (8), which talks of "steps height" without saying which steps) is
 not a candidate. It finds a sibling rule in the same passage; it cannot find one elsewhere.
 """
@@ -23,6 +27,7 @@ from collections.abc import Iterable, Mapping
 
 from rail_compliance.models import Passage, Requirement
 from rail_compliance.parameters import MEASURES, SUBJECT_TERMS, accepted_subjects
+from rail_compliance.spec import parameter_kinds
 from rail_compliance.tools.extract import _norm
 
 _MM = re.compile(r"(\d{1,3}(?: \d{3})+(?!\d)|\d+(?:[.,]\d+)?)\s*mm\b")
@@ -44,6 +49,35 @@ class Gap:
 def mm_numbers(text: str) -> set[float]:
     """Figures written in millimetres; "1 000 mm" (a space as thousands separator) reads as 1000."""
     return {float(token.replace(" ", "").replace(",", ".")) for token in _MM.findall(_norm(text))}
+
+
+_COUNT_WORDS = {
+    w: float(i)
+    for i, w in enumerate(
+        ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"], 1
+    )
+}
+
+
+def count_figures(text: str, noun: str) -> set[float]:
+    """Counts of `noun` the text states: "2 wheelchair spaces", "two wheelchair spaces", or
+    "a universal toilet shall be provided" (one). A number elsewhere in the sentence is not one."""
+    text, noun = _norm(text).lower(), re.escape(noun.lower())
+    out = {
+        _COUNT_WORDS.get(n) or float(n)
+        for n in re.findall(
+            rf"\b(\d+|{'|'.join(_COUNT_WORDS)})\s+(?:accessible\s+)?{noun}s?\b", text
+        )
+    }
+    if re.search(rf"\b(?:a|an)\s+{noun}\s+shall be (?:provided|fitted|installed)\b", text):
+        out.add(1.0)
+    return out
+
+
+def _figures(parameter: str, sentence: str) -> set[float]:
+    if parameter_kinds()[parameter] == "count":
+        return set().union(*(count_figures(sentence, noun) for noun in MEASURES[parameter]))
+    return mm_numbers(sentence)
 
 
 def _rule_values(requirements: Iterable[Requirement]) -> set[float]:
@@ -103,10 +137,16 @@ def find_gaps(
             for sentence in _SENTENCE_END.split(point_text):
                 if not any(term in sentence.lower() for term in measure_terms):
                     continue
-                figures = mm_numbers(sentence)
-                if not figures or figures & values:
-                    continue  # no figure, or an extracted rule already carries one
-                if spec_value is not None and not _matters(
+                figures = _figures(parameter, sentence)
+                if not figures:
+                    continue
+                if len(figures) > 1 and parameter_kinds()[parameter] == "count":
+                    # a table of counts must be extracted as a table: every row's figure covered
+                    if figures <= values:
+                        continue
+                elif figures & values:
+                    continue  # an extracted rule already carries this figure
+                elif spec_value is not None and not _matters(
                     figures, spec_value, requirements, values
                 ):
                     continue

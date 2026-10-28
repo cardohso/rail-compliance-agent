@@ -145,7 +145,7 @@ def test_nothing_extracted_means_nothing_to_inspect():
 
 
 @pytest.mark.parametrize("parameter", ["wheelchair_spaces", "toilets.universal"])
-def test_count_parameters_are_out_of_scope(parameter):
+def test_a_count_parameter_ignores_millimetre_figures(parameter):
     spaces = passage(
         "(3) Over the full length of the wheelchair space the width shall be 700 mm.",
         id_="tsi-prm:Annex §4.2.2.2#1",
@@ -179,7 +179,15 @@ def test_mm_numbers(text, numbers):
 def test_the_registries_cover_exactly_what_they_should():
     assert set(MEASURES) <= set(CHECKED_PARAMETERS)
     assert set(SUBJECT_TERMS) == set(SUBJECTS)
-    assert set(MEASURES) == {CLEAR, WC, INT, EXT, UNI_DOOR}  # the mm-valued parameters
+    assert set(MEASURES) == {
+        CLEAR,
+        WC,
+        INT,
+        EXT,
+        UNI_DOOR,
+        "wheelchair_spaces",
+        "toilets.universal",
+    }
     assert all(terms for terms in MEASURES.values()) and all(SUBJECT_TERMS.values())
 
 
@@ -225,3 +233,91 @@ def test_a_lenient_exception_beside_a_failing_value_is_still_reported():
 
 def test_without_a_spec_value_every_gap_is_reported():
     assert len(gaps(INT, [STEPS], rule(INT, 200, STEPS, "internal_step"))) == 1
+
+
+# --- counts: wheelchair spaces (Table 5) and universal toilets ("shall be provided")
+
+
+SPACES_TABLE = passage(
+    "(1) According to the length of the unit, excluding the locomotive or power head, there "
+    "shall be in that unit not less than the number of accessible wheelchair spaces shown in "
+    "the following table: Table 5 Minimum number of wheelchair spaces per unit length Unit "
+    "length | Number of wheelchair spaces by unit Less than 30 m | 1 wheelchair space 30 to "
+    "205 metres | 2 wheelchair spaces More than 205 to 300 metres | 3 wheelchair spaces More "
+    "than 300 metres | 4 wheelchair spaces\n(3) Over the full length of the wheelchair space "
+    "the width shall be 700 mm from floor level.\n(9) At least one seat shall be available "
+    "either side-by-side with or face-to-face to each of the wheelchair spaces for a "
+    "companion.",
+    id_="tsi-prm:Annex §4.2.2.2#1",
+)
+TOILETS = passage(
+    "(1) When toilets are fitted in a train, a universal toilet shall be provided accessible from "
+    "the wheelchair space.\n(2) The standard toilet shall be compliant with the requirements of "
+    "points 5.3.2.2 and 5.3.2.3.",
+    id_="tsi-prm:Annex §4.2.2.5#1",
+)
+
+
+def table_rule(rows):
+    from rail_compliance.models import Band, Requirement
+    from tests.factories import CITATION
+
+    bands = {
+        1: Band(upper=30, upper_inclusive=False, value=1),
+        2: Band(lower=30, upper=205, value=2),
+        3: Band(lower=205, lower_inclusive=False, upper=300, value=3),
+        4: Band(lower=300, lower_inclusive=False, value=4),
+    }
+    return Requirement(
+        parameter="wheelchair_spaces", subject="wheelchair_space", comparator=">=",
+        bands=[bands[r] for r in rows], band_variable="unit_length_m",
+        citation=CITATION.model_copy(update={"passage_id": SPACES_TABLE.id}),
+    )  # fmt: skip
+
+
+def count_rule(parameter, value, passage_, subject):
+    base = limit(parameter, ">=", value, subject=subject)
+    return base.model_copy(
+        update={"citation": base.citation.model_copy(update={"passage_id": passage_.id})}
+    )
+
+
+def test_a_table_extracted_as_a_table_is_covered():
+    assert gaps("wheelchair_spaces", [SPACES_TABLE], table_rule([1, 2, 3, 4])) == []
+
+
+def test_a_table_reduced_to_one_value_is_a_gap_even_if_that_value_looks_right():
+    # the model picked the row itself; the deterministic row selection was bypassed
+    single = count_rule("wheelchair_spaces", 2, SPACES_TABLE, "wheelchair_space")
+    found = find_gaps("wheelchair_spaces", {SPACES_TABLE.id: SPACES_TABLE}, [single], spec_value=2)
+    assert len(found) == 1 and "Table 5" in found[0].sentence
+
+
+def test_a_table_with_a_row_missing_is_a_gap():
+    found = gaps("wheelchair_spaces", [SPACES_TABLE], table_rule([1, 2, 3]))
+    assert len(found) == 1
+
+
+def test_millimetre_figures_and_unrelated_counts_are_not_count_figures():
+    # (3) has 700 mm, (9) "one seat ... each of the wheelchair spaces": neither is a count of spaces
+    found = gaps("wheelchair_spaces", [SPACES_TABLE], table_rule([1, 2, 3, 4]))
+    assert all("700 mm" not in g.sentence and "one seat" not in g.sentence for g in found)
+
+
+def test_the_universal_toilet_existence_rule_is_covered_by_a_minimum_of_one():
+    rule = count_rule("toilets.universal", 1, TOILETS, "universal_toilet")
+    assert gaps("toilets.universal", [TOILETS], rule) == []
+
+
+def test_count_figures():
+    from rail_compliance.tools.coverage import count_figures
+
+    assert count_figures(
+        "1 wheelchair space 30 to 205 metres | 2 wheelchair spaces", "wheelchair space"
+    ) == {1.0, 2.0}
+    assert count_figures("not less than two wheelchair spaces", "wheelchair space") == {2.0}
+    assert count_figures("a universal toilet shall be provided", "universal toilet") == {1.0}
+    assert (
+        count_figures("width of the wheelchair space shall be 700 mm", "wheelchair space") == set()
+    )
+    assert count_figures("each of the wheelchair spaces", "wheelchair space") == set()

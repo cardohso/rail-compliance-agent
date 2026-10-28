@@ -69,10 +69,11 @@ SUBJECT_TERMS: dict[str, tuple[str, ...]] = {
     "universal_toilet_door": ("toilet access door",),
 }
 
-# What a sentence must name to state a rule on the same measure as the parameter. Only the
-# parameters measured in millimetres have one: for counts (spaces, universal toilets) a rule is a
-# table or "shall be provided", and the check does not look at them.
+# What a sentence must name to state a rule on the same measure as the parameter. For millimetre
+# parameters a figure is "<n> mm"; for counts it is "<n> <noun>" or "a <noun> shall be provided".
 MEASURES: dict[str, tuple[str, ...]] = {
+    "wheelchair_spaces": ("wheelchair space",),
+    "toilets.universal": ("universal toilet",),
     "exterior_doors.clear_width_mm": ("clear useable width",),
     "exterior_doors.wheelchair_door_clear_width_mm": ("clear useable width",),
     "steps.external_step_height_mm": ("height",),

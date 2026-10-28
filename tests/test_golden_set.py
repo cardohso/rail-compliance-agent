@@ -183,3 +183,14 @@ def test_the_coverage_check_fires_on_the_real_text_when_a_gold_rule_is_dropped()
     assert len(only_special) == 1 and "800 mm" in only_special[0].sentence
     internal = find_gaps("steps.internal_step_height_mm", passages, [INTERNAL_GENERAL])
     assert len(internal) == 1 and "230 mm" in internal[0].sentence
+
+
+def test_on_the_real_text_a_table_reduced_to_one_value_is_flagged_and_the_full_table_is_not():
+    from rail_compliance.golden import TABLE_5
+    from rail_compliance.tools.coverage import find_gaps
+
+    passages = _real_passages()
+    assert find_gaps("wheelchair_spaces", passages, [TABLE_5]) == []
+    one_row = TABLE_5.model_copy(update={"bands": [], "band_variable": None, "value": 2.0})
+    found = find_gaps("wheelchair_spaces", passages, [one_row])
+    assert len(found) == 1 and "Table 5" in found[0].sentence
