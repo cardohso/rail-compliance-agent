@@ -169,7 +169,7 @@ Four plain functions with typed inputs and outputs in
 | `search_regulation(question)` | passages of the regulation that answer the question | no (`local`) |
 | `extract_requirement(passages, parameter)` | the numeric rule as a typed `Requirement` (a limit or a table, unit, conditions) | yes, then **verified without it** |
 | `check(spec_value, requirement)` | `pass` / `fail` / `needs_human` / `not_applicable` by exact comparison | no |
-| `needs_human(reason)` | records an escalation: ambiguous law, missing data, weak citation | no |
+| `needs_human(reason)` | records an escalation: ambiguous law, missing data, weak citation; rejects a reason over one sentence or 300 characters, or one that thinks out loud | no |
 
 ## Evaluation
 
@@ -188,6 +188,7 @@ anything) and each carries its numerator, denominator and a 95% Wilson interval:
 | `argument_correctness` | `check` was called with the right parameter and the spec's own value |
 | `citation_hit_rate` | a cited passage is the gold passage that holds the rule |
 | tool calls, latency | cost; latency excludes rate-limit waits and replays cached calls' original time |
+| `explanation_quality` | report only, not gated (added after the thresholds): recorded escalation reasons that are one sentence, at most 300 characters, with no self-correction |
 
 Retrieval, citations and grounding also run through [goldpass](https://github.com/cardohso/goldpass)
 (my regression-test tool for RAG systems) for its report and gate. The tool-use metrics live in this
@@ -223,8 +224,9 @@ How to read this:
   that on new specs.
 - **The held-out set is the fairer number, and it is small.** Ten specs and 19 verdicts, verdicts
   committed before the agent was run on them, run once. The one miss (h10) was predicted in writing
-  beforehand: `check` returns `needs_human` when a condition is unknown even if the value passes
-  either way. It tests new values and combinations, **not new rules** (all seven rules were in the
+  beforehand: `check` returned `needs_human` when a condition was unknown even if the value passed
+  either way. That is now fixed, so **the held-out set has become a development set**; a second
+  held-out set is planned. It tests new values and combinations, **not new rules** (all seven rules were in the
   dev set). 18/19 and 43/43 cannot be told apart at this size (95% interval for 18/19 is 0.75-0.99).
 - **The same code scored differently on GitHub.** `eval.yml`'s first full run, from a fresh cache, got
   40/43 where local run 02 got 43/43, and its goldpass gate **failed** on grounding (0.93 against
@@ -375,12 +377,14 @@ index, so the API runs one worker and nothing else may open the same index in th
   the provider fixes. A fresh run of the same code differed: 40/43 on GitHub against 43/43 locally
   (one run each, so the size of the variance is still only roughly known). The cache pins a run, not
   the model. Other models are untested.
-- **A known weakness (h10).** An unknown condition makes a rule `needs_human` even when the value
-  passes whether or not the condition applies. Safe, but unhelpful.
-- **Verdicts are right more reliably than explanations.** In one case the verdict was correct but the
-  model's written reason rambled and contradicted itself. No metric scores explanations.
-- **The check for omitted rules is narrow.** It covers the five millimetre-valued parameters only (not
-  wheelchair spaces or universal toilets), and only sentences in passages the agent already extracted a
+- **Fixed since the evaluation runs (not yet measured by a model run).** h10: a value that meets the
+  rule whether or not an unknown condition applies is now `pass`, with the doubt stated. Rambling
+  reasons: in one case (g19) the verdict was right but the written reason contradicted itself;
+  `needs_human` now rejects such a reason and the model rewrites it. Replayed on the saved reports, the
+  new `explanation_quality` metric scores 3/4 locally and flags exactly that reason. A rule that only
+  says "work it out first" cannot stop a model from reasoning badly, only from recording it.
+- **The check for omitted rules is narrow.** It covers the five millimetre-valued parameters and the
+  two counts (a table of counts must be extracted whole: a table reduced to one row is a gap), and only sentences in passages the agent already extracted a
   rule from: a rule in another passage, in different wording, or in a sentence that names no subject
   (4.2.2.11.2 (8), the low-platform exemption) is not found. Before it existed, a rule the model never
   extracted could become a false pass (CI run 2, g14), and the earlier "0 false passes" partly relied on the
