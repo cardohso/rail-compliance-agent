@@ -66,9 +66,9 @@ def test_band_intersects_a_closed_interval():
     [
         (">", 250, "not_applicable"),  # false for every length in [0, 210]
         ("<", 300, "applies"),  # true for every length in [0, 210]
-        (">", 100, "needs_human"),  # true for some, false for others
+        (">", 100, "pass"),  # true for some lengths: undecided, but 9 >= 5 either way
         ("==", 500, "not_applicable"),  # 500 is outside the interval
-        ("==", 100, "needs_human"),  # 100 is inside it
+        ("==", 100, "pass"),  # 100 is inside it: undecided, but met either way
     ],
 )
 def test_conditions_on_an_interval_variable_are_three_valued(op, threshold, expected):
@@ -77,6 +77,15 @@ def test_conditions_on_an_interval_variable_are_three_valued(op, threshold, expe
     )
     result = check(9, rule, context=SPACES_LENGTH, intervals=UP_TO_210)
     assert result.verdict == ("pass" if expected == "applies" else expected)
+
+
+@pytest.mark.parametrize(("op", "threshold"), [(">", 100), ("==", 100)])
+def test_an_undecided_condition_with_a_failing_value_is_needs_human(op, threshold):
+    rule = limit(
+        "p", ">=", 5, conditions=[Condition(variable="unit_length_m", op=op, value=threshold)]
+    )
+    result = check(3, rule, context=SPACES_LENGTH, intervals=UP_TO_210)
+    assert result.verdict == "needs_human" and "only known within a range" in result.reason
 
 
 def test_a_degenerate_interval_behaves_like_an_exact_value():

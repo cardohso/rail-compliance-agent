@@ -268,8 +268,9 @@ CASES = [
     ),
 ]
 
-# Verdicts the deterministic oracle cannot reproduce by design (see h10's text).
-KNOWN_ORACLE_DISAGREEMENTS = {("h10", WC_DOOR)}
+# h10 was written as a known limit; the limit has since been fixed, so the oracle agrees everywhere.
+# The case text is left as written: it is the record of what was predicted before the run.
+KNOWN_ORACLE_DISAGREEMENTS: set = set()
 
 
 def main() -> None:

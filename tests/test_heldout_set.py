@@ -14,8 +14,10 @@ ROOT = Path(__file__).resolve().parents[1]
 HELDOUT = ROOT / "eval" / "heldout"
 CASES = load_golden(HELDOUT, "h*.json")
 DEV = load_golden(GOLDEN_DIR)
-# h10 is a deliberate known limit: a person says pass, the tool says needs_human (see its rationale)
-KNOWN_ORACLE_DISAGREEMENTS = {("h10", "exterior_doors.wheelchair_door_clear_width_mm")}
+# h10 was written as a deliberate known limit (a person says pass, the tool said needs_human). The
+# limit was then fixed (check decides both branches of an unknown condition), so the oracle now
+# agrees with every held-out verdict. That fix makes this set a development set from then on.
+KNOWN_ORACLE_DISAGREEMENTS: set[tuple[str, str]] = set()
 
 
 def test_the_held_out_set_has_8_to_10_cases_with_ids_that_do_not_collide_with_the_dev_set():
@@ -54,10 +56,11 @@ def test_every_held_out_case_is_well_formed(case):
         assert expected.rationale and expected.gold_passages
 
 
-def test_the_known_limit_case_is_the_only_oracle_disagreement_and_says_so():
+def test_the_case_written_as_a_known_limit_is_now_handled_and_its_record_is_unchanged():
     h10 = next(c for c in CASES if c.id == "h10")
-    assert "known-limit" in h10.tags
-    assert "KNOWN LIMIT" in h10.why
+    assert "known-limit" in h10.tags and "KNOWN LIMIT" in h10.why  # the record as written
+    wc = "exterior_doors.wheelchair_door_clear_width_mm"
+    assert oracle(h10.spec)[wc] == h10.expected[wc].verdict == "pass"
 
 
 def test_committed_files_match_the_builder():

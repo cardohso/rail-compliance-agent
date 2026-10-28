@@ -154,3 +154,48 @@ def test_missing_condition_data_is_needs_human():
 def test_a_false_condition_beats_an_unknown_one():
     ctx = {"exterior_doors.wheelchair_door_level_access": 0}  # speed unknown, level access false
     assert check(900, wheelchair_door_rule(), context=ctx).verdict == "not_applicable"
+
+
+# --- h10: an unknown condition should not force needs_human when the value passes either way ---
+# The held-out run's one predicted miss: a 1000 mm wheelchair door, design speed not given. Whether
+# the 1000 mm rule applies is unknown, but the door meets it if it applies; if not, it is moot.
+
+
+def test_an_unknown_condition_with_a_value_that_meets_the_rule_passes_either_way():
+    result = check(
+        1000, wheelchair_door_rule(), context={"exterior_doors.wheelchair_door_level_access": 1}
+    )
+    assert result.verdict == "pass"
+    assert "design_speed_kmh" in result.reason and "either way" in result.reason
+    assert result.required_value == 1000
+
+
+def test_an_unknown_condition_with_a_value_that_fails_the_rule_is_still_needs_human():
+    result = check(
+        900, wheelchair_door_rule(), context={"exterior_doors.wheelchair_door_level_access": 1}
+    )
+    assert result.verdict == "needs_human"
+    assert "design_speed_kmh" in result.reason
+
+
+def test_a_known_false_condition_is_still_not_applicable_even_if_another_is_unknown():
+    ctx = {"exterior_doors.wheelchair_door_level_access": 0}
+    assert check(1000, wheelchair_door_rule(), context=ctx).verdict == "not_applicable"
+
+
+def test_an_unknown_condition_and_a_missing_spec_value_is_needs_human():
+    result = check(None, wheelchair_door_rule(), context={})
+    assert result.verdict == "needs_human"
+
+
+def test_an_interval_that_straddles_a_condition_passes_if_the_value_meets_the_rule_anyway():
+    from rail_compliance.models import Condition
+
+    rule = limit("p", ">=", 5, conditions=[Condition(variable="unit_length_m", op=">", value=100)])
+    passes = check(
+        9, rule, context={"unit_length_m": 210}, intervals={"unit_length_m": (0.0, 210.0)}
+    )
+    fails = check(
+        3, rule, context={"unit_length_m": 210}, intervals={"unit_length_m": (0.0, 210.0)}
+    )
+    assert (passes.verdict, fails.verdict) == ("pass", "needs_human")

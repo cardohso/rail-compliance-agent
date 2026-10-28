@@ -130,8 +130,30 @@ def check(
         return result("not_applicable", f"rule applies only when {_describe(failed[0])}")
     unknown = [c for c, ok in states if ok is None]
     if unknown:
-        names = ", ".join(c.variable for c in unknown)
-        return result("needs_human", f"whether the rule applies depends on {names}, not supplied")
+        missing = [c.variable for c in unknown if c.variable not in intervals]
+        ranged = [c.variable for c in unknown if c.variable in intervals]
+        why = "; ".join(
+            ([f"{', '.join(missing)} not supplied"] if missing else [])
+            + ([f"{', '.join(ranged)} only known within a range"] if ranged else [])
+        )
+        # Judge the value as if the rule applied. If it passes, the outcome does not depend on the
+        # unknown: the rule is met if it applies and irrelevant if it does not.
+        if_applies = check(
+            spec_value,
+            requirement.model_copy(update={"conditions": []}),
+            spec_unit=spec_unit,
+            context=context,
+            intervals=intervals,
+        )
+        if if_applies.verdict == "pass":
+            return result(
+                "pass",
+                f"{if_applies.reason}; whether the rule applies is unknown ({why}), "
+                "but the value meets it either way",
+                if_applies.required_value,
+                if_applies.margin,
+            )
+        return result("needs_human", f"whether the rule applies depends on {why}")
 
     if spec_value is None:
         return result("needs_human", f"the spec does not supply {param}")
