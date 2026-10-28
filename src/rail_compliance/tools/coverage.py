@@ -83,8 +83,7 @@ def _figures(parameter: str, sentence: str) -> set[float]:
 def _rule_values(requirements: Iterable[Requirement]) -> set[float]:
     values: set[float] = set()
     for r in requirements:
-        if r.value is not None:
-            values.add(float(r.value))
+        values.update(float(x) for x in (r.value, r.value_max) if x is not None)
         values.update(float(b.value) for b in r.bands)
     return values
 

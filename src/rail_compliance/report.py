@@ -11,7 +11,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from rail_compliance.models import CheckResult, Citation, Comparator, HumanReview
+from rail_compliance.models import CheckResult, Citation, HumanReview, RuleComparator
 
 FinalVerdict = Literal["pass", "fail", "needs_human", "not_applicable"]
 
@@ -86,10 +86,18 @@ class Report(_Strict):
         return next(r for r in self.results if r.parameter == parameter)
 
 
-def describe_rule(comparator: Comparator | None, required: float | None, unit: str | None) -> str:
+def describe_rule(
+    comparator: RuleComparator | None,
+    required: float | None,
+    unit: str | None,
+    upper: float | None = None,
+) -> str:
     if comparator is None or required is None:
         return ""
-    return f"{SYMBOL[comparator]} {required:g}" + (f" {unit}" if unit else "")
+    suffix = f" {unit}" if unit else ""
+    if comparator == "between":
+        return f"{required:g}–{upper:g}{suffix}"
+    return f"{SYMBOL[comparator]} {required:g}{suffix}"
 
 
 def _fmt_value(value: float | None, unit: str | None) -> str:

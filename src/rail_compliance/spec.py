@@ -14,7 +14,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import Annotated, get_args, get_origin
+from typing import Annotated, Literal, get_args, get_origin
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
@@ -161,12 +161,26 @@ def parameter_kinds() -> dict[str, str]:
             yield annotation
 
     def kind(annotation) -> str:
+        if _choices(annotation):
+            return "category"
         types = set(leaves(annotation))
         if bool in types:
             return "bool"
         return "count" if int in types else "number"
 
     return {path: kind(field.annotation) for path, _, field in _walk_parameters()}
+
+
+def _choices(annotation) -> tuple[str, ...]:
+    """The names a Literal["a", "b"] field (optionally `| None`) allows; empty for other types."""
+    if get_origin(annotation) is Literal:
+        return tuple(a for a in get_args(annotation) if isinstance(a, str))
+    return next((c for a in get_args(annotation) if (c := _choices(a))), ())
+
+
+def parameter_choices() -> dict[str, tuple[str, ...]]:
+    """Every category parameter path -> the names it allows."""
+    return {path: c for path, _, field in _walk_parameters() if (c := _choices(field.annotation))}
 
 
 # A qualifier says how another parameter's value was measured; it is not a circumstance that

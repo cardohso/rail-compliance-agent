@@ -321,3 +321,19 @@ def test_count_figures():
         count_figures("width of the wheelchair space shall be 700 mm", "wheelchair space") == set()
     )
     assert count_figures("each of the wheelchair spaces", "wheelchair space") == set()
+
+
+def test_a_range_rule_covers_both_of_its_bounds():
+    from rail_compliance.models import Requirement
+    from tests.factories import CITATION
+
+    door = "exterior_doors.clear_width_mm"
+    # each bound in its own sentence: the upper one is covered only through value_max
+    text = (
+        "(1) Exterior passenger doorways shall have a clear useable width of at least 800 mm. "
+        "Exterior passenger doorways shall have a clear useable width of at most 1 000 mm."
+    )
+    p = passage(text, id_=CITATION.passage_id)
+    rule = Requirement(parameter=door, subject="exterior_doorway", comparator="between",
+                       value=800, value_max=1000, unit="mm", citation=CITATION)  # fmt: skip
+    assert find_gaps(door, {p.id: p}, [rule]) == []

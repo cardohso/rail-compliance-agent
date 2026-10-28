@@ -12,6 +12,8 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 Comparator = Literal[">=", "<=", "==", ">", "<"]
+# A rule may also require a range: "between" means value <= spec_value <= value_max.
+RuleComparator = Literal[">=", "<=", "==", ">", "<", "between"]
 # Verdicts the report shows are pass / fail / needs_human. `not_applicable` is internal: a
 # conditional rule whose condition is false for this spec (the agent moves on to the next rule).
 Verdict = Literal["pass", "fail", "needs_human", "not_applicable"]
@@ -55,11 +57,22 @@ class Citation(_Strict):
 
 
 class Condition(_Strict):
-    """The rule applies only when `variable op value`. Booleans are 1 (true) and 0 (false)."""
+    """The rule applies only when `variable op value`. Booleans are 1 (true) and 0 (false); a
+    category is tested by name, with == only ("deck == double_deck")."""
 
     variable: str  # a spec parameter path, e.g. "design_speed_kmh"
     op: Comparator
-    value: float
+    value: float | str
+
+    @model_validator(mode="after")
+    def _category_by_equality(self) -> Condition:
+        if isinstance(self.value, str) and self.op != "==":
+            raise ValueError(f"a category is tested with ==, not {self.op}")
+        return self
+
+    def describe(self) -> str:
+        shown = self.value if isinstance(self.value, str) else f"{self.value:g}"
+        return f"{self.variable} {self.op} {shown}"
 
 
 class BandDraft(_Strict):
@@ -109,9 +122,10 @@ class RuleDraft(_Strict):
 
     parameter: str  # the spec parameter path the rule constrains, e.g. "wheelchair_spaces"
     subject: str  # what the rule is stated for (see parameters.SUBJECTS), e.g. "exterior_doorway"
-    comparator: Comparator  # spec_value <comparator> required
+    comparator: RuleComparator  # spec_value <comparator> required
     contingency: str | None = None  # what must be shown for the rule to hold; not a spec value
     value: float | None = None
+    value_max: float | None = None  # the upper bound of a "between" rule; `value` is the lower
     unit: str | None = None
     bands: list[BandDraft] = Field(default_factory=list)
     band_variable: str | None = None  # spec parameter path that selects the band
@@ -131,6 +145,13 @@ class RequirementCore(RuleDraft):
             raise ValueError("`bands` need a `band_variable` to select the band")
         if not self.bands and self.band_variable:
             raise ValueError("`band_variable` is only for `bands`")
+        if (self.comparator == "between") != (self.value_max is not None):
+            raise ValueError("a range needs comparator 'between' with both `value` and `value_max`")
+        if self.comparator == "between":
+            if self.bands:
+                raise ValueError("a range is a single rule, not a table")
+            if self.value > self.value_max:
+                raise ValueError(f"range lower {self.value:g} is above upper {self.value_max:g}")
         return self
 
 
@@ -144,7 +165,8 @@ class CheckResult(_Strict):
     reason: str
     spec_value: float | None = None
     required_value: float | None = None
-    comparator: Comparator | None = None
+    required_max: float | None = None  # the upper bound, for a range
+    comparator: RuleComparator | None = None
     unit: str | None = None
     margin: float | None = None  # spec_value - required_value, in the requirement's unit
     contingency: str | None = None  # the rule holds only if this is shown (see Requirement)

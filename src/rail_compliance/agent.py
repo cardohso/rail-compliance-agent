@@ -245,9 +245,9 @@ class _Runner:
         rule = (
             f"{len(req.bands)}-row table selected by {req.band_variable}"
             if req.bands
-            else describe_rule(req.comparator, req.value, req.unit)
+            else describe_rule(req.comparator, req.value, req.unit, req.value_max)
         )
-        when = "; ".join(f"{c.variable} {c.op} {c.value:g}" for c in req.conditions) or "always"
+        when = "; ".join(c.describe() for c in req.conditions) or "always"
         return True, (
             f"found {rid} for {req.parameter}: spec value {rule}. Applies: {when}. "
             f'Source [{req.citation.passage_id}]: "{req.citation.quote}"'
@@ -386,7 +386,7 @@ def _settle(scratch: Scratch, values: dict[str, float]) -> ParameterResult:
         reviews.append(HumanReview(parameter=parameter, category="other", reason=reason))
 
     rules = [
-        describe_rule(c.comparator, c.required_value, c.unit)
+        describe_rule(c.comparator, c.required_value, c.unit, c.required_max)
         for c in checks
         if c.verdict in ("pass", "fail")
     ]

@@ -40,6 +40,7 @@ def _unit_to(value: float, from_unit: str, to_unit: str) -> float | None:
 
 
 Intervals = Mapping[str, tuple[float, float]]
+Context = Mapping[str, float | str]  # numbers, flags as 1/0, categories by name
 
 
 def _interval_state(op: str, threshold: float, lo: float, hi: float) -> bool | None:
@@ -52,11 +53,11 @@ def _interval_state(op: str, threshold: float, lo: float, hi: float) -> bool | N
     return at_lo if at_lo == at_hi else None  # <, <=, >, >= are monotone in x
 
 
-def _condition_state(
-    cond: Condition, context: Mapping[str, float], intervals: Intervals
-) -> bool | None:
+def _condition_state(cond: Condition, context: Context, intervals: Intervals) -> bool | None:
     """True/False if the condition can be decided, None if its variable is missing or only known
     to lie in an interval that straddles the threshold."""
+    if isinstance(cond.value, str):
+        return context[cond.variable] == cond.value if cond.variable in context else None
     if cond.variable in intervals:
         return _interval_state(cond.op, cond.value, *intervals[cond.variable])
     if cond.variable not in context:
@@ -80,7 +81,7 @@ def _decide_over_interval(
 
 
 def _describe(cond: Condition) -> str:
-    return f"{cond.variable} {cond.op} {cond.value:g}"
+    return cond.describe()
 
 
 def _select_band(bands: list[Band], x: float) -> tuple[Band | None, str]:
@@ -97,12 +98,13 @@ def check(
     requirement: Requirement,
     *,
     spec_unit: str | None = None,
-    context: Mapping[str, float] | None = None,
+    context: Context | None = None,
     intervals: Intervals | None = None,
 ) -> CheckResult:
     """Compare `spec_value` with `requirement`.
 
-    `context` holds the other spec parameters (dotted path -> number, booleans as 1/0) that
+    `context` holds the other spec parameters (dotted path -> number, booleans as 1/0, a
+    category as its name) that
     conditions and tables refer to; a parameter missing from it is data the spec did not supply.
     `intervals` names parameters whose true value is only known to lie in [low, high] (a length
     that includes a power head is at most the stated one): conditions and tables on them are
@@ -118,6 +120,7 @@ def check(
             reason=reason,
             spec_value=spec_value,
             required_value=required,
+            required_max=requirement.value_max,
             comparator=cmp_,
             unit=requirement.unit,
             margin=margin,
@@ -167,6 +170,17 @@ def check(
                 f"cannot compare unit '{spec_unit}' with the requirement's unit "
                 f"'{requirement.unit}'",
             )
+
+    if cmp_ == "between":
+        lo, hi = requirement.value, requirement.value_max
+        ok = lo <= compared <= hi
+        # signed distance to the nearer bound: positive inside the range, negative outside
+        margin = float(min(Decimal(str(compared)) - Decimal(str(lo)),
+                           Decimal(str(hi)) - Decimal(str(compared))))  # fmt: skip
+        shown = f"{_fmt(lo)}-{_fmt(hi, requirement.unit)}"
+        sign = "is within" if ok else "is outside"
+        return result("pass" if ok else "fail", f"{_fmt(compared, requirement.unit)} {sign} "
+                      f"{shown}", lo, margin)  # fmt: skip
 
     if requirement.bands:
         selector = requirement.band_variable

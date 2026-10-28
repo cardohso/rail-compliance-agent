@@ -27,6 +27,7 @@ from rail_compliance.parameters import SUBJECT_OF, SUBJECTS, accepted_subjects
 from rail_compliance.spec import (
     QUALIFIERS,
     condition_variables,
+    parameter_choices,
     parameter_info,
     parameter_kinds,
 )
@@ -49,13 +50,17 @@ Rules:
 - Copy the words that state the rule into `quote`, word for word from ONE passage, and give that
   passage's id in `passage_id`. You may use "..." to skip text, but each part must be verbatim.
 - `comparator` is how the spec value must relate to the required value: "at least" or "minimum"
-  is ">=", "at most" or "maximum" is "<=".
+  is ">=", "at most" or "maximum" is "<=". A range ("30 mm to 40 mm", "between 430 and 500 mm")
+  is ONE rule with comparator "between", the lower bound in `value` and the upper in `value_max`.
+  Leave `value_max` null for every other comparator.
 - A rule or exception that holds only if something is shown, approved or demonstrated (for
   example "if it can be demonstrated that ...") is not unconditional: say what must be shown in
   `contingency`, in a few words from the quote. Leave `contingency` null for ordinary rules.
 - A rule that applies only in some cases (for example "on trains with a design speed lower than
   250 km/h") goes in `conditions`, using only the spec parameters listed in the request. Express
-  true/false parameters as 1/0 and only those. The request tells you each parameter's type. A
+  true/false parameters as 1/0 and only those. A category parameter is tested by name with
+  "==" ("on double-deck units": the deck parameter == "double_deck"), using one of the names the
+  request lists for it. The request tells you each parameter's type. A
   Never make a condition out of wording that only says how a value is measured ("excluding the
   locomotive or power head"): the spec handles that outside the rules. A
   count is not a flag: "when toilets are fitted" means `toilets.fitted` > 0, never == 1.
@@ -123,14 +128,15 @@ def _quote_in(quote: str, passage_text: str) -> bool:
 def _prompt(parameter: str, passages: Sequence[Passage], focus: str | None) -> str:
     info = parameter_info()
     unit, description = info.get(parameter, (None, ""))
-    kinds = parameter_kinds()
-    labels = {"bool": "true/false, use 1/0", "count": "count", "number": "number"}
+    kinds, choices = parameter_kinds(), parameter_choices()
+    labels = {"bool": "true/false", "count": "count", "number": "number", "category": "category"}
 
     def label(path: str, u: str | None) -> str:
         return (
-            labels[kinds[path]].split(",")[0]
+            labels[kinds[path]]
             + (f", {u}" if u else "")
             + (", use 1/0" if kinds[path] == "bool" else "")
+            + (f", one of {' / '.join(choices[path])}" if kinds[path] == "category" else "")
         )
 
     allowed = set(condition_variables())
@@ -163,8 +169,21 @@ def _is_existence(cond) -> bool:
     return (cond.op, cond.value) in {(">", 0.0), (">=", 1.0)}
 
 
-def _check_variables(rule: RequirementCore, kinds: dict[str, str]) -> str | None:
+def _category_stated(value: str, quote: str) -> bool:
+    """Is the category named in the quote? "double_deck" matches "double-deck" and "double deck"."""
+    words = [re.escape(w) for w in value.split("_")]
+    return (
+        re.search(r"\b" + r"[\s\-]?".join(words) + r"\b", _norm(quote), re.IGNORECASE) is not None
+    )
+
+
+def _check_variables(
+    rule: RequirementCore,
+    kinds: dict[str, str],
+    choices: dict[str, tuple[str, ...]] | None = None,
+) -> str | None:
     """Conditions and tables may only use real spec parameters, the way their type allows."""
+    choices = parameter_choices() if choices is None else choices
     names = [c.variable for c in rule.conditions] + ([rule.band_variable] if rule.bands else [])
     for name in names:
         if name in QUALIFIERS:
@@ -175,6 +194,20 @@ def _check_variables(rule: RequirementCore, kinds: dict[str, str]) -> str | None
         if name not in kinds:
             return f"the rule refers to {name}, which is not a spec parameter"
     for cond in rule.conditions:
+        is_category = kinds[cond.variable] == "category"
+        if is_category and not isinstance(cond.value, str):
+            options = ", ".join(choices.get(cond.variable, ()))
+            return f"{cond.variable} is a category: test it by name ({options}), not a number"
+        if isinstance(cond.value, str):
+            if not is_category:
+                return (
+                    f"{cond.variable} is a {kinds[cond.variable]}: test it with a number, "
+                    f"not '{cond.value}'"
+                )
+            if cond.value not in choices.get(cond.variable, ()):
+                options = ", ".join(choices.get(cond.variable, ()))
+                return f"{cond.variable} has no value '{cond.value}'. Valid: {options}"
+            continue
         if kinds[cond.variable] == "bool" and cond.value not in (0.0, 1.0):
             return f"{cond.variable} is true/false, so its value must be 1 or 0, not {cond.value:g}"
     return None
@@ -245,7 +278,7 @@ def extract_requirement(
         )
 
     stated = numbers_in(draft.quote)
-    rule_numbers = [rule.value] if rule.value is not None else []
+    rule_numbers = [x for x in (rule.value, rule.value_max) if x is not None]
     for band in rule.bands:
         rule_numbers += [band.value, band.lower, band.upper]
     # "a universal toilet shall be provided" states the rule's own value as an article, not a digit
@@ -263,6 +296,12 @@ def extract_requirement(
         return _unverified(f"the number(s) {shown} are not stated in the quote")
     # A flag's 1/0 and a count's "there is at least one" are not numbers the quote has to state.
     for cond in rule.conditions:
+        if isinstance(cond.value, str):
+            if not _category_stated(cond.value, draft.quote):
+                return _unverified(
+                    f"the condition {cond.describe()} names a category the quote does not state"
+                )
+            continue
         if kinds[cond.variable] != "bool" and not _is_existence(cond) and cond.value not in stated:
             return _unverified(
                 f"the condition {cond.variable} {cond.op} {cond.value:g} uses a number the quote "
