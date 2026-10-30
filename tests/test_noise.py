@@ -164,3 +164,16 @@ def test_a_renewed_units_noise_is_left_to_a_person_without_a_search():
     result = report.result_for(STATIONARY)
     assert result.verdict == "needs_human" and "first authorised" in result.reason
     assert llm.seen == []
+
+
+def test_a_valid_category_row_the_quote_does_not_name_is_unverified():
+    quote = "EMUs | 65 | 68 DMUs | 72 | 76 Coaches | 64 | 68"  # no wagon row in the quote
+    draft = table_draft(ROWS | {"wagon": 65}, quote=quote)
+    result = extract_requirement([NOISE_PASSAGE], STATIONARY, FakeLLM(draft))
+    assert result.status == "unverified" and "wagon" in result.reason
+
+
+def test_a_row_name_that_is_not_a_choice_is_unverified_even_if_the_quote_has_the_word():
+    draft = table_draft(ROWS | {"traction": 70})  # "traction" is in the table text
+    result = extract_requirement([NOISE_PASSAGE], STATIONARY, FakeLLM(draft))
+    assert result.status == "unverified" and "Valid:" in result.reason
