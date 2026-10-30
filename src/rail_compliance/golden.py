@@ -17,7 +17,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from rail_compliance.models import Band, Citation, Condition, Requirement
 from rail_compliance.parameters import SUBJECT_OF
 from rail_compliance.report import FinalVerdict
-from rail_compliance.spec import TrainSpec, spec_values
+from rail_compliance.spec import TrainSpec, spec_categories, spec_values
 from rail_compliance.tools.check import check
 
 GOLDEN_DIR = Path(__file__).resolve().parents[2] / "eval" / "specs"
@@ -45,6 +45,18 @@ class GoldenCase(_Strict):
     expected: dict[str, Expected]
 
 
+# Suites of the development set, by file prefix: the original twenty (core) and the cases for the
+# parameters added later (prm-extended). Each runs and is gated on its own, so a free-tier day
+# can hold one fresh run of either.
+SUITES: dict[str, str] = {"core": "g*.json", "prm-extended": "p*.json"}
+
+
+def load_suite(name: str) -> list[GoldenCase]:
+    if name not in SUITES:
+        raise ValueError(f"unknown suite {name!r}; known: {', '.join(SUITES)}")
+    return load_golden(GOLDEN_DIR, SUITES[name])
+
+
 def load_golden(directory: Path = GOLDEN_DIR, pattern: str = "g*.json") -> list[GoldenCase]:
     return [
         GoldenCase.model_validate_json(p.read_text(encoding="utf-8"))
@@ -60,9 +72,11 @@ URL = "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:02014R1300-2023
 
 def _rule(
     parameter, comparator, value, unit, passage, section, quote, conditions=(), bands=(),
-    subject=None,
+    subject=None, value_max=None, relaxes=False,
 ):  # fmt: skip
     return Requirement(
+        value_max=value_max,
+        relaxes=relaxes,
         parameter=parameter,
         subject=subject or SUBJECT_OF[parameter],
         comparator=comparator,
@@ -142,6 +156,59 @@ UNIVERSAL_DOOR = _rule(
     "The toilet access door shall provide a minimum clear useable width of 800 mm.",
 )  # fmt: skip
 
+P_SPACE_DIMS = "tsi-prm:Annex §4.2.2.2#1"
+P_TURNING = "tsi-prm:Annex §4.2.2.6#1"
+P_STAIRS = "tsi-prm:Annex §4.2.2.8#1"
+P_HANDRAILS = "tsi-prm:Annex §4.2.2.9#1"
+P_PRIORITY = "tsi-prm:Annex §4.2.2.1.2.1#2"
+
+SPACE_WIDTH = _rule(
+    "wheelchair_space_layout.width_mm", ">=", 700, "mm", P_SPACE_DIMS, "Annex §4.2.2.2",
+    "Over the full length of the wheelchair space the width shall be 700 mm from floor level to a "
+    "minimum height of 1 450 mm",
+)  # fmt: skip
+HAND_CLEARANCE = _rule(
+    "wheelchair_space_layout.hand_clearance_mm", ">=", 50, "mm", P_SPACE_DIMS, "Annex §4.2.2.2",
+    "with an additional 50 mm width to give clearance for hands on each side that is adjacent to "
+    "any obstacle",
+    conditions=[Condition(variable="wheelchair_space_layout.sides_next_to_obstacle", op=">",
+                          value=0)],
+)  # fmt: skip
+TURNING_SPACE = _rule(
+    "wheelchair_space_layout.turning_space_diameter_mm", ">=", 1500, "mm", P_TURNING,
+    "Annex §4.2.2.6",
+    "A turning space, with a minimum diameter of 1 500 mm, shall be provided adjacent to the "
+    "wheelchair space",
+)  # fmt: skip
+STAIR_HEIGHT = _rule(
+    "stairs.step_height_mm", "<=", 200, "mm", P_STAIRS, "Annex §4.2.2.8",
+    "Internal steps (other than those for external access) shall have a maximum height of 200 mm",
+)  # fmt: skip
+STAIR_DEPTH = _rule(
+    "stairs.step_depth_mm", ">=", 280, "mm", P_STAIRS, "Annex §4.2.2.8",
+    "Internal steps (other than those for external access) shall have a maximum height of 200 mm "
+    "and a minimum depth of 280 mm",
+)  # fmt: skip
+STAIR_DEPTH_DOUBLE_DECK = _rule(
+    "stairs.step_depth_mm", ">=", 270, "mm", P_STAIRS, "Annex §4.2.2.8",
+    "For double deck trains it is permitted to reduce this value to 270 mm for the stairs "
+    "accessing the upper deck and the lower deck.",
+    conditions=[Condition(variable="deck_layout", op="==", value="double_deck")],
+    relaxes=True,
+)  # fmt: skip
+HANDRAIL_DIAMETER = _rule(
+    "handrails.outside_diameter_mm", "between", 30, "mm", P_HANDRAILS, "Annex §4.2.2.9",
+    "All handrails fitted to a vehicle shall be round in section with an outside diameter of 30 mm "
+    "to 40 mm",
+    value_max=40,
+)  # fmt: skip
+SEAT_HEIGHT = _rule(
+    "priority_seats.cushion_height_mm", "between", 430, "mm", P_PRIORITY, "Annex §4.2.2.1.2.1",
+    "The top of each priority seat cushion shall be between 430 and 500 mm above floor level at "
+    "the front edge of the seat.",
+    value_max=500,
+)  # fmt: skip
+
 GOLD_RULES: dict[str, list[Requirement]] = {
     "wheelchair_spaces": [TABLE_5],
     "exterior_doors.clear_width_mm": [DOORS_ALL],
@@ -150,6 +217,13 @@ GOLD_RULES: dict[str, list[Requirement]] = {
     "steps.internal_step_height_mm": [INTERNAL_GENERAL, INTERNAL_EXCEPTION],
     "toilets.universal": [UNIVERSAL_TOILET],
     "toilets.universal_door_clear_width_mm": [UNIVERSAL_DOOR],
+    "wheelchair_space_layout.width_mm": [SPACE_WIDTH],
+    "wheelchair_space_layout.hand_clearance_mm": [HAND_CLEARANCE],
+    "wheelchair_space_layout.turning_space_diameter_mm": [TURNING_SPACE],
+    "stairs.step_height_mm": [STAIR_HEIGHT],
+    "stairs.step_depth_mm": [STAIR_DEPTH, STAIR_DEPTH_DOUBLE_DECK],
+    "handrails.outside_diameter_mm": [HANDRAIL_DIAMETER],
+    "priority_seats.cushion_height_mm": [SEAT_HEIGHT],
 }
 
 
@@ -163,17 +237,27 @@ def _combine(verdicts: list[str]) -> str:
 def oracle(spec: TrainSpec) -> dict[str, FinalVerdict]:
     """The verdict each supplied parameter should get, applying GOLD_RULES with `check`.
 
+    A relaxation (see RuleDraft.relaxes) replaces a failed general rule where it is known to apply.
     Two reading rules are modelled by hand: a unit length that includes a power head is only an
     upper bound on the TSI's length, and an internal step between 200 and 230 mm is allowed only
     if it reduces the number of steps, which the spec cannot show.
     """
     values = spec_values(spec)
+    context = {**values, **spec_categories(spec)}
     out: dict[str, FinalVerdict] = {}
     for parameter, rules in GOLD_RULES.items():
         if parameter not in values:
             continue
-        results = [check(values[parameter], rule, spec_unit=None, context=values) for rule in rules]
+        results = [
+            check(values[parameter], rule, spec_unit=None, context=context) for rule in rules
+        ]
         verdicts = [r.verdict for r in results]
+        relaxed = [r for r in results if r.relaxes and r.verdict == "pass"]
+        if relaxed and "fail" in verdicts:
+            # a relaxation known to apply replaces the general rule; one not known to apply leaves
+            # the question to a person
+            out[parameter] = "pass" if relaxed[0].applies else "needs_human"
+            continue
         if parameter == "wheelchair_spaces" and values.get("length_includes_power_head"):
             required = results[0].required_value  # for the stated (upper-bound) length
             if values[parameter] >= required:

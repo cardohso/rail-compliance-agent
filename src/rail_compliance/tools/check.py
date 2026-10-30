@@ -113,8 +113,12 @@ def check(
     context, intervals = context or {}, intervals or {}
     param, cmp_ = requirement.parameter, requirement.comparator
 
+    applies: bool | None = True
+
     def result(verdict, reason, required=None, margin=None):
         return CheckResult(
+            relaxes=requirement.relaxes,
+            applies=False if verdict == "not_applicable" else applies,
             parameter=param,
             verdict=verdict,
             reason=reason,
@@ -133,6 +137,7 @@ def check(
         return result("not_applicable", f"rule applies only when {_describe(failed[0])}")
     unknown = [c for c, ok in states if ok is None]
     if unknown:
+        applies = None
         missing = [c.variable for c in unknown if c.variable not in intervals]
         ranged = [c.variable for c in unknown if c.variable in intervals]
         why = "; ".join(

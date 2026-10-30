@@ -1,0 +1,34 @@
+{
+  "id": "p12",
+  "title": "Double-deck stairs below even the relaxed depth",
+  "tags": [
+    "category",
+    "relaxation"
+  ],
+  "why": "The relaxation does not save a value below 270 mm.",
+  "spec": {
+    "spec_version": "1",
+    "name": "Double-deck stairs below even the relaxed depth",
+    "unit_length_m": 100.0,
+    "deck_layout": "double_deck",
+    "stairs": {
+      "step_depth_mm": 265.0
+    }
+  },
+  "expected": {
+    "stairs.step_depth_mm": {
+      "verdict": "fail",
+      "required": "≥ 270 mm (double deck)",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.8#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.8(1): 'maximum height of 200 mm and a minimum depth of 280 mm ... For double deck trains it is permitted to reduce this value to 270 mm': 265 < 270."
+    }
+  }
+}

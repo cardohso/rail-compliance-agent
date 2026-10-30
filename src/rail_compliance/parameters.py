@@ -17,6 +17,13 @@ CHECKED_PARAMETERS: tuple[str, ...] = (
     "steps.internal_step_height_mm",
     "toilets.universal",
     "toilets.universal_door_clear_width_mm",
+    "wheelchair_space_layout.width_mm",
+    "wheelchair_space_layout.hand_clearance_mm",
+    "wheelchair_space_layout.turning_space_diameter_mm",
+    "stairs.step_height_mm",
+    "stairs.step_depth_mm",
+    "handrails.outside_diameter_mm",
+    "priority_seats.cushion_height_mm",
 )
 
 SUBJECTS: dict[str, str] = {
@@ -27,6 +34,11 @@ SUBJECTS: dict[str, str] = {
     "internal_step": "internal steps used for external access",
     "universal_toilet": "the universal toilet a train with toilets must provide",
     "universal_toilet_door": "the access door of a universal toilet",
+    "wheelchair_space_area": "the dimensions of a wheelchair space",
+    "turning_space": "the space where a wheelchair turns 180 degrees",
+    "internal_stairs": "internal steps and stairs other than those for external access",
+    "handrail": "handrails fitted to a vehicle",
+    "priority_seat": "a priority seat",
 }
 
 SUBJECT_OF: dict[str, str] = {
@@ -37,6 +49,13 @@ SUBJECT_OF: dict[str, str] = {
     "steps.internal_step_height_mm": "internal_step",
     "toilets.universal": "universal_toilet",
     "toilets.universal_door_clear_width_mm": "universal_toilet_door",
+    "wheelchair_space_layout.width_mm": "wheelchair_space_area",
+    "wheelchair_space_layout.hand_clearance_mm": "wheelchair_space_area",
+    "wheelchair_space_layout.turning_space_diameter_mm": "turning_space",
+    "stairs.step_height_mm": "internal_stairs",
+    "stairs.step_depth_mm": "internal_stairs",
+    "handrails.outside_diameter_mm": "handrail",
+    "priority_seats.cushion_height_mm": "priority_seat",
 }
 
 # subject -> the broader subject it sits inside
@@ -67,6 +86,11 @@ SUBJECT_TERMS: dict[str, tuple[str, ...]] = {
     "internal_step": ("internal step",),
     "universal_toilet": ("universal toilet",),
     "universal_toilet_door": ("toilet access door",),
+    "wheelchair_space_area": ("wheelchair space",),
+    "turning_space": ("turning space",),
+    "internal_stairs": ("internal steps",),
+    "handrail": ("handrail",),
+    "priority_seat": ("priority seat",),
 }
 
 # What a sentence must name to state a rule on the same measure as the parameter. For millimetre
@@ -79,4 +103,11 @@ MEASURES: dict[str, tuple[str, ...]] = {
     "steps.external_step_height_mm": ("height",),
     "steps.internal_step_height_mm": ("height",),
     "toilets.universal_door_clear_width_mm": ("clear useable width",),
+    "wheelchair_space_layout.width_mm": ("width",),
+    "wheelchair_space_layout.hand_clearance_mm": ("width",),
+    "wheelchair_space_layout.turning_space_diameter_mm": ("diameter",),
+    "stairs.step_height_mm": ("height",),
+    "stairs.step_depth_mm": ("depth",),
+    "handrails.outside_diameter_mm": ("diameter",),
+    "priority_seats.cushion_height_mm": ("above floor level",),
 }

@@ -49,7 +49,14 @@ from rail_compliance.report import (
     describe_rule,
 )
 from rail_compliance.retry import LLMUnavailable
-from rail_compliance.spec import TrainSpec, parameter_info, spec_intervals, spec_values, unit_of
+from rail_compliance.spec import (
+    TrainSpec,
+    parameter_info,
+    spec_categories,
+    spec_intervals,
+    spec_values,
+    unit_of,
+)
 from rail_compliance.tools.check import check as check_tool
 from rail_compliance.tools.coverage import find_gaps
 from rail_compliance.tools.extract import StructuredLLM, StructuredOutputError
@@ -163,6 +170,7 @@ class Scratch:
         default_factory=list
     )  # the model's own needs_human calls
     intervals: dict[str, tuple[float, float]] = field(default_factory=dict)
+    categories: dict[str, str] = field(default_factory=dict)  # deck_layout -> "double_deck"
     calls: int = 0
     done: bool = False  # needs_human was called, or the budget ran out
 
@@ -170,6 +178,7 @@ class Scratch:
 class AgentState(TypedDict, total=False):
     values: dict[str, float]
     intervals: dict[str, tuple[float, float]]
+    categories: dict[str, str]
     queue: list[str]
     idx: int
     messages: list[BaseMessage]
@@ -276,7 +285,7 @@ class _Runner:
             actual,
             req,
             spec_unit=unit_of(scratch.parameter),
-            context=values,
+            context={**values, **scratch.categories},
             intervals=scratch.intervals,
         )
         scratch.checks.append((result, req))
@@ -297,11 +306,14 @@ class _Runner:
         return True, "recorded. Work on this parameter ends here."
 
 
-def _task_message(parameter: str, values: dict[str, float]) -> str:
+def _task_message(
+    parameter: str, values: dict[str, float], categories: dict[str, str] | None = None
+) -> str:
     info = parameter_info()
     unit, description = info[parameter]
-    supplied = {k: v for k, v in values.items() if k != parameter}
-    missing = [k for k in info if k not in values]
+    categories = categories or {}
+    supplied = {k: f"{v:g}" for k, v in values.items() if k != parameter} | categories
+    missing = [k for k in info if k not in values and k not in categories]
     lines = [
         f"Parameter to check: {parameter}" + (f" ({unit})" if unit else ""),
         f"Meaning: {description}",
@@ -311,10 +323,16 @@ def _task_message(parameter: str, values: dict[str, float]) -> str:
         "",
         "Other values the spec supplies (booleans as 1/0; the runtime applies them automatically "
         "to rules with conditions or tables): "
-        + (", ".join(f"{k}={v:g}" for k, v in supplied.items()) or "none"),
+        + (", ".join(f"{k}={v}" for k, v in supplied.items()) or "none"),
         "Not supplied: " + (", ".join(m for m in missing if m != parameter) or "nothing"),
     ]
     return "\n".join(lines)
+
+
+def _conditions_of(result: CheckResult, scratch: Scratch) -> str:
+    """The conditions of the requirement a check result came from, in words."""
+    req = next(r for c, r in scratch.checks if c is result)
+    return " and ".join(c.describe() for c in req.conditions)
 
 
 def _settle(scratch: Scratch, values: dict[str, float]) -> ParameterResult:
@@ -322,8 +340,9 @@ def _settle(scratch: Scratch, values: dict[str, float]) -> ParameterResult:
 
     1. the model escalated: needs_human, whatever the checks said (its doubt is not ours to
        overrule; failed checks stay in the report);
-    2. a check failed: fail, unless a contingent exception would allow the value, in which case
-       it is needs_human (the exception cannot be shown from the spec);
+    2. a check failed: fail, unless a relaxation known to apply allows the value (then the
+       failure is excused and the remaining steps decide), or a contingent exception or a
+       relaxation not known to apply would allow it, in which case it is needs_human;
     3. a check needed a person (missing data), or a passage the agent used states another rule on
        the same measure that no extracted rule covers (a coverage gap): needs_human;
     4. the runtime cut the work short: needs_human;
@@ -335,8 +354,15 @@ def _settle(scratch: Scratch, values: dict[str, float]) -> ParameterResult:
     reviews = list(scratch.reviews)
     fails = [c for c in checks if c.verdict == "fail"]
     mechanical = [c for c in checks if c.verdict == "needs_human"]
-    passes = [c for c in checks if c.verdict == "pass" and not c.contingency]
+    relief = [c for c in checks if c.verdict == "pass" and c.relaxes and not c.contingency]
+    known_relief = [c for c in relief if c.applies is True]
+    unsure_relief = [c for c in relief if c.applies is None]
+    passes = [c for c in checks if c.verdict == "pass" and not c.contingency and not c.relaxes]
+    passes += known_relief
     exceptions = [c for c in checks if c.verdict == "pass" and c.contingency]
+    excused = []
+    if fails and known_relief and not scratch.escalations:
+        excused, fails = fails, []
     runtime = [r for r in reviews if r not in scratch.escalations]
     gaps = find_gaps(
         parameter, scratch.passages, scratch.requirements.values(), spec_value=values[parameter]
@@ -352,6 +378,13 @@ def _settle(scratch: Scratch, values: dict[str, float]) -> ParameterResult:
         reason = "; ".join(r.reason for r in scratch.escalations)
         if fails:
             reason += f" (failed: {'; '.join(c.reason for c in fails)})"
+    elif fails and unsure_relief:
+        verdict = "needs_human"
+        when = "; ".join(_conditions_of(c, scratch) for c in unsure_relief)
+        reason = (
+            f"{'; '.join(c.reason for c in fails)}; a relaxation would allow it where {when}, "
+            "which the spec does not say"
+        )
     elif fails and exceptions:
         verdict = "needs_human"
         reason = (
@@ -373,6 +406,19 @@ def _settle(scratch: Scratch, values: dict[str, float]) -> ParameterResult:
         verdict, reason = "needs_human", "; ".join(r.reason for r in runtime)
     elif passes:
         verdict, reason = "pass", "; ".join(c.reason for c in passes)
+        if excused:
+            when = "; ".join(_conditions_of(c, scratch) for c in known_relief)
+            reason = (
+                f"{reason}, which the regulation permits where {when}, in place of the general "
+                f"rule ({'; '.join(c.reason for c in excused)})"
+            )
+    elif unsure_relief:
+        verdict = "needs_human"
+        when = "; ".join(_conditions_of(c, scratch) for c in unsure_relief)
+        reason = (
+            f"only a relaxation for {when} was checked, and the spec does not say whether it "
+            "applies"
+        )
     elif exceptions:
         verdict = "needs_human"
         reason = (
@@ -454,12 +500,16 @@ class ComplianceAgent:
             parameter = state["queue"][state["idx"]]
             messages = [
                 SystemMessage(SYSTEM_PROMPT),
-                HumanMessage(_task_message(parameter, state["values"])),
+                HumanMessage(
+                    _task_message(parameter, state["values"], state.get("categories", {}))
+                ),
             ]
-            return {
-                "messages": messages,
-                "scratch": Scratch(parameter, intervals=state.get("intervals", {})),
-            }
+            scratch = Scratch(
+                parameter,
+                intervals=state.get("intervals", {}),
+                categories=state.get("categories", {}),
+            )
+            return {"messages": messages, "scratch": scratch}
 
         def agent(state: AgentState) -> AgentState:
             reply = self.llm.invoke(state["messages"])
@@ -530,7 +580,11 @@ class ComplianceAgent:
         values = spec_values(spec)
         try:
             final: dict[str, Any] = self.graph.invoke(
-                {"values": values, "intervals": spec_intervals(spec)},
+                {
+                    "values": values,
+                    "intervals": spec_intervals(spec),
+                    "categories": spec_categories(spec),
+                },
                 config={"recursion_limit": 1000},
             )
         except LLMUnavailable:

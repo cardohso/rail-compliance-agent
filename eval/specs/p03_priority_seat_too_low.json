@@ -1,0 +1,32 @@
+{
+  "id": "p03",
+  "title": "Priority seat too low",
+  "tags": [
+    "range"
+  ],
+  "why": "A range fails below its lower bound.",
+  "spec": {
+    "spec_version": "1",
+    "name": "Priority seat too low",
+    "unit_length_m": 100.0,
+    "priority_seats": {
+      "cushion_height_mm": 425.0
+    }
+  },
+  "expected": {
+    "priority_seats.cushion_height_mm": {
+      "verdict": "fail",
+      "required": "430–500 mm",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.1.2.1#2"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.1.2.1(9): 425 mm is below the 430 mm lower bound."
+    }
+  }
+}

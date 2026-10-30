@@ -1,0 +1,50 @@
+{
+  "id": "p02",
+  "title": "Handrail too thick, priority seat at the top of the range",
+  "tags": [
+    "range",
+    "exact-limit"
+  ],
+  "why": "A range fails above its upper bound; 'between 430 and 500 mm' includes 500.",
+  "spec": {
+    "spec_version": "1",
+    "name": "Handrail too thick, priority seat at the top of the range",
+    "unit_length_m": 100.0,
+    "handrails": {
+      "outside_diameter_mm": 41.0
+    },
+    "priority_seats": {
+      "cushion_height_mm": 500.0
+    }
+  },
+  "expected": {
+    "handrails.outside_diameter_mm": {
+      "verdict": "fail",
+      "required": "30–40 mm",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.9#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.9(1): 41 mm is above the 40 mm upper bound."
+    },
+    "priority_seats.cushion_height_mm": {
+      "verdict": "pass",
+      "required": "430–500 mm",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.1.2.1#2"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.1.2.1(9): 'between 430 and 500 mm above floor level'; 500 is the upper bound, included."
+    }
+  }
+}

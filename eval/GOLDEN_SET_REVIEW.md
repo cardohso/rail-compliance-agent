@@ -2,7 +2,7 @@
 
 Written by hand from the text of the PRM TSI (Regulation (EU) No 1300/2014, point 4.2.2 and 5.3.2): drafted with Claude, reviewed by the repository owner, who confirmed the four judgment calls below on 2026-10-24. One reviewer only.
 
-**20 specs, 43 scored parameter verdicts:** 16 fail, 5 needs human, 1 not applicable, 21 pass.
+**32 specs, 60 scored parameter verdicts:** 23 fail, 7 needs human, 2 not applicable, 28 pass.
 
 ## Assumptions to confirm
 
@@ -32,17 +32,22 @@ Written by hand from the text of the PRM TSI (Regulation (EU) No 1300/2014, poin
 |---|---|
 | `ambiguous-data` | g19, g20 |
 | `baseline` | g01 |
+| `category` | p09, p10, p11, p12 |
+| `conditional` | p06, p07, p08 |
 | `conditional-rule` | g10, g11, g12, g13, g14, g15 |
-| `exact-limit` | g03, g04, g05, g06, g07, g08, g09, g13 |
+| `exact-limit` | g03, g04, g05, g06, g07, g08, g09, g13, p01, p02, p04, p06, p09 |
 | `exception` | g03, g16 |
 | `high-speed` | g10, g11 |
 | `judgment-call` | g13 |
 | `length-dependent` | g02, g04, g05, g06, g07, g08, g09, g19, g20 |
-| `missing-data` | g14, g15 |
-| `needs-human` | g03, g14, g15, g16, g19 |
-| `not-applicable` | g17 |
+| `missing-data` | g14, g15, p07, p11 |
+| `needs-human` | g03, g14, g15, g16, g19, p07, p11 |
+| `not-applicable` | g17, p08 |
 | `other-section` | g08, g09 |
+| `range` | p01, p02, p03 |
+| `relaxation` | p10, p11, p12 |
 | `table-boundary` | g04, g05, g06, g07 |
+| `thousand-separator` | p05 |
 | `violation` | g02, g09, g18 |
 
 ## Cases
@@ -69,6 +74,18 @@ Written by hand from the text of the PRM TSI (Regulation (EU) No 1300/2014, poin
 | g18 | Toilets fitted but none universal | len 100, fitted 2, universal 0 | `universal`: **fail** |
 | g19 | Length includes a power head, two wheelchair spaces | len 210, head 1, wheelchair_spaces 2 | `wheelchair_spaces`: **needs human** |
 | g20 | Length includes a power head, three wheelchair spaces | len 210, head 1, wheelchair_spaces 3 | `wheelchair_spaces`: **pass** |
+| p01 | Handrail diameter at the bottom of the range | len 100, outside_diameter_mm 30 | `outside_diameter_mm`: **pass** |
+| p02 | Handrail too thick, priority seat at the top of the range | len 100, outside_diameter_mm 41, cushion 500 | `outside_diameter_mm`: **fail**<br>`cushion_height_mm`: **pass** |
+| p03 | Priority seat too low | len 100, cushion 425 | `cushion_height_mm`: **fail** |
+| p04 | Wheelchair space and turning space exactly at the minimum | len 100, width_mm 700, turning_space_diameter_mm 1500 | `width_mm`: **pass**<br>`turning_space_diameter_mm`: **pass** |
+| p05 | Wheelchair space and turning space too small | len 100, width_mm 690, turning_space_diameter_mm 1450 | `width_mm`: **fail**<br>`turning_space_diameter_mm`: **fail** |
+| p06 | Hand clearance on a side next to a wall | len 100, sides_next_to_obstacle 1, hand_clearance_mm 50 | `hand_clearance_mm`: **pass** |
+| p07 | Too little hand clearance, sides not stated | len 100, hand_clearance_mm 40 | `hand_clearance_mm`: **needs human** |
+| p08 | Wheelchair space open on both sides | len 100, sides_next_to_obstacle 0, hand_clearance_mm 20 | `hand_clearance_mm`: **not applicable** |
+| p09 | Single-deck stairs: height at the limit, depth too short | len 100, step 200, step_depth_mm 275, single_deck | `step_height_mm`: **pass**<br>`step_depth_mm`: **fail** |
+| p10 | Double-deck stairs with the relaxed depth | len 100, step 210, step_depth_mm 275, double_deck | `step_height_mm`: **fail**<br>`step_depth_mm`: **pass** |
+| p11 | Stair depth between the two limits, deck layout not stated | len 100, step_depth_mm 275 | `step_depth_mm`: **needs human** |
+| p12 | Double-deck stairs below even the relaxed depth | len 100, step_depth_mm 265, double_deck | `step_depth_mm`: **fail** |
 
 ## Reasoning per case
 
@@ -214,3 +231,80 @@ Written by hand from the text of the PRM TSI (Regulation (EU) No 1300/2014, poin
 *Same length basis problem, but 3 spaces meet the largest possible requirement (3 up to 300 m), so the answer is safe.* Tags: length-dependent, ambiguous-data.
 
 - `wheelchair_spaces` → **pass**. Table 5 of point 4.2.2.2(1): whatever the power head's length, the true length is ≤ 210 m, which needs at most 3 spaces; 3 ≥ 3.
+
+### p01: Handrail diameter at the bottom of the range
+
+*'30 mm to 40 mm' includes 30.* Tags: range, exact-limit.
+
+- `handrails.outside_diameter_mm` → **pass**. 4.2.2.9(1): 'outside diameter of 30 mm to 40 mm'; 30 is the lower bound, included.
+
+### p02: Handrail too thick, priority seat at the top of the range
+
+*A range fails above its upper bound; 'between 430 and 500 mm' includes 500.* Tags: range, exact-limit.
+
+- `handrails.outside_diameter_mm` → **fail**. 4.2.2.9(1): 41 mm is above the 40 mm upper bound.
+- `priority_seats.cushion_height_mm` → **pass**. 4.2.2.1.2.1(9): 'between 430 and 500 mm above floor level'; 500 is the upper bound, included.
+
+### p03: Priority seat too low
+
+*A range fails below its lower bound.* Tags: range.
+
+- `priority_seats.cushion_height_mm` → **fail**. 4.2.2.1.2.1(9): 425 mm is below the 430 mm lower bound.
+
+### p04: Wheelchair space and turning space exactly at the minimum
+
+*Both minimums are inclusive.* Tags: exact-limit.
+
+- `wheelchair_space_layout.width_mm` → **pass**. 4.2.2.2(3): 'the width shall be 700 mm', read as a minimum; 700 ≥ 700.
+- `wheelchair_space_layout.turning_space_diameter_mm` → **pass**. 4.2.2.6(3): 'a minimum diameter of 1 500 mm'; 1500 ≥ 1500.
+
+### p05: Wheelchair space and turning space too small
+
+*Just below both minimums; the regulation writes 1 500 with a space.* Tags: thousand-separator.
+
+- `wheelchair_space_layout.width_mm` → **fail**. 4.2.2.2(3): 690 < 700.
+- `wheelchair_space_layout.turning_space_diameter_mm` → **fail**. 4.2.2.6(3): 1450 < 1500.
+
+### p06: Hand clearance on a side next to a wall
+
+*The extra 50 mm applies on each side next to an obstacle; one side is.* Tags: conditional, exact-limit.
+
+- `wheelchair_space_layout.hand_clearance_mm` → **pass**. 4.2.2.2(3): 'an additional 50 mm width ... on each side that is adjacent to any obstacle'; 50 ≥ 50.
+
+### p07: Too little hand clearance, sides not stated
+
+*40 mm fails the rule if any side is next to an obstacle, and the spec does not say: a person decides.* Tags: conditional, missing-data, needs-human.
+
+- `wheelchair_space_layout.hand_clearance_mm` → **needs human**. 4.2.2.2(3): the 50 mm applies only to sides next to an obstacle; sides_next_to_obstacle is not supplied and 40 < 50, so the answer depends on it.
+
+### p08: Wheelchair space open on both sides
+
+*No side is next to an obstacle, so the extra-width rule does not apply.* Tags: conditional, not-applicable.
+
+- `wheelchair_space_layout.hand_clearance_mm` → **not applicable**. 4.2.2.2(3): 'if one side of the wheelchair is adjacent to the aisle there is no additional 50 mm requirement for that side'; with no side next to an obstacle the rule has nothing to apply to.
+
+### p09: Single-deck stairs: height at the limit, depth too short
+
+*The 270 mm depth is permitted only on double deck trains.* Tags: category, exact-limit.
+
+- `stairs.step_height_mm` → **pass**. 4.2.2.8(1): 'maximum height of 200 mm and a minimum depth of 280 mm ... For double deck trains it is permitted to reduce this value to 270 mm': 200 ≤ 200.
+- `stairs.step_depth_mm` → **fail**. 4.2.2.8(1): 'maximum height of 200 mm and a minimum depth of 280 mm ... For double deck trains it is permitted to reduce this value to 270 mm': the unit is single deck, so 280 mm applies; 275 < 280.
+
+### p10: Double-deck stairs with the relaxed depth
+
+*On a double deck train 275 mm meets the permitted 270 mm, though not the general 280 mm.* Tags: category, relaxation.
+
+- `stairs.step_height_mm` → **fail**. 4.2.2.8(1): 'maximum height of 200 mm and a minimum depth of 280 mm ... For double deck trains it is permitted to reduce this value to 270 mm': the relaxation is for the depth only; 210 > 200.
+- `stairs.step_depth_mm` → **pass**. 4.2.2.8(1): 'maximum height of 200 mm and a minimum depth of 280 mm ... For double deck trains it is permitted to reduce this value to 270 mm': double deck, so 270 mm is permitted; 275 ≥ 270.
+
+### p11: Stair depth between the two limits, deck layout not stated
+
+*275 mm passes only if the train is double deck, which the spec does not say.* Tags: category, relaxation, missing-data, needs-human.
+
+- `stairs.step_depth_mm` → **needs human**. 4.2.2.8(1): 'maximum height of 200 mm and a minimum depth of 280 mm ... For double deck trains it is permitted to reduce this value to 270 mm': 275 fails 280 and meets 270; deck_layout is not supplied.
+
+### p12: Double-deck stairs below even the relaxed depth
+
+*The relaxation does not save a value below 270 mm.* Tags: category, relaxation.
+
+- `stairs.step_depth_mm` → **fail**. 4.2.2.8(1): 'maximum height of 200 mm and a minimum depth of 280 mm ... For double deck trains it is permitted to reduce this value to 270 mm': 265 < 270.

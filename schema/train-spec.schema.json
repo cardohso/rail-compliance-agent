@@ -50,6 +50,87 @@
       "title": "ExteriorDoors",
       "type": "object"
     },
+    "Handrails": {
+      "additionalProperties": false,
+      "properties": {
+        "outside_diameter_mm": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 5000,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Outside diameter of the handrails, if all are the same (else the one furthest from 30-40 mm).",
+          "title": "Outside Diameter Mm"
+        }
+      },
+      "title": "Handrails",
+      "type": "object"
+    },
+    "PrioritySeats": {
+      "additionalProperties": false,
+      "properties": {
+        "cushion_height_mm": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 5000,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Height of the top of the priority seat cushion above floor level at its front edge (the one furthest from 430-500 mm, if they differ).",
+          "title": "Cushion Height Mm"
+        }
+      },
+      "title": "PrioritySeats",
+      "type": "object"
+    },
+    "Stairs": {
+      "additionalProperties": false,
+      "properties": {
+        "step_height_mm": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 5000,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Height of the highest internal step, other than steps for external access.",
+          "title": "Step Height Mm"
+        },
+        "step_depth_mm": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 5000,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Smallest depth of an internal step, other than steps for external access, at the central axis of the stairs.",
+          "title": "Step Depth Mm"
+        }
+      },
+      "title": "Stairs",
+      "type": "object"
+    },
     "Steps": {
       "additionalProperties": false,
       "properties": {
@@ -138,6 +219,73 @@
       },
       "title": "Toilets",
       "type": "object"
+    },
+    "WheelchairSpaceLayout": {
+      "additionalProperties": false,
+      "properties": {
+        "width_mm": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 5000,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Width of the wheelchair space over its full length, from floor level to 1 450 mm, not counting any hand clearance.",
+          "title": "Width Mm"
+        },
+        "sides_next_to_obstacle": {
+          "anyOf": [
+            {
+              "maximum": 2,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Sides of the wheelchair space (0, 1 or 2) next to a wall or structure that would inhibit the user's hands; a side open to the aisle does not count.",
+          "title": "Sides Next To Obstacle"
+        },
+        "hand_clearance_mm": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 5000,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Smallest additional width for the user's hands, 400 to 800 mm above floor level, on a side next to an obstacle.",
+          "title": "Hand Clearance Mm"
+        },
+        "turning_space_diameter_mm": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 5000,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Diameter of the wheelchair turning space next to the wheelchair space.",
+          "title": "Turning Space Diameter Mm"
+        }
+      },
+      "title": "WheelchairSpaceLayout",
+      "type": "object"
     }
   },
   "additionalProperties": false,
@@ -203,6 +351,23 @@
       "description": "Design speed of the train in km/h.",
       "title": "Design Speed Kmh"
     },
+    "deck_layout": {
+      "anyOf": [
+        {
+          "enum": [
+            "single_deck",
+            "double_deck"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Whether the unit has one passenger deck or two.",
+      "title": "Deck Layout"
+    },
     "wheelchair_spaces": {
       "anyOf": [
         {
@@ -244,6 +409,50 @@
       "anyOf": [
         {
           "$ref": "#/$defs/Toilets"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "wheelchair_space_layout": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/WheelchairSpaceLayout"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "stairs": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Stairs"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "handrails": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Handrails"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "priority_seats": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PrioritySeats"
         },
         {
           "type": "null"

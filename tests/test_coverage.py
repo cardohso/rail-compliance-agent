@@ -176,6 +176,9 @@ def test_mm_numbers(text, numbers):
     assert mm_numbers(text) == numbers
 
 
+NEW_GROUPS = {"wheelchair_space_layout", "stairs", "handrails", "priority_seats"}
+
+
 def test_the_registries_cover_exactly_what_they_should():
     assert set(MEASURES) <= set(CHECKED_PARAMETERS)
     assert set(SUBJECT_TERMS) == set(SUBJECTS)
@@ -187,7 +190,7 @@ def test_the_registries_cover_exactly_what_they_should():
         UNI_DOOR,
         "wheelchair_spaces",
         "toilets.universal",
-    }
+    } | {p for p in CHECKED_PARAMETERS if p.split(".")[0] in NEW_GROUPS}
     assert all(terms for terms in MEASURES.values()) and all(SUBJECT_TERMS.values())
 
 

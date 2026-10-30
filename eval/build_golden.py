@@ -16,13 +16,18 @@ from pathlib import Path
 
 from rail_compliance.golden import (
     P_DOORS,
+    P_HANDRAILS,
+    P_PRIORITY,
+    P_SPACE_DIMS,
     P_SPACES,
+    P_STAIRS,
     P_STEPS,
     P_TOILET,
+    P_TURNING,
     P_UNIVERSAL,
     GoldenCase,
 )
-from rail_compliance.spec import spec_values
+from rail_compliance.spec import spec_categories, spec_values
 
 HERE = Path(__file__).parent
 RULE = ["search_regulation", "extract_requirement", "check"]
@@ -35,6 +40,14 @@ EXT = "steps.external_step_height_mm"
 INT = "steps.internal_step_height_mm"
 UNIVERSAL = "toilets.universal"
 UNI_DOOR = "toilets.universal_door_clear_width_mm"
+SPACE_W = "wheelchair_space_layout.width_mm"
+HANDS = "wheelchair_space_layout.hand_clearance_mm"
+TURN = "wheelchair_space_layout.turning_space_diameter_mm"
+STAIR_H = "stairs.step_height_mm"
+STAIR_D = "stairs.step_depth_mm"
+RAIL = "handrails.outside_diameter_mm"
+SEAT = "priority_seats.cushion_height_mm"
+STAIRS_TEXT = "4.2.2.8(1): 'maximum height of 200 mm and a minimum depth of 280 mm ... For double deck trains it is permitted to reduce this value to 270 mm'"
 
 
 def e(verdict, required, passages, rationale, tools=RULE, alt=()):
@@ -548,6 +561,221 @@ CASES = [
             )
         },
     ),
+    # --- suite prm-extended (p*): seven more parameters (4.2.2.1.2.1, 4.2.2.2, 4.2.2.6, 4.2.2.8, 4.2.2.9)
+    case(
+        "p01",
+        "Handrail diameter at the bottom of the range",
+        ["range", "exact-limit"],
+        "'30 mm to 40 mm' includes 30.",
+        {"unit_length_m": 100.0, "handrails": {"outside_diameter_mm": 30}},
+        {
+            RAIL: e(
+                "pass",
+                "30–40 mm",
+                [P_HANDRAILS],
+                "4.2.2.9(1): 'outside diameter of 30 mm to 40 mm'; 30 is the lower bound, included.",
+            )
+        },
+    ),
+    case(
+        "p02",
+        "Handrail too thick, priority seat at the top of the range",
+        ["range", "exact-limit"],
+        "A range fails above its upper bound; 'between 430 and 500 mm' includes 500.",
+        {
+            "unit_length_m": 100.0,
+            "handrails": {"outside_diameter_mm": 41},
+            "priority_seats": {"cushion_height_mm": 500},
+        },
+        {
+            RAIL: e(
+                "fail",
+                "30–40 mm",
+                [P_HANDRAILS],
+                "4.2.2.9(1): 41 mm is above the 40 mm upper bound.",
+            ),
+            SEAT: e(
+                "pass",
+                "430–500 mm",
+                [P_PRIORITY],
+                "4.2.2.1.2.1(9): 'between 430 and 500 mm above floor level'; 500 is the upper bound, included.",
+            ),
+        },
+    ),
+    case(
+        "p03",
+        "Priority seat too low",
+        ["range"],
+        "A range fails below its lower bound.",
+        {"unit_length_m": 100.0, "priority_seats": {"cushion_height_mm": 425}},
+        {
+            SEAT: e(
+                "fail",
+                "430–500 mm",
+                [P_PRIORITY],
+                "4.2.2.1.2.1(9): 425 mm is below the 430 mm lower bound.",
+            )
+        },
+    ),
+    case(
+        "p04",
+        "Wheelchair space and turning space exactly at the minimum",
+        ["exact-limit"],
+        "Both minimums are inclusive.",
+        {
+            "unit_length_m": 100.0,
+            "wheelchair_space_layout": {"width_mm": 700, "turning_space_diameter_mm": 1500},
+        },
+        {
+            SPACE_W: e(
+                "pass",
+                "≥ 700 mm",
+                [P_SPACE_DIMS],
+                "4.2.2.2(3): 'the width shall be 700 mm', read as a minimum; 700 ≥ 700.",
+            ),
+            TURN: e(
+                "pass",
+                "≥ 1500 mm",
+                [P_TURNING],
+                "4.2.2.6(3): 'a minimum diameter of 1 500 mm'; 1500 ≥ 1500.",
+            ),
+        },
+    ),
+    case(
+        "p05",
+        "Wheelchair space and turning space too small",
+        ["thousand-separator"],
+        "Just below both minimums; the regulation writes 1 500 with a space.",
+        {
+            "unit_length_m": 100.0,
+            "wheelchair_space_layout": {"width_mm": 690, "turning_space_diameter_mm": 1450},
+        },
+        {
+            SPACE_W: e("fail", "≥ 700 mm", [P_SPACE_DIMS], "4.2.2.2(3): 690 < 700."),
+            TURN: e("fail", "≥ 1500 mm", [P_TURNING], "4.2.2.6(3): 1450 < 1500."),
+        },
+    ),
+    case(
+        "p06",
+        "Hand clearance on a side next to a wall",
+        ["conditional", "exact-limit"],
+        "The extra 50 mm applies on each side next to an obstacle; one side is.",
+        {
+            "unit_length_m": 100.0,
+            "wheelchair_space_layout": {"sides_next_to_obstacle": 1, "hand_clearance_mm": 50},
+        },
+        {
+            HANDS: e(
+                "pass",
+                "≥ 50 mm (side next to an obstacle)",
+                [P_SPACE_DIMS],
+                "4.2.2.2(3): 'an additional 50 mm width ... on each side that is adjacent to any obstacle'; 50 ≥ 50.",
+            )
+        },
+    ),
+    case(
+        "p07",
+        "Too little hand clearance, sides not stated",
+        ["conditional", "missing-data", "needs-human"],
+        "40 mm fails the rule if any side is next to an obstacle, and the spec does not say: a person decides.",
+        {"unit_length_m": 100.0, "wheelchair_space_layout": {"hand_clearance_mm": 40}},
+        {
+            HANDS: e(
+                "needs_human",
+                "≥ 50 mm if a side is next to an obstacle",
+                [P_SPACE_DIMS],
+                "4.2.2.2(3): the 50 mm applies only to sides next to an obstacle; sides_next_to_obstacle is not supplied and 40 < 50, so the answer depends on it.",
+                alt=[ESCALATE],
+            )
+        },
+    ),
+    case(
+        "p08",
+        "Wheelchair space open on both sides",
+        ["conditional", "not-applicable"],
+        "No side is next to an obstacle, so the extra-width rule does not apply.",
+        {
+            "unit_length_m": 100.0,
+            "wheelchair_space_layout": {"sides_next_to_obstacle": 0, "hand_clearance_mm": 20},
+        },
+        {
+            HANDS: e(
+                "not_applicable",
+                None,
+                [P_SPACE_DIMS],
+                "4.2.2.2(3): 'if one side of the wheelchair is adjacent to the aisle there is no additional 50 mm requirement for that side'; with no side next to an obstacle the rule has nothing to apply to.",
+            )
+        },
+    ),
+    case(
+        "p09",
+        "Single-deck stairs: height at the limit, depth too short",
+        ["category", "exact-limit"],
+        "The 270 mm depth is permitted only on double deck trains.",
+        {
+            "unit_length_m": 100.0,
+            "deck_layout": "single_deck",
+            "stairs": {"step_height_mm": 200, "step_depth_mm": 275},
+        },
+        {
+            STAIR_H: e("pass", "≤ 200 mm", [P_STAIRS], f"{STAIRS_TEXT}: 200 ≤ 200."),
+            STAIR_D: e(
+                "fail",
+                "≥ 280 mm",
+                [P_STAIRS],
+                f"{STAIRS_TEXT}: the unit is single deck, so 280 mm applies; 275 < 280.",
+            ),
+        },
+    ),
+    case(
+        "p10",
+        "Double-deck stairs with the relaxed depth",
+        ["category", "relaxation"],
+        "On a double deck train 275 mm meets the permitted 270 mm, though not the general 280 mm.",
+        {
+            "unit_length_m": 100.0,
+            "deck_layout": "double_deck",
+            "stairs": {"step_height_mm": 210, "step_depth_mm": 275},
+        },
+        {
+            STAIR_H: e(
+                "fail",
+                "≤ 200 mm",
+                [P_STAIRS],
+                f"{STAIRS_TEXT}: the relaxation is for the depth only; 210 > 200.",
+            ),
+            STAIR_D: e(
+                "pass",
+                "≥ 270 mm (double deck)",
+                [P_STAIRS],
+                f"{STAIRS_TEXT}: double deck, so 270 mm is permitted; 275 ≥ 270.",
+            ),
+        },
+    ),
+    case(
+        "p11",
+        "Stair depth between the two limits, deck layout not stated",
+        ["category", "relaxation", "missing-data", "needs-human"],
+        "275 mm passes only if the train is double deck, which the spec does not say.",
+        {"unit_length_m": 100.0, "stairs": {"step_depth_mm": 275}},
+        {
+            STAIR_D: e(
+                "needs_human",
+                "≥ 280 mm, or ≥ 270 mm if double deck",
+                [P_STAIRS],
+                f"{STAIRS_TEXT}: 275 fails 280 and meets 270; deck_layout is not supplied.",
+                alt=[ESCALATE],
+            )
+        },
+    ),
+    case(
+        "p12",
+        "Double-deck stairs below even the relaxed depth",
+        ["category", "relaxation"],
+        "The relaxation does not save a value below 270 mm.",
+        {"unit_length_m": 100.0, "deck_layout": "double_deck", "stairs": {"step_depth_mm": 265}},
+        {STAIR_D: e("fail", "≥ 270 mm (double deck)", [P_STAIRS], f"{STAIRS_TEXT}: 265 < 270.")},
+    ),
 ]
 
 
@@ -573,13 +801,14 @@ def key_values(spec) -> str:
             .replace("wheelchair_door_level_access", "level"),
         )
         parts.append(f"{name} {v:g}")
+    parts += [v for v in spec_categories(spec).values()]
     return ", ".join(parts)
 
 
 def main() -> None:
     specs = HERE / "specs"
     specs.mkdir(exist_ok=True)
-    for old in specs.glob("g*.json"):
+    for old in [*specs.glob("g*.json"), *specs.glob("p*.json")]:
         old.unlink()
     cases = []
     for raw in CASES:

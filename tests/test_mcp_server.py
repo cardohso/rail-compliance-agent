@@ -9,6 +9,7 @@ from mcp.client.stdio import StdioServerParameters
 from rail_compliance.config import Settings
 from rail_compliance.mcp_server import create_server
 from rail_compliance.models import RequirementCore, RequirementDraft, SearchResult
+from rail_compliance.parameters import CHECKED_PARAMETERS
 from tests.factories import limit, table5
 from tests.test_extract import DOOR_PASSAGE, QUOTE_800, FakeLLM
 
@@ -144,7 +145,7 @@ def test_the_parameters_resource_lists_every_checked_parameter_with_its_subjects
     assert [str(r.uri) for r in resources] == ["rail://parameters"]
     data = json.loads(body.contents[0].text)
     rows = {r["parameter"]: r for r in data["parameters"]}
-    assert len(rows) == 7
+    assert len(rows) == len(CHECKED_PARAMETERS) == 14
     wheelchair = rows["exterior_doors.wheelchair_door_clear_width_mm"]
     assert wheelchair["governed_by_subjects"] == ["wheelchair_doorway", "exterior_doorway"]
     assert wheelchair["unit"] == "mm" and wheelchair["description"]

@@ -25,7 +25,7 @@ from rail_compliance.evaluation.goldpass_export import golden_jsonl, records
 from rail_compliance.evaluation.metrics import Metrics
 from rail_compliance.evaluation.runner import run_cases, save_run
 from rail_compliance.factory import build_agent
-from rail_compliance.golden import load_golden
+from rail_compliance.golden import SUITES, load_golden, load_suite
 from rail_compliance.llm import ConfigError
 from rail_compliance.report import Report
 from rail_compliance.retry import LLMUnavailable
@@ -58,6 +58,7 @@ def main(argv: list[str] | None = None, build: Callable = build_agent) -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     run = sub.add_parser("run", help="run the agent on the golden set and score it")
     run.add_argument("--cases", help="comma-separated case ids (default: all)")
+    run.add_argument("--suite", choices=list(SUITES), default="core", help="golden suite to run")
     run.add_argument(
         "--golden-dir", type=Path, help="score another set of cases (default: eval/specs)"
     )
@@ -73,7 +74,8 @@ def main(argv: list[str] | None = None, build: Callable = build_agent) -> int:
 
     try:
         custom = getattr(args, "golden_dir", None)
-        cases = load_golden(custom, "*.json") if custom else load_golden()
+        suite = getattr(args, "suite", "core")
+        cases = load_golden(custom, "*.json") if custom else load_suite(suite)
         if args.cmd == "goldpass-golden":
             (EVAL / "goldpass" / "golden.jsonl").write_text(golden_jsonl(cases), encoding="utf-8")
             print(f"wrote {EVAL / 'goldpass' / 'golden.jsonl'}")
@@ -89,6 +91,7 @@ def main(argv: list[str] | None = None, build: Callable = build_agent) -> int:
             "model": first.stats.agent_model if first else None,
             "search": first.stats.search_backend if first else None,
             "cases": [c.id for c in cases],
+            "suite": None if custom else suite,
         }
         _, _, checks = save_run(args.out, cases, result, meta, load_thresholds(args.thresholds))
         system = f"{meta['model']} via rail_compliance ({meta['search']} search)"

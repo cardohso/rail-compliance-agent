@@ -208,7 +208,8 @@ def deck_field(monkeypatch):
 
     real = extract.parameter_kinds()
     monkeypatch.setattr(extract, "parameter_kinds", lambda: {**real, **KINDS})
-    monkeypatch.setattr(extract, "parameter_choices", lambda: CHOICES)
+    real_choices = extract.parameter_choices()
+    monkeypatch.setattr(extract, "parameter_choices", lambda: {**real_choices, **CHOICES})
 
 
 @pytest.mark.parametrize(

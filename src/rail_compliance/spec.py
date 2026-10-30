@@ -74,6 +74,56 @@ class Toilets(_Strict):
         return self
 
 
+class WheelchairSpaceLayout(_Strict):
+    width_mm: Mm | None = Field(
+        default=None,
+        description="Width of the wheelchair space over its full length, from floor level to "
+        "1 450 mm, not counting any hand clearance.",
+    )
+    sides_next_to_obstacle: Annotated[int, Field(ge=0, le=2)] | None = Field(
+        default=None,
+        description="Sides of the wheelchair space (0, 1 or 2) next to a wall or structure that "
+        "would inhibit the user's hands; a side open to the aisle does not count.",
+    )
+    hand_clearance_mm: Mm | None = Field(
+        default=None,
+        description="Smallest additional width for the user's hands, 400 to 800 mm above floor "
+        "level, on a side next to an obstacle.",
+    )
+    turning_space_diameter_mm: Mm | None = Field(
+        default=None,
+        description="Diameter of the wheelchair turning space next to the wheelchair space.",
+    )
+
+
+class Stairs(_Strict):
+    step_height_mm: Mm | None = Field(
+        default=None,
+        description="Height of the highest internal step, other than steps for external access.",
+    )
+    step_depth_mm: Mm | None = Field(
+        default=None,
+        description="Smallest depth of an internal step, other than steps for external access, at "
+        "the central axis of the stairs.",
+    )
+
+
+class Handrails(_Strict):
+    outside_diameter_mm: Mm | None = Field(
+        default=None,
+        description="Outside diameter of the handrails, if all are the same (else the one "
+        "furthest from 30-40 mm).",
+    )
+
+
+class PrioritySeats(_Strict):
+    cushion_height_mm: Mm | None = Field(
+        default=None,
+        description="Height of the top of the priority seat cushion above floor level at its "
+        "front edge (the one furthest from 430-500 mm, if they differ).",
+    )
+
+
 class TrainSpec(_Strict):
     spec_version: str = Field(default="1", description="Version of this spec format.")
     name: str = Field(min_length=1, max_length=120, description="Label for reports.")
@@ -91,6 +141,9 @@ class TrainSpec(_Strict):
     design_speed_kmh: Annotated[float, Field(gt=0, le=500)] | None = Field(
         default=None, description="Design speed of the train in km/h."
     )
+    deck_layout: Literal["single_deck", "double_deck"] | None = Field(
+        default=None, description="Whether the unit has one passenger deck or two."
+    )
 
     wheelchair_spaces: Count | None = Field(
         default=None, description="Accessible wheelchair spaces in the unit."
@@ -98,6 +151,10 @@ class TrainSpec(_Strict):
     exterior_doors: ExteriorDoors | None = None
     steps: Steps | None = None
     toilets: Toilets | None = None
+    wheelchair_space_layout: WheelchairSpaceLayout | None = None
+    stairs: Stairs | None = None
+    handrails: Handrails | None = None
+    priority_seats: PrioritySeats | None = None
 
 
 def spec_values(spec: TrainSpec) -> dict[str, float]:
@@ -117,6 +174,22 @@ def spec_values(spec: TrainSpec) -> dict[str, float]:
                 out[f"{prefix}{name}"] = 1.0 if value else 0.0
             elif isinstance(value, int | float):
                 out[f"{prefix}{name}"] = float(value)
+
+    walk(spec, "")
+    return out
+
+
+def spec_categories(spec: TrainSpec) -> dict[str, str]:
+    """Every category parameter the spec supplies, by name ("deck_layout" -> "double_deck")."""
+    out: dict[str, str] = {}
+
+    def walk(model: BaseModel, prefix: str) -> None:
+        for name in type(model).model_fields:
+            value = getattr(model, name)
+            if isinstance(value, BaseModel):
+                walk(value, f"{prefix}{name}.")
+            elif isinstance(value, str) and f"{prefix}{name}" in parameter_choices():
+                out[f"{prefix}{name}"] = value
 
     walk(spec, "")
     return out

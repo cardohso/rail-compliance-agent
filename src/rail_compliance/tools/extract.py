@@ -64,6 +64,10 @@ Rules:
   Never make a condition out of wording that only says how a value is measured ("excluding the
   locomotive or power head"): the spec handles that outside the rules. A
   count is not a flag: "when toilets are fitted" means `toilets.fitted` > 0, never == 1.
+- A permission to depart from the general rule in some cases ("for double deck trains it is
+  permitted to reduce this value to 270 mm") is its own rule: set `relaxes` to true, give the
+  relaxed value, and put the cases in `conditions`. Never fold it into the general rule, and
+  leave `relaxes` false for every other rule.
 - A table is ONE rule: give it in one answer, never one answer per row. A table whose required
   value depends on another parameter (for example unit length) goes in `bands`: one band for
   every row of the table, none left out, and `quote` must contain the whole table. Set `value` to
@@ -231,6 +235,9 @@ _CONDITIONAL = re.compile(
 )
 
 
+_PERMISSION = re.compile(r"\b(?:permitted|allowed|may|can be reduced|can be increased)\b", re.I)
+
+
 def _unverified(reason: str) -> ExtractionResult:
     return ExtractionResult(status="unverified", reason=reason)
 
@@ -270,6 +277,11 @@ def extract_requirement(
     problem = _check_variables(rule, kinds)
     if problem:
         return _unverified(problem)
+    if rule.relaxes and not _PERMISSION.search(_norm(draft.quote)):
+        return _unverified(
+            "the rule is marked as a relaxation, but the quote states no permission ('permitted', "
+            "'allowed', 'may'). Quote the sentence that permits it or set relaxes to false"
+        )
     if rule.contingency and not _CONDITIONAL.search(_norm(draft.quote)):
         return _unverified(
             f"the contingency '{rule.contingency}' is not supported by the quote, which states no "

@@ -1,0 +1,49 @@
+{
+  "id": "p09",
+  "title": "Single-deck stairs: height at the limit, depth too short",
+  "tags": [
+    "category",
+    "exact-limit"
+  ],
+  "why": "The 270 mm depth is permitted only on double deck trains.",
+  "spec": {
+    "spec_version": "1",
+    "name": "Single-deck stairs: height at the limit, depth too short",
+    "unit_length_m": 100.0,
+    "deck_layout": "single_deck",
+    "stairs": {
+      "step_height_mm": 200.0,
+      "step_depth_mm": 275.0
+    }
+  },
+  "expected": {
+    "stairs.step_height_mm": {
+      "verdict": "pass",
+      "required": "≤ 200 mm",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.8#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.8(1): 'maximum height of 200 mm and a minimum depth of 280 mm ... For double deck trains it is permitted to reduce this value to 270 mm': 200 ≤ 200."
+    },
+    "stairs.step_depth_mm": {
+      "verdict": "fail",
+      "required": "≥ 280 mm",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.8#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.8(1): 'maximum height of 200 mm and a minimum depth of 280 mm ... For double deck trains it is permitted to reduce this value to 270 mm': the unit is single deck, so 280 mm applies; 275 < 280."
+    }
+  }
+}

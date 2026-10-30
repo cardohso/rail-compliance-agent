@@ -1,0 +1,34 @@
+{
+  "id": "p06",
+  "title": "Hand clearance on a side next to a wall",
+  "tags": [
+    "conditional",
+    "exact-limit"
+  ],
+  "why": "The extra 50 mm applies on each side next to an obstacle; one side is.",
+  "spec": {
+    "spec_version": "1",
+    "name": "Hand clearance on a side next to a wall",
+    "unit_length_m": 100.0,
+    "wheelchair_space_layout": {
+      "sides_next_to_obstacle": 1,
+      "hand_clearance_mm": 50.0
+    }
+  },
+  "expected": {
+    "wheelchair_space_layout.hand_clearance_mm": {
+      "verdict": "pass",
+      "required": "≥ 50 mm (side next to an obstacle)",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.2#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.2(3): 'an additional 50 mm width ... on each side that is adjacent to any obstacle'; 50 ≥ 50."
+    }
+  }
+}

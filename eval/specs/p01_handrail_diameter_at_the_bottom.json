@@ -1,0 +1,33 @@
+{
+  "id": "p01",
+  "title": "Handrail diameter at the bottom of the range",
+  "tags": [
+    "range",
+    "exact-limit"
+  ],
+  "why": "'30 mm to 40 mm' includes 30.",
+  "spec": {
+    "spec_version": "1",
+    "name": "Handrail diameter at the bottom of the range",
+    "unit_length_m": 100.0,
+    "handrails": {
+      "outside_diameter_mm": 30.0
+    }
+  },
+  "expected": {
+    "handrails.outside_diameter_mm": {
+      "verdict": "pass",
+      "required": "30–40 mm",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.9#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.9(1): 'outside diameter of 30 mm to 40 mm'; 30 is the lower bound, included."
+    }
+  }
+}

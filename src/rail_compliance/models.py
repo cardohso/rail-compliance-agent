@@ -126,6 +126,9 @@ class RuleDraft(_Strict):
     contingency: str | None = None  # what must be shown for the rule to hold; not a spec value
     value: float | None = None
     value_max: float | None = None  # the upper bound of a "between" rule; `value` is the lower
+    # A permission to go below the general standard where the conditions hold ("for double deck
+    # trains it is permitted to reduce this value to 270 mm"): it replaces the general rule there.
+    relaxes: bool = False
     unit: str | None = None
     bands: list[BandDraft] = Field(default_factory=list)
     band_variable: str | None = None  # spec parameter path that selects the band
@@ -152,6 +155,8 @@ class RequirementCore(RuleDraft):
                 raise ValueError("a range is a single rule, not a table")
             if self.value > self.value_max:
                 raise ValueError(f"range lower {self.value:g} is above upper {self.value_max:g}")
+        if self.relaxes and not self.conditions:
+            raise ValueError("a relaxation needs the conditions where it applies")
         return self
 
 
@@ -170,6 +175,8 @@ class CheckResult(_Strict):
     unit: str | None = None
     margin: float | None = None  # spec_value - required_value, in the requirement's unit
     contingency: str | None = None  # the rule holds only if this is shown (see Requirement)
+    relaxes: bool = False  # the rule is a relaxation of the general one (see RuleDraft)
+    applies: bool | None = None  # are its conditions known to hold? None: unknown
 
 
 class HumanReview(_Strict):

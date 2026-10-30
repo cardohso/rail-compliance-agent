@@ -828,3 +828,15 @@ def test_an_escalation_naming_an_unknown_requirement_is_rejected():
     calls = agent_calls(report, DOOR)
     assert [t.ok for t in calls] == [False, True]
     assert "unknown requirement id" in calls[0].summary
+
+
+def test_a_category_the_spec_supplies_reaches_the_check_and_the_task_message():
+    from rail_compliance.agent import _task_message
+
+    s = spec(deck_layout="double_deck", stairs={"step_depth_mm": 275})
+    assert "deck_layout=double_deck" in _task_message("stairs.step_depth_mm",
+                                                      {"stairs.step_depth_mm": 275},
+                                                      {"deck_layout": "double_deck"})  # fmt: skip
+    from rail_compliance.spec import spec_categories
+
+    assert spec_categories(s) == {"deck_layout": "double_deck"}

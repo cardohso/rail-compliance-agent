@@ -236,3 +236,14 @@ def test_cli_explains_how_to_resume_after_the_provider_runs_out_of_quota(tmp_pat
     assert "RESOURCE_EXHAUSTED" in text
     assert "cached" in text and "same command" in text
     assert not (tmp_path / "run" / "metrics.json").exists()  # no results from a partial run
+
+
+def test_cli_runs_the_suite_it_is_given(tmp_path):
+    out = tmp_path / "run"
+    cli.main(["run", "--suite", "prm-extended", "--cases", "p01,p06", "--out", str(out)],
+             build=lambda settings, **kw: CannedAgent())  # fmt: skip
+    payload = json.loads((out / "metrics.json").read_text("utf-8"))
+    assert payload["meta"]["suite"] == "prm-extended"
+    assert payload["metrics"]["n_cases"] == 2
+    with pytest.raises(SystemExit):
+        cli.main(["run", "--suite", "nope"], build=lambda settings, **kw: CannedAgent())
