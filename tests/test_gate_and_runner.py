@@ -247,3 +247,23 @@ def test_cli_runs_the_suite_it_is_given(tmp_path):
     assert payload["metrics"]["n_cases"] == 2
     with pytest.raises(SystemExit):
         cli.main(["run", "--suite", "nope"], build=lambda settings, **kw: CannedAgent())
+
+
+def test_every_suite_has_pre_registered_thresholds_that_load():
+    from rail_compliance.golden import SUITES
+
+    for suite in SUITES:
+        path = cli.thresholds_for(suite)
+        assert path.exists(), suite
+        load_thresholds(path)
+        if suite != "core":
+            assert "BEFORE THE AGENT WAS RUN ON THIS SUITE" in path.read_text("utf-8")
+
+
+def test_the_gate_uses_the_thresholds_of_the_suite_that_was_run(tmp_path, capsys):
+    out = tmp_path / "run"
+    cli.main(["run", "--suite", "noise", "--cases", "n01,n02", "--out", str(out)],
+             build=lambda settings, **kw: CannedAgent())  # fmt: skip
+    capsys.readouterr()
+    cli.main(["gate", str(out)])
+    assert "eval/thresholds/noise.yaml" in capsys.readouterr().out

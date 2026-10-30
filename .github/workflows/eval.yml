@@ -1,17 +1,23 @@
 name: eval
 
-# Runs the agent on the 20-spec golden set with a real (free-tier) model and fails the build if a
-# metric is below eval/thresholds.yaml (tool use, verdicts, escalation) or eval/goldpass/
-# thresholds.yaml (retrieval, citations, grounding). On pull requests and by hand, not on every
-# push, to stay inside the free tier's limits (15 requests a minute, 500 a day per Google project;
-# a fresh full run needs about 245 of them, so one per day). Needs the repository secret GEMINI_API_KEY;
+# Runs the agent on one suite of the golden set with a real (free-tier) model and fails the build
+# if a metric is below that suite's thresholds (eval/thresholds.yaml for core, eval/thresholds/
+# <suite>.yaml for the others) or, for core, eval/goldpass/thresholds.yaml (retrieval, citations,
+# grounding). On pull requests (core) and by hand, not on every push, to stay inside the free
+# tier's limits (15 requests a minute, 500 a day per Google project; a fresh core run needs about
+# 245 of them, so one suite per day). Needs the repository secret GEMINI_API_KEY;
 # pull requests from forks do not get secrets, so the job is skipped for them.
 on:
   pull_request:
   workflow_dispatch:
     inputs:
+      suite:
+        description: "Golden suite to run"
+        type: choice
+        options: [core, prm-extended, renewal, noise]
+        default: core
       cases:
-        description: "Comma-separated case ids to run (empty = all 20), e.g. g04,g05"
+        description: "Comma-separated case ids to run (empty = the whole suite), e.g. g04,g05"
         required: false
         default: ""
 
@@ -91,11 +97,12 @@ jobs:
       - name: Run the agent on the golden set
         env:
           CASES: ${{ inputs.cases }}  # via the environment, never interpolated into the script
+          SUITE: ${{ inputs.suite || 'core' }}  # pull requests run core
         run: |
           if [ -n "$CASES" ]; then
-            uv run python -m rail_compliance.evaluation run --out eval/results/local --cases "$CASES"
+            uv run python -m rail_compliance.evaluation run --suite "$SUITE" --out eval/results/local --cases "$CASES"
           else
-            uv run python -m rail_compliance.evaluation run --out eval/results/local
+            uv run python -m rail_compliance.evaluation run --suite "$SUITE" --out eval/results/local
           fi
 
       - name: Save the model and search cache
@@ -118,7 +125,9 @@ jobs:
           cat eval/results/local/summary.md gate.md >> "$GITHUB_STEP_SUMMARY"
           exit "$status"
 
+      # goldpass's golden file covers core only; the other suites gate on citation_hit_rate above.
       - name: Gate on retrieval, citations and grounding (goldpass)
+        if: (inputs.suite || 'core') == 'core'
         continue-on-error: ${{ inputs.cases != '' }}
         run: uv run goldpass run --config eval/goldpass/goldpass.yaml --summary "$GITHUB_STEP_SUMMARY"
 

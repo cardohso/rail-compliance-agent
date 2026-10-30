@@ -1,0 +1,24 @@
+# Quality gate for the renewal suite (r01-r10: renewed units under PRM TSI Appendix F; 11 scored
+# verdicts).
+#
+# SET ON 2026-10-30, BEFORE THE AGENT WAS RUN ON THIS SUITE. Not to be tuned to its results.
+#
+# Basis (expectations, not measurements):
+#  - an exemption is a second rule from a second passage for every parameter, so each case needs
+#    more search and extraction than on core, and each extra call is a chance to miss: 0.65 allows
+#    3 of 11;
+#  - the cost guard is higher than core's for the same reason (an exemption adds a search, an
+#    extraction and a check);
+#  - a cited passage hits if it is the rule's passage or the exemption's, but the agent may cite
+#    only one of the two, so the citation floor is lower than core's;
+#  - false passes keep core's limit.
+metrics:
+  verdict_accuracy:        {min: 0.65}
+  unsafe_pass_rate:        {max: 0.05}
+  needs_human_recall:      {min: 0.33}
+  needs_human_precision:   {min: 0.50}
+  tool_selection_accuracy: {min: 0.75}
+  argument_correctness:    {min: 0.95}
+  citation_hit_rate:       {min: 0.75}
+  tool_calls_per_parameter: {max: 9.0}
+  errors:                  {max: 0}

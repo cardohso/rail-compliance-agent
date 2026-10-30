@@ -28,3 +28,18 @@ def test_the_case_filter_reaches_the_script_through_the_environment_not_interpol
 def test_pull_requests_from_forks_are_skipped_because_they_get_no_secret():
     condition = EVAL["jobs"]["golden-set"]["if"]
     assert "pull_request" in condition and "head.repo.full_name" in condition
+
+
+def test_a_manual_run_picks_a_suite_and_pull_requests_run_core():
+    triggers = EVAL.get("on", EVAL.get(True))  # YAML 1.1 reads the key `on` as true
+    inputs = triggers["workflow_dispatch"]["inputs"]
+    from rail_compliance.golden import SUITES
+
+    assert inputs["suite"]["options"] == list(SUITES) and inputs["suite"]["default"] == "core"
+    run = STEPS["Run the agent on the golden set"]
+    assert (
+        run["env"]["SUITE"] == "${{ inputs.suite || 'core' }}" and '--suite "$SUITE"' in run["run"]
+    )
+    assert STEPS["Gate on retrieval, citations and grounding (goldpass)"]["if"] == (
+        "(inputs.suite || 'core') == 'core'"
+    )

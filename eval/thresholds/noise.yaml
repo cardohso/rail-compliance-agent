@@ -1,0 +1,21 @@
+# Quality gate for the noise suite (n01-n10: Noise TSI tables 2, 4 and 5; 18 scored verdicts).
+#
+# SET ON 2026-10-30, BEFORE THE AGENT WAS RUN ON THIS SUITE. Not to be tuned to its results.
+#
+# Basis (expectations, not measurements):
+#  - the rules are table lookups much like core's Table 5, and the regulation check rejects the
+#    PRM TSI's dB passages, so accuracy near core's is plausible: 0.80 allows 3 of 18;
+#  - 2 verdicts expect needs_human, so the recall floor says only "it escalates at least once";
+#  - false passes keep core's limit.
+metrics:
+  verdict_accuracy:        {min: 0.80}
+  unsafe_pass_rate:        {max: 0.05}
+  needs_human_recall:      {min: 0.50}
+  needs_human_precision:   {min: 0.50}
+  tool_selection_accuracy: {min: 0.80}
+  argument_correctness:    {min: 0.95}
+  citation_hit_rate:       {min: 0.90}
+  tool_calls_per_parameter: {max: 6.0}
+  errors:                  {max: 0}
+tags:
+  category-table: {verdict_accuracy: {min: 0.75}}

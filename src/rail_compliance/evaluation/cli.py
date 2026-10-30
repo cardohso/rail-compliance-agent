@@ -45,9 +45,23 @@ def _select(cases, wanted: str | None):
     return chosen
 
 
-def _gate(out: Path, thresholds: Path) -> int:
+def thresholds_for(suite: str | None) -> Path:
+    """Each suite has its own pre-registered thresholds; core keeps the original file."""
+    return (
+        EVAL / "thresholds.yaml"
+        if suite in (None, "core")
+        else EVAL / "thresholds" / f"{suite}.yaml"
+    )
+
+
+def _gate(out: Path, thresholds: Path | None) -> int:
     payload = json.loads((out / "metrics.json").read_text(encoding="utf-8"))
     metrics = Metrics.model_validate(payload["metrics"])
+    thresholds = thresholds or thresholds_for(payload.get("meta", {}).get("suite"))
+    shown = (
+        thresholds.relative_to(REPO_ROOT) if thresholds.is_relative_to(REPO_ROOT) else thresholds
+    )
+    print(f"thresholds: {shown}")
     checks = check_thresholds(metrics, load_thresholds(thresholds))
     print(gate_markdown(checks))
     return 0 if passed(checks) else 1
@@ -64,11 +78,11 @@ def main(argv: list[str] | None = None, build: Callable = build_agent) -> int:
     )
     run.add_argument("--out", type=Path, default=EVAL / "results" / "local")
     run.add_argument("--no-cache", action="store_true", help="ignore and do not write caches")
-    run.add_argument("--thresholds", type=Path, default=EVAL / "thresholds.yaml")
+    run.add_argument("--thresholds", type=Path, help="default: the suite's own thresholds")
     run.add_argument("--gate", action="store_true", help="exit 1 if a threshold fails")
     gate = sub.add_parser("gate", help="check saved results against the thresholds")
     gate.add_argument("results", type=Path)
-    gate.add_argument("--thresholds", type=Path, default=EVAL / "thresholds.yaml")
+    gate.add_argument("--thresholds", type=Path, help="default: the run's suite's thresholds")
     sub.add_parser("goldpass-golden", help="rewrite eval/goldpass/golden.jsonl from the cases")
     args = ap.parse_args(argv)
 
@@ -93,7 +107,8 @@ def main(argv: list[str] | None = None, build: Callable = build_agent) -> int:
             "cases": [c.id for c in cases],
             "suite": None if custom else suite,
         }
-        _, _, checks = save_run(args.out, cases, result, meta, load_thresholds(args.thresholds))
+        thresholds = args.thresholds or thresholds_for(meta["suite"])
+        _, _, checks = save_run(args.out, cases, result, meta, load_thresholds(thresholds))
         system = f"{meta['model']} via rail_compliance ({meta['search']} search)"
         gp = args.out / "goldpass"
         gp.mkdir(parents=True, exist_ok=True)

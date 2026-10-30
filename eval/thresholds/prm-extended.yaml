@@ -1,0 +1,26 @@
+# Quality gate for the prm-extended suite (p01-p12: handrails, priority seats, wheelchair-space
+# dimensions, turning space, internal stairs; 17 scored verdicts).
+#
+# SET ON 2026-10-30, BEFORE THE AGENT WAS RUN ON THIS SUITE. Not to be tuned to its results: a
+# changed number needs a commit that says why.
+#
+# Basis (expectations, not measurements):
+#  - the rule shapes are new to the model (ranges, a relaxation, a category condition) and no
+#    prompt wording has been tried on them, so more misses than on core are plausible: 0.75 allows
+#    4 of 17;
+#  - only 2 verdicts expect needs_human, so one case moves recall by 0.50: the floor says only
+#    "it escalates at least once";
+#  - false passes keep core's limit: a compliance tool is judged on them first.
+metrics:
+  verdict_accuracy:        {min: 0.75}
+  unsafe_pass_rate:        {max: 0.05}
+  needs_human_recall:      {min: 0.50}
+  needs_human_precision:   {min: 0.50}
+  tool_selection_accuracy: {min: 0.80}
+  argument_correctness:    {min: 0.95}
+  citation_hit_rate:       {min: 0.85}
+  tool_calls_per_parameter: {max: 6.0}
+  errors:                  {max: 0}
+tags:
+  range:      {verdict_accuracy: {min: 0.75}}
+  relaxation: {verdict_accuracy: {min: 0.70}}   # four verdicts: one miss is 0.75
