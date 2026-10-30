@@ -94,6 +94,66 @@
       "title": "PrioritySeats",
       "type": "object"
     },
+    "Renewal": {
+      "additionalProperties": false,
+      "description": "What a renewal or upgrade changed (Appendix F): the exemptions depend on it.",
+      "properties": {
+        "seating_layout_altered_in_entire_vehicle": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The seating layout was altered within at least one entire vehicle.",
+          "title": "Seating Layout Altered In Entire Vehicle"
+        },
+        "seating_layout_altered_in_entire_train": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The seating layout was altered within the entire train (complete formation).",
+          "title": "Seating Layout Altered In Entire Train"
+        },
+        "handrails_renewed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Existing handrails are being renewed or upgraded.",
+          "title": "Handrails Renewed"
+        },
+        "toilets_completely_renewed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Existing toilets are being completely renewed or upgraded.",
+          "title": "Toilets Completely Renewed"
+        }
+      },
+      "title": "Renewal",
+      "type": "object"
+    },
     "Stairs": {
       "additionalProperties": false,
       "properties": {
@@ -367,6 +427,27 @@
       "default": null,
       "description": "Whether the unit has one passenger deck or two.",
       "title": "Deck Layout"
+    },
+    "unit_status": {
+      "default": "new",
+      "description": "new: placed on the market (the TSI's default case); renewed: an existing unit being renewed or upgraded, to which the exemptions of Appendix F may apply.",
+      "enum": [
+        "new",
+        "renewed"
+      ],
+      "title": "Unit Status",
+      "type": "string"
+    },
+    "renewal": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Renewal"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "wheelchair_spaces": {
       "anyOf": [

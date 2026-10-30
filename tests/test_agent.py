@@ -839,4 +839,4 @@ def test_a_category_the_spec_supplies_reaches_the_check_and_the_task_message():
                                                       {"deck_layout": "double_deck"})  # fmt: skip
     from rail_compliance.spec import spec_categories
 
-    assert spec_categories(s) == {"deck_layout": "double_deck"}
+    assert spec_categories(s) == {"deck_layout": "double_deck", "unit_status": "new"}

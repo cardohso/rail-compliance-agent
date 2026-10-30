@@ -17,6 +17,7 @@ from pydantic import BaseModel, ValidationError
 
 from rail_compliance.models import (
     Citation,
+    Condition,
     ExtractionResult,
     Passage,
     Requirement,
@@ -25,6 +26,8 @@ from rail_compliance.models import (
 )
 from rail_compliance.parameters import SUBJECT_OF, SUBJECTS, accepted_subjects
 from rail_compliance.spec import (
+    CATEGORY_SECTIONS,
+    CATEGORY_TERMS,
     QUALIFIERS,
     condition_variables,
     parameter_choices,
@@ -68,6 +71,14 @@ Rules:
   permitted to reduce this value to 270 mm") is its own rule: set `relaxes` to true, give the
   relaxed value, and put the cases in `conditions`. Never fold it into the general rule, and
   leave `relaxes` false for every other rule.
+- For a renewed unit, Appendix F says when a rule need not be met ("compliance with point 4.2.2.9
+  is only mandatory where existing handrails are being renewed or upgraded"). Give such an
+  exemption as its own rule with comparator "exempt", no value, and `conditions` saying when
+  compliance is NOT mandatory, always including unit_status == "renewed": here
+  unit_status == "renewed" and renewal.handrails_renewed == 0. "Only mandatory if A and B" is two
+  exemptions, one for "not A" and one for "not B": extract the one the Focus line names. A part
+  that depends on something the spec cannot show ("can be accommodated without structural
+  alteration") goes in `contingency`.
 - A table is ONE rule: give it in one answer, never one answer per row. A table whose required
   value depends on another parameter (for example unit length) goes in `bands`: one band for
   every row of the table, none left out, and `quote` must contain the whole table. Set `value` to
@@ -169,12 +180,19 @@ def _prompt(parameter: str, passages: Sequence[Passage], focus: str | None) -> s
 
 
 def _is_existence(cond) -> bool:
-    """`count > 0` and `count >= 1` both say "there is at least one"."""
-    return (cond.op, cond.value) in {(">", 0.0), (">=", 1.0)}
+    """`count > 0` and `count >= 1` say "there is at least one"; `== 0` and `< 1` say "none"."""
+    return (cond.op, cond.value) in {(">", 0.0), (">=", 1.0), ("==", 0.0), ("<", 1.0)}
 
 
-def _category_stated(value: str, quote: str) -> bool:
-    """Is the category named in the quote? "double_deck" matches "double-deck" and "double deck"."""
+def _category_stated(value: str, quote: str, section: str = "") -> bool:
+    """Is the category named in the quote? "double_deck" matches "double-deck" and "double deck";
+    a value with regulation wording (CATEGORY_TERMS) matches any of its stems, and a quote from a
+    section about that value (CATEGORY_SECTIONS) states it."""
+    if any(section.startswith(s) for s in CATEGORY_SECTIONS.get(value, ())):
+        return True
+    if value in CATEGORY_TERMS:
+        stems = "|".join(re.escape(t) for t in CATEGORY_TERMS[value])
+        return re.search(rf"\b(?:{stems})\w*", _norm(quote), re.IGNORECASE) is not None
     words = [re.escape(w) for w in value.split("_")]
     return (
         re.search(r"\b" + r"[\s\-]?".join(words) + r"\b", _norm(quote), re.IGNORECASE) is not None
@@ -235,6 +253,9 @@ _CONDITIONAL = re.compile(
 )
 
 
+_EXEMPTION = re.compile(
+    r"\b(?:not mandatory|only mandatory|only required|not required|does not need to be)\b", re.I
+)
 _PERMISSION = re.compile(r"\b(?:permitted|allowed|may|can be reduced|can be increased)\b", re.I)
 
 
@@ -277,6 +298,18 @@ def extract_requirement(
     problem = _check_variables(rule, kinds)
     if problem:
         return _unverified(problem)
+    if rule.comparator == "exempt":
+        if not _EXEMPTION.search(_norm(draft.quote)):
+            return _unverified(
+                "the rule is marked as an exemption, but the quote does not say compliance is not "
+                "mandatory or only mandatory in some case. Quote that sentence"
+            )
+        renewed = Condition(variable="unit_status", op="==", value="renewed")
+        if renewed not in rule.conditions:
+            return _unverified(
+                "an exemption of Appendix F holds only for a renewed unit: add the condition "
+                "unit_status == renewed"
+            )
     if rule.relaxes and not _PERMISSION.search(_norm(draft.quote)):
         return _unverified(
             "the rule is marked as a relaxation, but the quote states no permission ('permitted', "
@@ -309,7 +342,7 @@ def extract_requirement(
     # A flag's 1/0 and a count's "there is at least one" are not numbers the quote has to state.
     for cond in rule.conditions:
         if isinstance(cond.value, str):
-            if not _category_stated(cond.value, draft.quote):
+            if not _category_stated(cond.value, draft.quote, source.section):
                 return _unverified(
                     f"the condition {cond.describe()} names a category the quote does not state"
                 )

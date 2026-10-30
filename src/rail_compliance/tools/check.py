@@ -118,7 +118,8 @@ def check(
     def result(verdict, reason, required=None, margin=None):
         return CheckResult(
             relaxes=requirement.relaxes,
-            applies=False if verdict == "not_applicable" else applies,
+            exempts=cmp_ == "exempt",
+            applies=applies,
             parameter=param,
             verdict=verdict,
             reason=reason,
@@ -134,8 +135,17 @@ def check(
     states = [(c, _condition_state(c, context, intervals)) for c in requirement.conditions]
     failed = [c for c, ok in states if ok is False]
     if failed:
+        applies = False
         return result("not_applicable", f"rule applies only when {_describe(failed[0])}")
     unknown = [c for c, ok in states if ok is None]
+    if cmp_ == "exempt":
+        where = " and ".join(_describe(c) for c, _ in states)
+        if unknown:
+            applies = None
+            names = ", ".join(c.variable for c in unknown)
+            return result("needs_human", f"whether the exemption ({where}) holds depends on "
+                          f"{names}, not supplied")  # fmt: skip
+        return result("not_applicable", f"compliance is not mandatory: exempt where {where}")
     if unknown:
         applies = None
         missing = [c.variable for c in unknown if c.variable not in intervals]

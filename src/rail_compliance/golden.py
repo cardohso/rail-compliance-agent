@@ -209,6 +209,110 @@ SEAT_HEIGHT = _rule(
     value_max=500,
 )  # fmt: skip
 
+# --- Appendix F: exemptions for a renewed unit (comparator "exempt") -------------------------
+
+RENEWED = Condition(variable="unit_status", op="==", value="renewed")
+F = "tsi-prm:Appendix F"
+F_HEIGHT = (
+    "Compliance with the requirements of point 4.2.2.8 is not mandatory at renewal or upgrade."
+)
+F_STEPS = (
+    "Compliance with the requirements of points 4.2.2.11 and 4.2.2.12 is not mandatory at renewal "
+    "or upgrade."
+)
+F_HANDRAILS = (
+    "Compliance with the requirements of point 4.2.2.9 is only mandatory where existing handrails "
+    "are being renewed or upgraded."
+)
+F_PRIORITY = (
+    "Compliance with point 4.2.2.1.2 with regard to the dimensions of priority seats and their "
+    "surroundings is only mandatory if the seating layout is altered within an entire train and "
+    "this can be achieved without reducing the existing capacity of the train."
+)
+F_SPACES = (
+    "The provision of wheelchair spaces is only required when the seating layout is altered within "
+    "a complete train formation."
+)
+F_SPACES_DOORWAY = (
+    "if the entrance doorway, or clearways, cannot be modified to enable wheelchair access, a "
+    "wheelchair space does not need to be provided if the seating layout is altered."
+)
+F_CLEARWAYS = (
+    "Compliance with the requirements of point 4.2.2.6 is only mandatory if the seating layout is "
+    "altered within an entire vehicle and a wheelchair space is being provided."
+)
+F_TOILETS = (
+    "Provision of a fully compliant universal toilet is only mandatory when existing toilets are "
+    "being completely renewed or upgraded and a wheelchair space is provided, and a compliant "
+    "universal toilet can be accommodated without structural alteration to the vehicle body."
+)
+F_STRUCTURES = (
+    "Compliance is not mandatory if the work would require structural alterations to door portals "
+    "(interior or external)"
+)
+
+
+def _flag(name: str, value: float = 0) -> Condition:
+    return Condition(variable=name, op="==", value=value)
+
+
+NOT_IN_TRAIN = _flag("renewal.seating_layout_altered_in_entire_train")
+NOT_IN_VEHICLE = _flag("renewal.seating_layout_altered_in_entire_vehicle")
+NO_SPACES = _flag("wheelchair_spaces")
+
+
+def _exempt(parameter, section, quote, conditions=(), contingency=None):
+    return Requirement(
+        parameter=parameter, subject=SUBJECT_OF[parameter], comparator="exempt",
+        conditions=[RENEWED, *conditions], contingency=contingency,
+        citation=Citation(passage_id=f"{F} §{section}#1", section=f"Appendix F §{section}", url=URL,
+                          quote=quote, **PRM),
+    )  # fmt: skip
+
+
+def _renewal_exemptions(parameter: str) -> list[Requirement]:
+    """What Appendix F says about `parameter` for a renewed unit."""
+    door = ("Structures", F_STRUCTURES, (),
+            "the work would require structural alterations to door portals")  # fmt: skip
+    toilet = [
+        ("Toilets", F_TOILETS, (_flag("renewal.toilets_completely_renewed"),), None),
+        ("Toilets", F_TOILETS, (NO_SPACES,), None),
+        ("Toilets", F_TOILETS, (), "a compliant universal toilet cannot be accommodated without "
+         "structural alteration to the vehicle body"),
+    ]  # fmt: skip
+    spaces = [("Wheelchair spaces", F_SPACES, (NOT_IN_TRAIN,), None)]
+    table = {
+        "wheelchair_spaces": [*spaces, ("Wheelchair spaces", F_SPACES_DOORWAY, (),
+                              "the entrance doorway or clearways cannot be modified to enable "
+                              "wheelchair access")],
+        "exterior_doors.clear_width_mm": [door],
+        "exterior_doors.wheelchair_door_clear_width_mm": [door],
+        "steps.external_step_height_mm": [("Step positions, steps and boarding aids", F_STEPS, (),
+                                           None)],
+        "steps.internal_step_height_mm": [("Step positions, steps and boarding aids", F_STEPS, (),
+                                           None)],
+        "toilets.universal": toilet,
+        "toilets.universal_door_clear_width_mm": [*toilet, door],
+        "wheelchair_space_layout.width_mm": spaces,
+        "wheelchair_space_layout.hand_clearance_mm": spaces,
+        "wheelchair_space_layout.turning_space_diameter_mm": [
+            ("Clearways", F_CLEARWAYS, (NOT_IN_VEHICLE,), None),
+            ("Clearways", F_CLEARWAYS, (NO_SPACES,), None),
+        ],
+        "stairs.step_height_mm": [("Height Changes", F_HEIGHT, (), None)],
+        "stairs.step_depth_mm": [("Height Changes", F_HEIGHT, (), None)],
+        "handrails.outside_diameter_mm": [
+            ("Handrails", F_HANDRAILS, (_flag("renewal.handrails_renewed"),), None)
+        ],
+        "priority_seats.cushion_height_mm": [
+            ("Seats", F_PRIORITY, (NOT_IN_TRAIN,), None),
+            ("Seats", F_PRIORITY, (), "the dimensions cannot be achieved without reducing the "
+             "existing capacity of the train"),
+        ],
+    }  # fmt: skip
+    return [_exempt(parameter, *row) for row in table[parameter]]
+
+
 GOLD_RULES: dict[str, list[Requirement]] = {
     "wheelchair_spaces": [TABLE_5],
     "exterior_doors.clear_width_mm": [DOORS_ALL],
@@ -225,6 +329,7 @@ GOLD_RULES: dict[str, list[Requirement]] = {
     "handrails.outside_diameter_mm": [HANDRAIL_DIAMETER],
     "priority_seats.cushion_height_mm": [SEAT_HEIGHT],
 }
+GOLD_EXEMPTIONS: dict[str, list[Requirement]] = {p: _renewal_exemptions(p) for p in GOLD_RULES}
 
 
 def _combine(verdicts: list[str]) -> str:
@@ -238,9 +343,11 @@ def oracle(spec: TrainSpec) -> dict[str, FinalVerdict]:
     """The verdict each supplied parameter should get, applying GOLD_RULES with `check`.
 
     A relaxation (see RuleDraft.relaxes) replaces a failed general rule where it is known to apply.
-    Two reading rules are modelled by hand: a unit length that includes a power head is only an
-    upper bound on the TSI's length, and an internal step between 200 and 230 mm is allowed only
-    if it reduces the number of steps, which the spec cannot show.
+    An exemption (GOLD_EXEMPTIONS, renewed units) that holds makes the parameter not_applicable;
+    one that holds only if something is shown, or whose conditions are unknown, turns a failure
+    into needs_human. Two reading rules are modelled by hand: a unit length that includes a power
+    head is only an upper bound on the TSI's length, and an internal step between 200 and 230 mm
+    is allowed only if it reduces the number of steps, which the spec cannot show.
     """
     values = spec_values(spec)
     context = {**values, **spec_categories(spec)}
@@ -248,30 +355,36 @@ def oracle(spec: TrainSpec) -> dict[str, FinalVerdict]:
     for parameter, rules in GOLD_RULES.items():
         if parameter not in values:
             continue
-        results = [
-            check(values[parameter], rule, spec_unit=None, context=context) for rule in rules
+        verdict = _rule_verdict(parameter, rules, values, context)
+        exemptions = [
+            check(values[parameter], e, context=context) for e in GOLD_EXEMPTIONS[parameter]
         ]
-        verdicts = [r.verdict for r in results]
-        relaxed = [r for r in results if r.relaxes and r.verdict == "pass"]
-        if relaxed and "fail" in verdicts:
-            # a relaxation known to apply replaces the general rule; one not known to apply leaves
-            # the question to a person
-            out[parameter] = "pass" if relaxed[0].applies else "needs_human"
-            continue
-        if parameter == "wheelchair_spaces" and values.get("length_includes_power_head"):
-            required = results[0].required_value  # for the stated (upper-bound) length
-            if values[parameter] >= required:
-                out[parameter] = "pass"  # enough even at the upper bound
-            elif values[parameter] < 1:
-                out[parameter] = "fail"  # below the smallest requirement at any length
-            else:
-                out[parameter] = "needs_human"
-            continue
-        if parameter == "steps.internal_step_height_mm":
-            general, exception = verdicts
-            out[parameter] = (
-                "pass" if general == "pass" else ("needs_human" if exception == "pass" else "fail")
-            )
-            continue
-        out[parameter] = _combine(verdicts)
+        if any(e.applies is True and not e.contingency for e in exemptions):
+            verdict = "not_applicable"
+        elif verdict == "fail" and any(
+            e.applies is None or (e.applies and e.contingency) for e in exemptions
+        ):
+            verdict = "needs_human"
+        out[parameter] = verdict
     return out
+
+
+def _rule_verdict(parameter, rules, values, context) -> FinalVerdict:
+    results = [check(values[parameter], rule, spec_unit=None, context=context) for rule in rules]
+    verdicts = [r.verdict for r in results]
+    relaxed = [r for r in results if r.relaxes and r.verdict == "pass"]
+    if relaxed and "fail" in verdicts:
+        # a relaxation known to apply replaces the general rule; one not known to apply leaves
+        # the question to a person
+        return "pass" if relaxed[0].applies else "needs_human"
+    if parameter == "wheelchair_spaces" and values.get("length_includes_power_head"):
+        required = results[0].required_value  # for the stated (upper-bound) length
+        if values[parameter] >= required:
+            return "pass"  # enough even at the upper bound
+        if values[parameter] < 1:
+            return "fail"  # below the smallest requirement at any length
+        return "needs_human"
+    if parameter == "steps.internal_step_height_mm":
+        general, exception = verdicts
+        return "pass" if general == "pass" else ("needs_human" if exception == "pass" else "fail")
+    return _combine(verdicts)

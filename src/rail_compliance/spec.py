@@ -124,6 +124,35 @@ class PrioritySeats(_Strict):
     )
 
 
+class Renewal(_Strict):
+    """What a renewal or upgrade changed (Appendix F): the exemptions depend on it."""
+
+    seating_layout_altered_in_entire_vehicle: bool | None = Field(
+        default=None,
+        description="The seating layout was altered within at least one entire vehicle.",
+    )
+    seating_layout_altered_in_entire_train: bool | None = Field(
+        default=None,
+        description="The seating layout was altered within the entire train (complete formation).",
+    )
+    handrails_renewed: bool | None = Field(
+        default=None, description="Existing handrails are being renewed or upgraded."
+    )
+    toilets_completely_renewed: bool | None = Field(
+        default=None, description="Existing toilets are being completely renewed or upgraded."
+    )
+
+    @model_validator(mode="after")
+    def _train_implies_vehicle(self) -> Renewal:
+        if self.seating_layout_altered_in_entire_train and (
+            self.seating_layout_altered_in_entire_vehicle is False
+        ):
+            raise ValueError(
+                "a layout altered within the entire train is altered within every entire vehicle"
+            )
+        return self
+
+
 class TrainSpec(_Strict):
     spec_version: str = Field(default="1", description="Version of this spec format.")
     name: str = Field(min_length=1, max_length=120, description="Label for reports.")
@@ -144,6 +173,12 @@ class TrainSpec(_Strict):
     deck_layout: Literal["single_deck", "double_deck"] | None = Field(
         default=None, description="Whether the unit has one passenger deck or two."
     )
+    unit_status: Literal["new", "renewed"] = Field(
+        default="new",
+        description="new: placed on the market (the TSI's default case); renewed: an existing unit "
+        "being renewed or upgraded, to which the exemptions of Appendix F may apply.",
+    )
+    renewal: Renewal | None = None
 
     wheelchair_spaces: Count | None = Field(
         default=None, description="Accessible wheelchair spaces in the unit."
@@ -155,6 +190,12 @@ class TrainSpec(_Strict):
     stairs: Stairs | None = None
     handrails: Handrails | None = None
     priority_seats: PrioritySeats | None = None
+
+    @model_validator(mode="after")
+    def _renewal_only_when_renewed(self) -> TrainSpec:
+        if self.renewal is not None and self.unit_status != "renewed":
+            raise ValueError("renewal details are only for a unit with unit_status 'renewed'")
+        return self
 
 
 def spec_values(spec: TrainSpec) -> dict[str, float]:
@@ -261,6 +302,14 @@ def parameter_choices() -> dict[str, tuple[str, ...]]:
 # table excludes: the length it counts is then at most the stated one. Rules may not be
 # conditioned on a qualifier; the evaluation of `check` handles it as an interval instead.
 QUALIFIERS: dict[str, str] = {"length_includes_power_head": "unit_length_m"}
+
+
+# How the regulation words a category value, as word stems: Appendix F says "at renewal or
+# upgrade" and "being renewed or upgraded" for what the spec calls a renewed unit.
+CATEGORY_TERMS: dict[str, tuple[str, ...]] = {"renewed": ("renew", "upgrad")}
+# Sections whose whole scope is one category value: every sentence of Appendix F ("Renewal or
+# upgrade of rolling stock") is about a renewed unit, whether or not it repeats the word.
+CATEGORY_SECTIONS: dict[str, tuple[str, ...]] = {"renewed": ("Appendix F",)}
 
 
 def condition_variables() -> list[str]:

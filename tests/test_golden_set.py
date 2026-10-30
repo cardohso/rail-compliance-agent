@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from rail_compliance.golden import (
+    GOLD_EXEMPTIONS,
     GOLD_RULES,
     GOLDEN_DIR,
     SUITES,
@@ -132,7 +133,7 @@ def test_gold_quotes_and_passage_ids_exist_in_the_real_corpus():
     from rail_rag.chunking import load_passages
 
     passages = {p.id: p for p in load_passages(data / "processed")}
-    for rules in GOLD_RULES.values():
+    for rules in [*GOLD_RULES.values(), *GOLD_EXEMPTIONS.values()]:
         for rule in rules:
             passage = passages.get(rule.citation.passage_id)
             assert passage is not None, f"no passage {rule.citation.passage_id}"
@@ -142,6 +143,30 @@ def test_gold_quotes_and_passage_ids_exist_in_the_real_corpus():
     for case in CASES:
         for x in case.expected.values():
             assert all(g in passages for g in x.gold_passages)
+
+
+def test_every_gold_rule_and_exemption_passes_extraction_verification_on_the_real_text():
+    """The verifier must accept the right answer, quoted from the real passage."""
+    from rail_compliance.models import RequirementCore, RequirementDraft
+    from rail_compliance.tools.extract import extract_requirement
+
+    passages = _real_passages()
+
+    class Answer:
+        def __init__(self, draft):
+            self.draft = draft
+
+        def extract(self, system, user, schema):
+            return self.draft
+
+    for parameter in GOLD_RULES:
+        for rule in [*GOLD_RULES[parameter], *GOLD_EXEMPTIONS[parameter]]:
+            core = RequirementCore(**rule.model_dump(exclude={"citation"}))
+            draft = RequirementDraft(found=True, passage_id=rule.citation.passage_id,
+                                     quote=rule.citation.quote, rule=core)  # fmt: skip
+            source = passages[rule.citation.passage_id]
+            result = extract_requirement([source], parameter, Answer(draft))
+            assert result.status == "found", f"{parameter}: {result.reason}"
 
 
 def _real_passages():

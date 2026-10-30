@@ -12,8 +12,10 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 Comparator = Literal[">=", "<=", "==", ">", "<"]
-# A rule may also require a range: "between" means value <= spec_value <= value_max.
-RuleComparator = Literal[">=", "<=", "==", ">", "<", "between"]
+# A rule may also require a range: "between" means value <= spec_value <= value_max. "exempt" is
+# not a limit: it says the parameter's other rules need not be met where its conditions hold
+# (Appendix F, renewal), and it carries no value.
+RuleComparator = Literal[">=", "<=", "==", ">", "<", "between", "exempt"]
 # Verdicts the report shows are pass / fail / needs_human. `not_applicable` is internal: a
 # conditional rule whose condition is false for this spec (the agent moves on to the next rule).
 Verdict = Literal["pass", "fail", "needs_human", "not_applicable"]
@@ -142,6 +144,14 @@ class RequirementCore(RuleDraft):
 
     @model_validator(mode="after")
     def _value_xor_bands(self) -> RequirementCore:
+        if self.comparator == "exempt":
+            if self.value is not None or self.bands or self.value_max is not None:
+                raise ValueError("an exemption (comparator 'exempt') has no value or bands")
+            if not self.conditions:
+                raise ValueError("an exemption needs the conditions where it holds")
+            if self.relaxes:
+                raise ValueError("an exemption is not a relaxation: leave relaxes false")
+            return self
         if (self.value is None) == (not self.bands):
             raise ValueError("give exactly one of `value` or `bands`")
         if self.bands and not self.band_variable:
@@ -176,6 +186,7 @@ class CheckResult(_Strict):
     margin: float | None = None  # spec_value - required_value, in the requirement's unit
     contingency: str | None = None  # the rule holds only if this is shown (see Requirement)
     relaxes: bool = False  # the rule is a relaxation of the general one (see RuleDraft)
+    exempts: bool = False  # the rule is an exemption (comparator "exempt")
     applies: bool | None = None  # are its conditions known to hold? None: unknown
 
 

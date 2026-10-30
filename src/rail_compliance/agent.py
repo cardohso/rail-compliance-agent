@@ -313,7 +313,12 @@ def _task_message(
     unit, description = info[parameter]
     categories = categories or {}
     supplied = {k: f"{v:g}" for k, v in values.items() if k != parameter} | categories
-    missing = [k for k in info if k not in values and k not in categories]
+    renewed = categories.get("unit_status") == "renewed"
+    missing = [
+        k
+        for k in info
+        if k not in values and k not in categories and (renewed or not k.startswith("renewal."))
+    ]
     lines = [
         f"Parameter to check: {parameter}" + (f" ({unit})" if unit else ""),
         f"Meaning: {description}",
@@ -326,6 +331,13 @@ def _task_message(
         + (", ".join(f"{k}={v}" for k, v in supplied.items()) or "none"),
         "Not supplied: " + (", ".join(m for m in missing if m != parameter) or "nothing"),
     ]
+    if renewed:
+        lines += [
+            "",
+            "This unit is being renewed or upgraded: also search Appendix F (renewal or upgrade "
+            "of rolling stock) for when compliance with this parameter's rules is not mandatory, "
+            "extract each such exemption, and check it like any rule.",
+        ]
     return "\n".join(lines)
 
 
@@ -339,7 +351,9 @@ def _settle(scratch: Scratch, values: dict[str, float]) -> ParameterResult:
     """The parameter's verdict, computed from the checks that ran. In order:
 
     1. the model escalated: needs_human, whatever the checks said (its doubt is not ours to
-       overrule; failed checks stay in the report);
+       overrule; failed checks stay in the report); then an exemption (Appendix F) that holds:
+       not_applicable; a failure that an exemption would excuse only if something is shown, or
+       if conditions the spec does not give hold: needs_human;
     2. a check failed: fail, unless a relaxation known to apply allows the value (then the
        failure is excused and the remaining steps decide), or a contingent exception or a
        relaxation not known to apply would allow it, in which case it is needs_human;
@@ -353,7 +367,12 @@ def _settle(scratch: Scratch, values: dict[str, float]) -> ParameterResult:
     checks = [c for c, _ in scratch.checks]
     reviews = list(scratch.reviews)
     fails = [c for c in checks if c.verdict == "fail"]
-    mechanical = [c for c in checks if c.verdict == "needs_human"]
+    # exemptions (Appendix F): one that holds settles the parameter; one that holds only if
+    # something is shown, or whose conditions are unknown, matters only if a rule failed
+    exempt = [c for c in checks if c.exempts and c.applies is True and not c.contingency]
+    exempt_if = [c for c in checks if c.exempts and c.applies is True and c.contingency]
+    exempt_unknown = [c for c in checks if c.exempts and c.applies is None]
+    mechanical = [c for c in checks if c.verdict == "needs_human" and not c.exempts]
     relief = [c for c in checks if c.verdict == "pass" and c.relaxes and not c.contingency]
     known_relief = [c for c in relief if c.applies is True]
     unsure_relief = [c for c in relief if c.applies is None]
@@ -378,6 +397,19 @@ def _settle(scratch: Scratch, values: dict[str, float]) -> ParameterResult:
         reason = "; ".join(r.reason for r in scratch.escalations)
         if fails:
             reason += f" (failed: {'; '.join(c.reason for c in fails)})"
+    elif exempt:
+        verdict, reason = "not_applicable", "; ".join(c.reason for c in exempt)
+        if fails:
+            reason += f" (otherwise: {'; '.join(c.reason for c in fails)})"
+    elif fails and exempt_if:
+        verdict = "needs_human"
+        reason = (
+            f"{'; '.join(c.reason for c in fails)}; compliance is not mandatory if "
+            f"{exempt_if[0].contingency}, which the spec cannot show"
+        )
+    elif fails and exempt_unknown:
+        verdict = "needs_human"
+        reason = f"{'; '.join(c.reason for c in fails)}; {exempt_unknown[0].reason}"
     elif fails and unsure_relief:
         verdict = "needs_human"
         when = "; ".join(_conditions_of(c, scratch) for c in unsure_relief)
@@ -424,8 +456,8 @@ def _settle(scratch: Scratch, values: dict[str, float]) -> ParameterResult:
         reason = (
             f"the value is allowed only if {exceptions[0].contingency}, which the spec cannot show"
         )
-    elif checks:
-        verdict, reason = "not_applicable", "; ".join(c.reason for c in checks)
+    elif rule_checks := [c for c in checks if not c.exempts]:
+        verdict, reason = "not_applicable", "; ".join(c.reason for c in rule_checks)
     else:
         verdict = "needs_human"
         reason = "the agent finished without checking a rule or escalating"
