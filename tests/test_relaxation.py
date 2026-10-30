@@ -104,3 +104,51 @@ def test_a_relaxation_must_quote_the_permission(quote, status):
     p, draft = relaxed_draft(quote)
     result = extract_requirement([p], DEPTH, FakeLLM(draft))
     assert result.status == status, result.reason
+
+
+def test_a_relaxation_checked_alone_whose_application_is_unknown_is_not_a_pass():
+    assert settle(275, None, rules=[relaxed()]).verdict == "needs_human"
+
+
+@pytest.mark.parametrize(("deck", "verdict"), [("double_deck", "pass"), ("single_deck", "fail")])
+def test_end_to_end_the_spec_deck_layout_decides_the_relaxation(deck, verdict):
+    import itertools
+
+    from rail_compliance.agent import ComplianceAgent
+    from rail_compliance.models import RequirementDraft, SearchResult
+    from rail_compliance.spec import TrainSpec
+    from tests.factories import passage
+    from tests.fakes import ScriptedAgentLLM, ai, tool_call
+    from tests.test_agent import FakeExtractor
+
+    stairs = passage(STAIRS_TEXT, id_="tsi-prm:Annex §4.2.2.8#1")
+
+    class Search:
+        name = "fake"
+
+        def search(self, question, k):
+            return SearchResult(question=question, passages=[stairs], backend="fake")
+
+    general_rule = RequirementCore(parameter=DEPTH, subject="internal_stairs", comparator=">=",
+                                   value=280, unit="mm")  # fmt: skip
+    drafts = [
+        RequirementDraft(found=True, passage_id=stairs.id, rule=general_rule,
+                         quote="a minimum depth of 280 mm"),
+        relaxed_draft("For double deck trains it is permitted to reduce this value to 270 mm")[1],
+    ]  # fmt: skip
+    script = [
+        ai(tool_call("search_regulation", question="internal stair step depth")),
+        ai(tool_call("extract_requirement", passage_ids=[stairs.id], parameter=DEPTH, focus=None)),
+        ai(tool_call("extract_requirement", passage_ids=[stairs.id], parameter=DEPTH,
+                     focus="double deck")),
+        ai(tool_call("check", parameter=DEPTH, spec_value=275, requirement_id="R1")),
+        ai(tool_call("check", parameter=DEPTH, spec_value=275, requirement_id="R2")),
+        ai(text="Checked."),
+    ]  # fmt: skip
+    spec = TrainSpec.model_validate({"name": "t", "unit_length_m": 100.0, "deck_layout": deck,
+                                     "stairs": {"step_depth_mm": 275}})  # fmt: skip
+    ticks = itertools.count()
+    agent = ComplianceAgent(ScriptedAgentLLM(script), FakeExtractor(drafts), Search(),
+                            clock=lambda: next(ticks) * 0.5)  # fmt: skip
+    result = agent.run(spec).result_for(DEPTH)
+    assert result.verdict == verdict, result.reason
