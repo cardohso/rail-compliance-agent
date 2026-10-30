@@ -72,6 +72,89 @@
       "title": "Handrails",
       "type": "object"
     },
+    "Noise": {
+      "additionalProperties": false,
+      "description": "Measured noise levels, judged against the Noise TSI (Regulation (EU) No 1304/2014).",
+      "properties": {
+        "stationary_db": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 200,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Stationary noise of the unit, LpAeq,T[unit], at 7.5 m (Table 2, first column).",
+          "title": "Stationary Db"
+        },
+        "pass_by_80_db": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 200,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Pass-by noise LpAeq,Tp at 80 km/h, at 7.5 m (Table 4).",
+          "title": "Pass By 80 Db"
+        },
+        "pass_by_250_db": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 200,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Pass-by noise LpAeq,Tp at 250 km/h, at 7.5 m (Table 4).",
+          "title": "Pass By 250 Db"
+        },
+        "cab_standstill_horn_db": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 200,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Driver's cab interior noise LpAeq,T at standstill with horns sounding (Table 5).",
+          "title": "Cab Standstill Horn Db"
+        },
+        "cab_max_speed_db": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 200,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Driver's cab interior noise LpAeq,T at maximum speed (Table 5).",
+          "title": "Cab Max Speed Db"
+        }
+      },
+      "title": "Noise",
+      "type": "object"
+    },
     "PrioritySeats": {
       "additionalProperties": false,
       "properties": {
@@ -428,6 +511,40 @@
       "description": "Whether the unit has one passenger deck or two.",
       "title": "Deck Layout"
     },
+    "rolling_stock_category": {
+      "anyOf": [
+        {
+          "enum": [
+            "electric_locomotive",
+            "diesel_locomotive",
+            "emu",
+            "dmu",
+            "coach",
+            "wagon"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Category of the rolling stock subsystem (Noise TSI tables).",
+      "title": "Rolling Stock Category"
+    },
+    "has_drivers_cab": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Whether the unit is fitted with a driver's cab.",
+      "title": "Has Drivers Cab"
+    },
     "unit_status": {
       "default": "new",
       "description": "new: placed on the market (the TSI's default case); renewed: an existing unit being renewed or upgraded, to which the exemptions of Appendix F may apply.",
@@ -534,6 +651,17 @@
       "anyOf": [
         {
           "$ref": "#/$defs/PrioritySeats"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "noise": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Noise"
         },
         {
           "type": "null"

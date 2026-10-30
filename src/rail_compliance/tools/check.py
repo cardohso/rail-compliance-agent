@@ -84,8 +84,12 @@ def _describe(cond: Condition) -> str:
     return cond.describe()
 
 
-def _select_band(bands: list[Band], x: float) -> tuple[Band | None, str]:
-    matching = [b for b in bands if b.contains(x)]
+def _select_band(bands: list[Band], x: float | str) -> tuple[Band | None, str]:
+    if isinstance(x, str):
+        matching = [b for b in bands if b.category == x]
+        return (matching[0], "") if len(matching) == 1 else (
+            None, f"the table has {len(matching) or 'no'} row(s) for {x}")  # fmt: skip
+    matching = [b for b in bands if b.category is None and b.contains(x)]
     if not matching:
         return None, f"no band of the table covers {x:g}"
     if len(matching) > 1:
@@ -222,6 +226,18 @@ def check(
             )
             margin = float(Decimal(str(compared)) - Decimal(str(required)))
             return result(verdict, reason, required, margin)
+        if selector not in context and requirement.bands[0].category is not None:
+            # unknown category: decided only if the value meets every row, or none
+            rows = [b.value for b in requirement.bands]
+            verdict, required = _decide_over_interval(compared, cmp_, rows)
+            if verdict == "needs_human":
+                return result("needs_human", f"the rule depends on {selector}, not supplied")
+            sign = "meets" if verdict == "pass" else "violates"
+            reason = (
+                f"{_fmt(compared, requirement.unit)} {sign} {cmp_} every row of the table "
+                f"({', '.join(f'{r:g}' for r in rows)}), whatever {selector} is"
+            )
+            return result(verdict, reason, required)
         if selector not in context:
             return result("needs_human", f"the rule depends on {selector}, not supplied")
         band, why = _select_band(requirement.bands, context[selector])

@@ -1,0 +1,50 @@
+{
+  "id": "n03",
+  "title": "DMU too loud at 80 km/h",
+  "tags": [
+    "noise",
+    "category-table"
+  ],
+  "why": "The DMU row: 72 dB stationary is allowed, 82 dB pass-by is not.",
+  "spec": {
+    "spec_version": "1",
+    "name": "DMU too loud at 80 km/h",
+    "unit_length_m": 100.0,
+    "rolling_stock_category": "dmu",
+    "unit_status": "new",
+    "noise": {
+      "stationary_db": 72.0,
+      "pass_by_80_db": 82.0
+    }
+  },
+  "expected": {
+    "noise.stationary_db": {
+      "verdict": "pass",
+      "required": "≤ 72 dB (DMUs)",
+      "gold_passages": [
+        "tsi-noi:Annex §4.2.1#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "Noise TSI 4.2.1 Table 2 (LpAeq,T[unit]: electric locomotives 70, diesel locomotives 71, EMUs 65, DMUs 72, coaches 64, wagons 65 dB): DMU row, 72 ≤ 72."
+    },
+    "noise.pass_by_80_db": {
+      "verdict": "fail",
+      "required": "≤ 81 dB (DMUs)",
+      "gold_passages": [
+        "tsi-noi:Annex §4.2.3#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "Noise TSI 4.2.3 Table 4 (80 km/h: electric locomotives 84, diesel 85, EMUs 80, DMUs 81, coaches 79, wagons 83 dB; 250 km/h, if applicable: electric locomotives 99, EMUs 95, DMUs 96 dB): DMU row, 82 > 81."
+    }
+  }
+}

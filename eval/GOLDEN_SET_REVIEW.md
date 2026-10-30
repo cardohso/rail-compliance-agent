@@ -2,7 +2,7 @@
 
 Written by hand from the text of the PRM TSI (Regulation (EU) No 1300/2014, point 4.2.2 and 5.3.2): drafted with Claude, reviewed by the repository owner, who confirmed the four judgment calls below on 2026-10-24. One reviewer only.
 
-**42 specs, 71 scored parameter verdicts:** 25 fail, 10 needs human, 7 not applicable, 29 pass.
+**52 specs, 89 scored parameter verdicts:** 30 fail, 12 needs human, 9 not applicable, 38 pass.
 
 ## Assumptions to confirm
 
@@ -33,22 +33,25 @@ Written by hand from the text of the PRM TSI (Regulation (EU) No 1300/2014, poin
 | `ambiguous-data` | g19, g20 |
 | `baseline` | g01 |
 | `category` | p09, p10, p11, p12 |
-| `conditional` | p06, p07, p08 |
+| `category-table` | n01, n02, n03, n04, n08, n09 |
+| `conditional` | p06, p07, p08, n06, n07 |
 | `conditional-rule` | g10, g11, g12, g13, g14, g15 |
-| `exact-limit` | g03, g04, g05, g06, g07, g08, g09, g13, p01, p02, p04, p06, p09 |
+| `cross-document` | n01 |
+| `exact-limit` | g03, g04, g05, g06, g07, g08, g09, g13, p01, p02, p04, p06, p09, n01, n04 |
 | `exception` | g03, g16 |
 | `exemption` | r01, r02, r03, r04, r05, r06, r07, r08, r09, r10 |
 | `high-speed` | g10, g11 |
 | `judgment-call` | g13 |
 | `length-dependent` | g02, g04, g05, g06, g07, g08, g09, g19, g20, r06 |
-| `missing-data` | g14, g15, p07, p11, r03, r04 |
-| `needs-human` | g03, g14, g15, g16, g19, p07, p11, r03, r07, r10 |
-| `not-applicable` | g17, p08 |
+| `missing-data` | g14, g15, p07, p11, r03, r04, n08, n10 |
+| `needs-human` | g03, g14, g15, g16, g19, p07, p11, r03, r07, r10, n08, n10 |
+| `noise` | n01, n02, n03, n04, n05, n06, n07, n08, n09, n10 |
+| `not-applicable` | g17, p08, n06, n07 |
 | `other-section` | g08, g09 |
 | `range` | p01, p02, p03 |
 | `relaxation` | p10, p11, p12 |
 | `renewal` | r01, r02, r03, r04, r05, r06, r07, r08, r09, r10 |
-| `table-boundary` | g04, g05, g06, g07 |
+| `table-boundary` | g04, g05, g06, g07, n04, n05 |
 | `thousand-separator` | p05 |
 | `violation` | g02, g09, g18 |
 
@@ -98,6 +101,16 @@ Written by hand from the text of the PRM TSI (Regulation (EU) No 1300/2014, poin
 | r08 | Renewal that keeps the old toilets | len 100, toilets_completely_renewed 0, fitted 2, universal 0, renewed | `universal`: **not applicable** |
 | r09 | Renewal that alters a vehicle's layout with a small turning space | len 100, seating_layout_altered_in_entire_vehicle 1, wheelchair_spaces 2, turning_space_diameter_mm 1400, renewed | `turning_space_diameter_mm`: **fail** |
 | r10 | Renewal with a narrow exterior door | len 100, clear_width_mm 750, renewed | `clear_width_mm`: **needs human** |
+| n01 | EMU at the stationary and 80 km/h pass-by limits | len 100, stationary_db 65, pass_by_80_db 80, emu, new | `stationary_db`: **pass**<br>`pass_by_80_db`: **pass** |
+| n02 | Coach with an EMU-level stationary noise | len 100, stationary_db 65, pass_by_80_db 79, coach, new | `stationary_db`: **fail**<br>`pass_by_80_db`: **pass** |
+| n03 | DMU too loud at 80 km/h | len 100, stationary_db 72, pass_by_80_db 82, dmu, new | `stationary_db`: **pass**<br>`pass_by_80_db`: **fail** |
+| n04 | High-speed EMU within every limit | len 100, speed 300, has_drivers_cab 1, pass_by_250_db 95, cab_standstill_horn_db 95, cab_max_speed_db 80, emu, new | `pass_by_250_db`: **pass**<br>`cab_standstill_horn_db`: **pass**<br>`cab_max_speed_db`: **pass** |
+| n05 | Regional EMU with a loud cab | len 100, speed 200, has_drivers_cab 1, cab_standstill_horn_db 96, cab_max_speed_db 79, emu, new | `cab_standstill_horn_db`: **fail**<br>`cab_max_speed_db`: **fail** |
+| n06 | 250 km/h pass-by measured on a 200 km/h EMU | len 100, speed 200, pass_by_250_db 97, emu, new | `pass_by_250_db`: **not applicable** |
+| n07 | Coach without a cab | len 100, has_drivers_cab 0, cab_standstill_horn_db 97, coach, new | `cab_standstill_horn_db`: **not applicable** |
+| n08 | Category not stated | len 100, stationary_db 70, pass_by_80_db 78, new | `stationary_db`: **needs human**<br>`pass_by_80_db`: **pass** |
+| n09 | Electric locomotive too loud passing by | len 100, stationary_db 70, pass_by_80_db 85, electric_locomotive, new | `stationary_db`: **pass**<br>`pass_by_80_db`: **fail** |
+| n10 | Cab noise with the design speed not stated | len 100, has_drivers_cab 1, cab_max_speed_db 79, emu, new | `cab_max_speed_db`: **needs human** |
 
 ## Reasoning per case
 
@@ -381,3 +394,71 @@ Written by hand from the text of the PRM TSI (Regulation (EU) No 1300/2014, poin
 *800 mm is required, but widening a door portal is a structural alteration, which Appendix F does not require.* Tags: renewal, exemption, needs-human.
 
 - `exterior_doors.clear_width_mm` → **needs human**. 4.2.2.3.2(1): 750 < 800. Appendix F, Structures: 'Compliance is not mandatory if the work would require structural alterations to door portals'. A person must judge the work.
+
+### n01: EMU at the stationary and 80 km/h pass-by limits
+
+*The EMU rows apply; the PRM TSI's dB figures for door signals are not noise limits.* Tags: noise, category-table, exact-limit, cross-document.
+
+- `noise.stationary_db` → **pass**. Noise TSI 4.2.1 Table 2 (LpAeq,T[unit]: electric locomotives 70, diesel locomotives 71, EMUs 65, DMUs 72, coaches 64, wagons 65 dB): EMU row, 65 ≤ 65.
+- `noise.pass_by_80_db` → **pass**. Noise TSI 4.2.3 Table 4 (80 km/h: electric locomotives 84, diesel 85, EMUs 80, DMUs 81, coaches 79, wagons 83 dB; 250 km/h, if applicable: electric locomotives 99, EMUs 95, DMUs 96 dB): EMU row, 80 ≤ 80.
+
+### n02: Coach with an EMU-level stationary noise
+
+*65 dB is the EMU limit but a coach's is 64: the category decides.* Tags: noise, category-table.
+
+- `noise.stationary_db` → **fail**. Noise TSI 4.2.1 Table 2 (LpAeq,T[unit]: electric locomotives 70, diesel locomotives 71, EMUs 65, DMUs 72, coaches 64, wagons 65 dB): coach row, 65 > 64.
+- `noise.pass_by_80_db` → **pass**. Noise TSI 4.2.3 Table 4 (80 km/h: electric locomotives 84, diesel 85, EMUs 80, DMUs 81, coaches 79, wagons 83 dB; 250 km/h, if applicable: electric locomotives 99, EMUs 95, DMUs 96 dB): coach row, 79 ≤ 79.
+
+### n03: DMU too loud at 80 km/h
+
+*The DMU row: 72 dB stationary is allowed, 82 dB pass-by is not.* Tags: noise, category-table.
+
+- `noise.stationary_db` → **pass**. Noise TSI 4.2.1 Table 2 (LpAeq,T[unit]: electric locomotives 70, diesel locomotives 71, EMUs 65, DMUs 72, coaches 64, wagons 65 dB): DMU row, 72 ≤ 72.
+- `noise.pass_by_80_db` → **fail**. Noise TSI 4.2.3 Table 4 (80 km/h: electric locomotives 84, diesel 85, EMUs 80, DMUs 81, coaches 79, wagons 83 dB; 250 km/h, if applicable: electric locomotives 99, EMUs 95, DMUs 96 dB): DMU row, 82 > 81.
+
+### n04: High-speed EMU within every limit
+
+*300 km/h: the 250 km/h pass-by applies, and the cab row for 250 to 350 km/h.* Tags: noise, category-table, table-boundary, exact-limit.
+
+- `noise.pass_by_250_db` → **pass**. Noise TSI 4.2.3 Table 4 (80 km/h: electric locomotives 84, diesel 85, EMUs 80, DMUs 81, coaches 79, wagons 83 dB; 250 km/h, if applicable: electric locomotives 99, EMUs 95, DMUs 96 dB): the design speed is 300 km/h, so the 250 km/h limit applies; EMU 95 ≤ 95.
+- `noise.cab_standstill_horn_db` → **pass**. Noise TSI 4.2.4 Table 5 (cab, for units fitted with a cab: standstill with horns 95 dB; at vmax 78 dB if vmax < 250 km/h, 80 dB if 250 ≤ vmax < 350 km/h): 95 ≤ 95.
+- `noise.cab_max_speed_db` → **pass**. Noise TSI 4.2.4 Table 5 (cab, for units fitted with a cab: standstill with horns 95 dB; at vmax 78 dB if vmax < 250 km/h, 80 dB if 250 ≤ vmax < 350 km/h): 250 ≤ 300 < 350, so 80 dB; 80 ≤ 80.
+
+### n05: Regional EMU with a loud cab
+
+*Below 250 km/h the cab limit at maximum speed is 78 dB.* Tags: noise, table-boundary.
+
+- `noise.cab_standstill_horn_db` → **fail**. Noise TSI 4.2.4 Table 5 (cab, for units fitted with a cab: standstill with horns 95 dB; at vmax 78 dB if vmax < 250 km/h, 80 dB if 250 ≤ vmax < 350 km/h): 96 > 95.
+- `noise.cab_max_speed_db` → **fail**. Noise TSI 4.2.4 Table 5 (cab, for units fitted with a cab: standstill with horns 95 dB; at vmax 78 dB if vmax < 250 km/h, 80 dB if 250 ≤ vmax < 350 km/h): 200 < 250, so 78 dB; 79 > 78.
+
+### n06: 250 km/h pass-by measured on a 200 km/h EMU
+
+*The 250 km/h limit applies only to units that run at 250 km/h.* Tags: noise, conditional, not-applicable.
+
+- `noise.pass_by_250_db` → **not applicable**. Noise TSI 4.2.3 Table 4 (80 km/h: electric locomotives 84, diesel 85, EMUs 80, DMUs 81, coaches 79, wagons 83 dB; 250 km/h, if applicable: electric locomotives 99, EMUs 95, DMUs 96 dB): the 250 km/h value applies 'if applicable'; read as design speed ≥ 250 km/h. At 200 km/h it does not apply.
+
+### n07: Coach without a cab
+
+*The cab limits are for units fitted with a cab.* Tags: noise, conditional, not-applicable.
+
+- `noise.cab_standstill_horn_db` → **not applicable**. Noise TSI 4.2.4 Table 5 (cab, for units fitted with a cab: standstill with horns 95 dB; at vmax 78 dB if vmax < 250 km/h, 80 dB if 250 ≤ vmax < 350 km/h): has_drivers_cab is false, so there is no cab to limit.
+
+### n08: Category not stated
+
+*70 dB meets some rows of Table 2 and not others; 78 dB meets every row of Table 4.* Tags: noise, category-table, missing-data, needs-human.
+
+- `noise.stationary_db` → **needs human**. Noise TSI 4.2.1 Table 2 (LpAeq,T[unit]: electric locomotives 70, diesel locomotives 71, EMUs 65, DMUs 72, coaches 64, wagons 65 dB): 70 meets the electric locomotive, diesel and DMU rows and fails the others; the category is not supplied.
+- `noise.pass_by_80_db` → **pass**. Noise TSI 4.2.3 Table 4 (80 km/h: electric locomotives 84, diesel 85, EMUs 80, DMUs 81, coaches 79, wagons 83 dB; 250 km/h, if applicable: electric locomotives 99, EMUs 95, DMUs 96 dB): 78 is within every row (the lowest is 79), so the category does not matter.
+
+### n09: Electric locomotive too loud passing by
+
+*The locomotive rows are higher than the EMU rows.* Tags: noise, category-table.
+
+- `noise.stationary_db` → **pass**. Noise TSI 4.2.1 Table 2 (LpAeq,T[unit]: electric locomotives 70, diesel locomotives 71, EMUs 65, DMUs 72, coaches 64, wagons 65 dB): 70 ≤ 70.
+- `noise.pass_by_80_db` → **fail**. Noise TSI 4.2.3 Table 4 (80 km/h: electric locomotives 84, diesel 85, EMUs 80, DMUs 81, coaches 79, wagons 83 dB; 250 km/h, if applicable: electric locomotives 99, EMUs 95, DMUs 96 dB): 85 > 84.
+
+### n10: Cab noise with the design speed not stated
+
+*79 dB meets the 80 dB row and fails the 78 dB row; the speed picks the row.* Tags: noise, missing-data, needs-human.
+
+- `noise.cab_max_speed_db` → **needs human**. Noise TSI 4.2.4 Table 5 (cab, for units fitted with a cab: standstill with horns 95 dB; at vmax 78 dB if vmax < 250 km/h, 80 dB if 250 ≤ vmax < 350 km/h): the row depends on vmax, which is not supplied; 79 passes one row and fails the other.

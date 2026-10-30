@@ -15,7 +15,7 @@ from pathlib import Path
 from pydantic import BaseModel, ConfigDict, Field
 
 from rail_compliance.models import Band, Citation, Condition, Requirement
-from rail_compliance.parameters import SUBJECT_OF
+from rail_compliance.parameters import REGULATION_OF, SUBJECT_OF
 from rail_compliance.report import FinalVerdict
 from rail_compliance.spec import TrainSpec, spec_categories, spec_values
 from rail_compliance.tools.check import check
@@ -46,9 +46,15 @@ class GoldenCase(_Strict):
 
 
 # Suites of the development set, by file prefix: the original twenty (core), the cases for the
-# parameters added later (prm-extended) and renewed units under Appendix F (renewal). Each runs
+# parameters added later (prm-extended), renewed units under Appendix F (renewal) and the Noise
+# TSI (noise). Each runs
 # and is gated on its own, so a free-tier day can hold one fresh run of any of them.
-SUITES: dict[str, str] = {"core": "g*.json", "prm-extended": "p*.json", "renewal": "r*.json"}
+SUITES: dict[str, str] = {
+    "core": "g*.json",
+    "prm-extended": "p*.json",
+    "renewal": "r*.json",
+    "noise": "n*.json",
+}
 
 
 def load_suite(name: str) -> list[GoldenCase]:
@@ -66,14 +72,17 @@ def load_golden(directory: Path = GOLDEN_DIR, pattern: str = "g*.json") -> list[
 
 # --- the rules, as they stand in the regulation -----------------------------------------------
 
-PRM = {"doc_id": "tsi-prm", "document": "PRM TSI"}
 URL = "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:02014R1300-20230928"
+NOISE_URL = "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:02014R1304-20230928"
+PRM = {"doc_id": "tsi-prm", "document": "PRM TSI", "url": URL}
+NOI = {"doc_id": "tsi-noi", "document": "Noise TSI", "url": NOISE_URL}
 
 
 def _rule(
     parameter, comparator, value, unit, passage, section, quote, conditions=(), bands=(),
-    subject=None, value_max=None, relaxes=False,
+    subject=None, value_max=None, relaxes=False, band_variable=None, regulation=None,
 ):  # fmt: skip
+    regulation = regulation or PRM
     return Requirement(
         value_max=value_max,
         relaxes=relaxes,
@@ -83,9 +92,9 @@ def _rule(
         value=value,
         unit=unit,
         bands=list(bands),
-        band_variable="unit_length_m" if bands else None,
+        band_variable=band_variable or ("unit_length_m" if bands else None),
         conditions=list(conditions),
-        citation=Citation(passage_id=passage, section=section, url=URL, quote=quote, **PRM),
+        citation=Citation(passage_id=passage, section=section, quote=quote, **regulation),
     )
 
 
@@ -265,7 +274,7 @@ def _exempt(parameter, section, quote, conditions=(), contingency=None):
     return Requirement(
         parameter=parameter, subject=SUBJECT_OF[parameter], comparator="exempt",
         conditions=[RENEWED, *conditions], contingency=contingency,
-        citation=Citation(passage_id=f"{F} §{section}#1", section=f"Appendix F §{section}", url=URL,
+        citation=Citation(passage_id=f"{F} §{section}#1", section=f"Appendix F §{section}",
                           quote=quote, **PRM),
     )  # fmt: skip
 
@@ -310,8 +319,59 @@ def _renewal_exemptions(parameter: str) -> list[Requirement]:
              "existing capacity of the train"),
         ],
     }  # fmt: skip
-    return [_exempt(parameter, *row) for row in table[parameter]]
+    return [_exempt(parameter, *row) for row in table.get(parameter, [])]
 
+
+# --- the Noise TSI (Regulation (EU) No 1304/2014) -----------------------------------------
+
+P_STATIONARY = "tsi-noi:Annex §4.2.1#1"
+P_PASS_BY = "tsi-noi:Annex §4.2.3#1"
+P_CAB = "tsi-noi:Annex §4.2.4#1"
+CATEGORY = "rolling_stock_category"
+
+
+def _rows(**rows: float) -> list[Band]:
+    return [Band(category=c, value=v) for c, v in rows.items()]
+
+
+STATIONARY = _rule(
+    "noise.stationary_db", "<=", None, "dB", P_STATIONARY, "Annex §4.2.1",
+    "Electric locomotives and special vehicles with electric traction | 70 | 75 | 85 Diesel "
+    "locomotives and special vehicles with diesel traction | 71 | 78 EMUs | 65 | 68 DMUs | 72 | 76 "
+    "Coaches | 64 | 68 Wagons | 65",
+    bands=_rows(electric_locomotive=70, diesel_locomotive=71, emu=65, dmu=72, coach=64, wagon=65),
+    band_variable=CATEGORY, regulation=NOI,
+)  # fmt: skip
+PASS_BY_80 = _rule(
+    "noise.pass_by_80_db", "<=", None, "dB", P_PASS_BY, "Annex §4.2.3",
+    "Electric locomotives and special vehicles with electric traction | 84 | 99 Diesel locomotives "
+    "and special vehicles with diesel traction | 85 | n.a. EMUs | 80 | 95 DMUs | 81 | 96 Coaches | "
+    "79 | n.a. Wagons (normalised to APL = 0,225) (1) | 83",
+    bands=_rows(electric_locomotive=84, diesel_locomotive=85, emu=80, dmu=81, coach=79, wagon=83),
+    band_variable=CATEGORY, regulation=NOI,
+)  # fmt: skip
+PASS_BY_250 = _rule(
+    "noise.pass_by_250_db", "<=", None, "dB", P_PASS_BY, "Annex §4.2.3",
+    "if applicable, at 250 km/h ... Electric locomotives and special vehicles with electric "
+    "traction | 84 | 99 ... EMUs | 80 | 95 DMUs | 81 | 96",
+    bands=_rows(electric_locomotive=99, emu=95, dmu=96),
+    band_variable=CATEGORY, regulation=NOI,
+    conditions=[Condition(variable="design_speed_kmh", op=">=", value=250)],
+)  # fmt: skip
+CAB_HORN = _rule(
+    "noise.cab_standstill_horn_db", "<=", 95, "dB", P_CAB, "Annex §4.2.4",
+    "coaches fitted with a cab are set out in Table 5 ... At standstill with horns sounding | 95",
+    conditions=[Condition(variable="has_drivers_cab", op="==", value=1)], regulation=NOI,
+)  # fmt: skip
+CAB_SPEED = _rule(
+    "noise.cab_max_speed_db", "<=", None, "dB", P_CAB, "Annex §4.2.4",
+    "coaches fitted with a cab are set out in Table 5 ... At maximum speed vmax if vmax < 250 km/h "
+    "| 78 At maximum speed vmax if 250 km/h ≤ vmax < 350 km/h | 80",
+    bands=[Band(upper=250, upper_inclusive=False, value=78),
+           Band(lower=250, upper=350, upper_inclusive=False, value=80)],
+    band_variable="design_speed_kmh", regulation=NOI,
+    conditions=[Condition(variable="has_drivers_cab", op="==", value=1)],
+)  # fmt: skip
 
 GOLD_RULES: dict[str, list[Requirement]] = {
     "wheelchair_spaces": [TABLE_5],
@@ -328,6 +388,11 @@ GOLD_RULES: dict[str, list[Requirement]] = {
     "stairs.step_depth_mm": [STAIR_DEPTH, STAIR_DEPTH_DOUBLE_DECK],
     "handrails.outside_diameter_mm": [HANDRAIL_DIAMETER],
     "priority_seats.cushion_height_mm": [SEAT_HEIGHT],
+    "noise.stationary_db": [STATIONARY],
+    "noise.pass_by_80_db": [PASS_BY_80],
+    "noise.pass_by_250_db": [PASS_BY_250],
+    "noise.cab_standstill_horn_db": [CAB_HORN],
+    "noise.cab_max_speed_db": [CAB_SPEED],
 }
 GOLD_EXEMPTIONS: dict[str, list[Requirement]] = {p: _renewal_exemptions(p) for p in GOLD_RULES}
 
@@ -354,6 +419,9 @@ def oracle(spec: TrainSpec) -> dict[str, FinalVerdict]:
     out: dict[str, FinalVerdict] = {}
     for parameter, rules in GOLD_RULES.items():
         if parameter not in values:
+            continue
+        if REGULATION_OF[parameter] == "tsi-noi" and context["unit_status"] == "renewed":
+            out[parameter] = "needs_human"  # Noise TSI 7.2.1: limits of the first authorisation
             continue
         verdict = _rule_verdict(parameter, rules, values, context)
         exemptions = [

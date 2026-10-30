@@ -84,6 +84,7 @@ class BandDraft(_Strict):
     lower_inclusive: bool = True
     upper: float | None = None
     upper_inclusive: bool = True
+    category: str | None = None  # a row selected by a category ("emu"), not by a range
     value: float
 
 
@@ -92,6 +93,8 @@ class Band(BandDraft):
 
     @model_validator(mode="after")
     def _ordered(self) -> Band:
+        if self.category is not None and (self.lower is not None or self.upper is not None):
+            raise ValueError("a band is selected by a range or by a category, not both")
         if self.lower is not None and self.upper is not None and self.lower > self.upper:
             raise ValueError(f"band lower {self.lower} is above upper {self.upper}")
         return self
@@ -156,6 +159,8 @@ class RequirementCore(RuleDraft):
             raise ValueError("give exactly one of `value` or `bands`")
         if self.bands and not self.band_variable:
             raise ValueError("`bands` need a `band_variable` to select the band")
+        if len({b.category is None for b in self.bands}) > 1:
+            raise ValueError("a table's rows are all ranges or all categories, not a mix")
         if not self.bands and self.band_variable:
             raise ValueError("`band_variable` is only for `bands`")
         if (self.comparator == "between") != (self.value_max is not None):

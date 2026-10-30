@@ -29,7 +29,7 @@ def test_the_core_suite_has_between_15_and_20_cases_and_every_id_is_unique():
 
 
 def test_every_suite_loads_and_an_unknown_one_is_an_error():
-    assert [len(load_suite(name)) for name in SUITES] == [len(CORE), 12, 10]
+    assert [len(load_suite(name)) for name in SUITES] == [len(CORE), 12, 10, 10]
     with pytest.raises(ValueError, match="core"):
         load_suite("nope")
 

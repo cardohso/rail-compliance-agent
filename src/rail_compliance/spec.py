@@ -21,6 +21,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_valida
 SCHEMA_PATH = Path(__file__).resolve().parents[2] / "schema" / "train-spec.schema.json"
 
 Mm = Annotated[float, Field(gt=0, le=5000)]
+Db = Annotated[float, Field(gt=0, le=200)]
 Count = Annotated[int, Field(ge=0, le=50)]
 
 
@@ -124,6 +125,29 @@ class PrioritySeats(_Strict):
     )
 
 
+class Noise(_Strict):
+    """Measured noise levels, judged against the Noise TSI (Regulation (EU) No 1304/2014)."""
+
+    stationary_db: Db | None = Field(
+        default=None,
+        description="Stationary noise of the unit, LpAeq,T[unit], at 7.5 m (Table 2, first "
+        "column).",
+    )
+    pass_by_80_db: Db | None = Field(
+        default=None, description="Pass-by noise LpAeq,Tp at 80 km/h, at 7.5 m (Table 4)."
+    )
+    pass_by_250_db: Db | None = Field(
+        default=None, description="Pass-by noise LpAeq,Tp at 250 km/h, at 7.5 m (Table 4)."
+    )
+    cab_standstill_horn_db: Db | None = Field(
+        default=None, description="Driver's cab interior noise LpAeq,T at standstill with horns "
+        "sounding (Table 5).",
+    )  # fmt: skip
+    cab_max_speed_db: Db | None = Field(
+        default=None, description="Driver's cab interior noise LpAeq,T at maximum speed (Table 5)."
+    )
+
+
 class Renewal(_Strict):
     """What a renewal or upgrade changed (Appendix F): the exemptions depend on it."""
 
@@ -173,6 +197,14 @@ class TrainSpec(_Strict):
     deck_layout: Literal["single_deck", "double_deck"] | None = Field(
         default=None, description="Whether the unit has one passenger deck or two."
     )
+    rolling_stock_category: Literal[
+        "electric_locomotive", "diesel_locomotive", "emu", "dmu", "coach", "wagon"
+    ] | None = Field(
+        default=None, description="Category of the rolling stock subsystem (Noise TSI tables)."
+    )  # fmt: skip
+    has_drivers_cab: bool | None = Field(
+        default=None, description="Whether the unit is fitted with a driver's cab."
+    )
     unit_status: Literal["new", "renewed"] = Field(
         default="new",
         description="new: placed on the market (the TSI's default case); renewed: an existing unit "
@@ -190,6 +222,7 @@ class TrainSpec(_Strict):
     stairs: Stairs | None = None
     handrails: Handrails | None = None
     priority_seats: PrioritySeats | None = None
+    noise: Noise | None = None
 
     @model_validator(mode="after")
     def _renewal_only_when_renewed(self) -> TrainSpec:
@@ -306,7 +339,16 @@ QUALIFIERS: dict[str, str] = {"length_includes_power_head": "unit_length_m"}
 
 # How the regulation words a category value, as word stems: Appendix F says "at renewal or
 # upgrade" and "being renewed or upgraded" for what the spec calls a renewed unit.
-CATEGORY_TERMS: dict[str, tuple[str, ...]] = {"renewed": ("renew", "upgrad")}
+CATEGORY_TERMS: dict[str, tuple[str, ...]] = {
+    "renewed": ("renew", "upgrad"),
+    # Noise TSI tables: "Electric locomotives and special vehicles with electric traction", "EMUs"
+    "electric_locomotive": ("electric locomotive",),
+    "diesel_locomotive": ("diesel locomotive",),
+    "emu": ("EMU",),
+    "dmu": ("DMU",),
+    "coach": ("coach",),
+    "wagon": ("wagon",),
+}
 # Sections whose whole scope is one category value: every sentence of Appendix F ("Renewal or
 # upgrade of rolling stock") is about a renewed unit, whether or not it repeats the word.
 CATEGORY_SECTIONS: dict[str, tuple[str, ...]] = {"renewed": ("Appendix F",)}
@@ -327,7 +369,7 @@ def spec_intervals(spec: TrainSpec) -> dict[str, tuple[float, float]]:
     }
 
 
-UNIT_SUFFIXES = {"_mm": "mm", "_m": "m", "_kmh": "km/h"}
+UNIT_SUFFIXES = {"_mm": "mm", "_m": "m", "_kmh": "km/h", "_db": "dB"}
 
 
 def unit_of(parameter: str) -> str | None:

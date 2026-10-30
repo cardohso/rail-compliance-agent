@@ -15,12 +15,15 @@ import re
 from pathlib import Path
 
 from rail_compliance.golden import (
+    P_CAB,
     P_DOORS,
     P_HANDRAILS,
+    P_PASS_BY,
     P_PRIORITY,
     P_SPACE_DIMS,
     P_SPACES,
     P_STAIRS,
+    P_STATIONARY,
     P_STEPS,
     P_TOILET,
     P_TURNING,
@@ -57,6 +60,29 @@ F_CLEARWAYS = "tsi-prm:Appendix F §Clearways#1"
 F_SEATS = "tsi-prm:Appendix F §Seats#1"
 F_STRUCTURES = "tsi-prm:Appendix F §Structures#1"
 RENEWED = {"unit_length_m": 100.0, "unit_status": "renewed"}
+STAT = "noise.stationary_db"
+PB80 = "noise.pass_by_80_db"
+PB250 = "noise.pass_by_250_db"
+HORN = "noise.cab_standstill_horn_db"
+CAB = "noise.cab_max_speed_db"
+T2 = "Noise TSI 4.2.1 Table 2 (LpAeq,T[unit]: electric locomotives 70, diesel locomotives 71, EMUs 65, DMUs 72, coaches 64, wagons 65 dB)"
+T4 = "Noise TSI 4.2.3 Table 4 (80 km/h: electric locomotives 84, diesel 85, EMUs 80, DMUs 81, coaches 79, wagons 83 dB; 250 km/h, if applicable: electric locomotives 99, EMUs 95, DMUs 96 dB)"
+T5 = "Noise TSI 4.2.4 Table 5 (cab, for units fitted with a cab: standstill with horns 95 dB; at vmax 78 dB if vmax < 250 km/h, 80 dB if 250 ≤ vmax < 350 km/h)"
+
+
+def unit(category, speed=None, cab=None, **noise):
+    out = (
+        {"unit_length_m": 100.0, "rolling_stock_category": category}
+        if category
+        else {"unit_length_m": 100.0}
+    )
+    if speed is not None:
+        out["design_speed_kmh"] = speed
+    if cab is not None:
+        out["has_drivers_cab"] = cab
+    return {**out, "noise": noise}
+
+
 STAIRS_TEXT = "4.2.2.8(1): 'maximum height of 200 mm and a minimum depth of 280 mm ... For double deck trains it is permitted to reduce this value to 270 mm'"
 
 
@@ -968,6 +994,161 @@ CASES = [
                 "≥ 800 mm, unless it needs structural alteration to the door portal",
                 [P_DOORS, F_STRUCTURES],
                 "4.2.2.3.2(1): 750 < 800. Appendix F, Structures: 'Compliance is not mandatory if the work would require structural alterations to door portals'. A person must judge the work.",
+                alt=[ESCALATE],
+            )
+        },
+    ),
+    # --- suite noise (n*): the Noise TSI (Regulation (EU) No 1304/2014), new units -----------
+    case(
+        "n01",
+        "EMU at the stationary and 80 km/h pass-by limits",
+        ["noise", "category-table", "exact-limit", "cross-document"],
+        "The EMU rows apply; the PRM TSI's dB figures for door signals are not noise limits.",
+        unit("emu", stationary_db=65, pass_by_80_db=80),
+        {
+            STAT: e("pass", "≤ 65 dB (EMUs)", [P_STATIONARY], f"{T2}: EMU row, 65 ≤ 65."),
+            PB80: e("pass", "≤ 80 dB (EMUs)", [P_PASS_BY], f"{T4}: EMU row, 80 ≤ 80."),
+        },
+    ),
+    case(
+        "n02",
+        "Coach with an EMU-level stationary noise",
+        ["noise", "category-table"],
+        "65 dB is the EMU limit but a coach's is 64: the category decides.",
+        unit("coach", stationary_db=65, pass_by_80_db=79),
+        {
+            STAT: e("fail", "≤ 64 dB (coaches)", [P_STATIONARY], f"{T2}: coach row, 65 > 64."),
+            PB80: e("pass", "≤ 79 dB (coaches)", [P_PASS_BY], f"{T4}: coach row, 79 ≤ 79."),
+        },
+    ),
+    case(
+        "n03",
+        "DMU too loud at 80 km/h",
+        ["noise", "category-table"],
+        "The DMU row: 72 dB stationary is allowed, 82 dB pass-by is not.",
+        unit("dmu", stationary_db=72, pass_by_80_db=82),
+        {
+            STAT: e("pass", "≤ 72 dB (DMUs)", [P_STATIONARY], f"{T2}: DMU row, 72 ≤ 72."),
+            PB80: e("fail", "≤ 81 dB (DMUs)", [P_PASS_BY], f"{T4}: DMU row, 82 > 81."),
+        },
+    ),
+    case(
+        "n04",
+        "High-speed EMU within every limit",
+        ["noise", "category-table", "table-boundary", "exact-limit"],
+        "300 km/h: the 250 km/h pass-by applies, and the cab row for 250 to 350 km/h.",
+        unit(
+            "emu",
+            speed=300,
+            cab=True,
+            pass_by_250_db=95,
+            cab_standstill_horn_db=95,
+            cab_max_speed_db=80,
+        ),
+        {
+            PB250: e(
+                "pass",
+                "≤ 95 dB (EMUs, 250 km/h)",
+                [P_PASS_BY],
+                f"{T4}: the design speed is 300 km/h, so the 250 km/h limit applies; EMU 95 ≤ 95.",
+            ),
+            HORN: e("pass", "≤ 95 dB", [P_CAB], f"{T5}: 95 ≤ 95."),
+            CAB: e(
+                "pass",
+                "≤ 80 dB (250 to 350 km/h)",
+                [P_CAB],
+                f"{T5}: 250 ≤ 300 < 350, so 80 dB; 80 ≤ 80.",
+            ),
+        },
+    ),
+    case(
+        "n05",
+        "Regional EMU with a loud cab",
+        ["noise", "table-boundary"],
+        "Below 250 km/h the cab limit at maximum speed is 78 dB.",
+        unit("emu", speed=200, cab=True, cab_standstill_horn_db=96, cab_max_speed_db=79),
+        {
+            HORN: e("fail", "≤ 95 dB", [P_CAB], f"{T5}: 96 > 95."),
+            CAB: e(
+                "fail", "≤ 78 dB (vmax < 250 km/h)", [P_CAB], f"{T5}: 200 < 250, so 78 dB; 79 > 78."
+            ),
+        },
+    ),
+    case(
+        "n06",
+        "250 km/h pass-by measured on a 200 km/h EMU",
+        ["noise", "conditional", "not-applicable"],
+        "The 250 km/h limit applies only to units that run at 250 km/h.",
+        unit("emu", speed=200, pass_by_250_db=97),
+        {
+            PB250: e(
+                "not_applicable",
+                None,
+                [P_PASS_BY],
+                f"{T4}: the 250 km/h value applies 'if applicable'; read as design speed ≥ 250 km/h. At 200 km/h it does not apply.",
+            )
+        },
+    ),
+    case(
+        "n07",
+        "Coach without a cab",
+        ["noise", "conditional", "not-applicable"],
+        "The cab limits are for units fitted with a cab.",
+        unit("coach", cab=False, cab_standstill_horn_db=97),
+        {
+            HORN: e(
+                "not_applicable",
+                None,
+                [P_CAB],
+                f"{T5}: has_drivers_cab is false, so there is no cab to limit.",
+            )
+        },
+    ),
+    case(
+        "n08",
+        "Category not stated",
+        ["noise", "category-table", "missing-data", "needs-human"],
+        "70 dB meets some rows of Table 2 and not others; 78 dB meets every row of Table 4.",
+        unit(None, stationary_db=70, pass_by_80_db=78),
+        {
+            STAT: e(
+                "needs_human",
+                "≤ 64 to 72 dB, by category",
+                [P_STATIONARY],
+                f"{T2}: 70 meets the electric locomotive, diesel and DMU rows and fails the others; the category is not supplied.",
+                alt=[ESCALATE],
+            ),
+            PB80: e(
+                "pass",
+                "≤ 79 dB (the lowest row)",
+                [P_PASS_BY],
+                f"{T4}: 78 is within every row (the lowest is 79), so the category does not matter.",
+            ),
+        },
+    ),
+    case(
+        "n09",
+        "Electric locomotive too loud passing by",
+        ["noise", "category-table"],
+        "The locomotive rows are higher than the EMU rows.",
+        unit("electric_locomotive", stationary_db=70, pass_by_80_db=85),
+        {
+            STAT: e("pass", "≤ 70 dB (electric locomotives)", [P_STATIONARY], f"{T2}: 70 ≤ 70."),
+            PB80: e("fail", "≤ 84 dB (electric locomotives)", [P_PASS_BY], f"{T4}: 85 > 84."),
+        },
+    ),
+    case(
+        "n10",
+        "Cab noise with the design speed not stated",
+        ["noise", "missing-data", "needs-human"],
+        "79 dB meets the 80 dB row and fails the 78 dB row; the speed picks the row.",
+        unit("emu", cab=True, cab_max_speed_db=79),
+        {
+            CAB: e(
+                "needs_human",
+                "≤ 78 or 80 dB, by design speed",
+                [P_CAB],
+                f"{T5}: the row depends on vmax, which is not supplied; 79 passes one row and fails the other.",
                 alt=[ESCALATE],
             )
         },

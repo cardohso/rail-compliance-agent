@@ -1,0 +1,36 @@
+{
+  "id": "n07",
+  "title": "Coach without a cab",
+  "tags": [
+    "noise",
+    "conditional",
+    "not-applicable"
+  ],
+  "why": "The cab limits are for units fitted with a cab.",
+  "spec": {
+    "spec_version": "1",
+    "name": "Coach without a cab",
+    "unit_length_m": 100.0,
+    "rolling_stock_category": "coach",
+    "has_drivers_cab": false,
+    "unit_status": "new",
+    "noise": {
+      "cab_standstill_horn_db": 97.0
+    }
+  },
+  "expected": {
+    "noise.cab_standstill_horn_db": {
+      "verdict": "not_applicable",
+      "gold_passages": [
+        "tsi-noi:Annex §4.2.4#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "Noise TSI 4.2.4 Table 5 (cab, for units fitted with a cab: standstill with horns 95 dB; at vmax 78 dB if vmax < 250 km/h, 80 dB if 250 ≤ vmax < 350 km/h): has_drivers_cab is false, so there is no cab to limit."
+    }
+  }
+}

@@ -24,7 +24,13 @@ from rail_compliance.models import (
     RequirementCore,
     RequirementDraft,
 )
-from rail_compliance.parameters import SUBJECT_OF, SUBJECTS, accepted_subjects
+from rail_compliance.parameters import (
+    REGULATION_OF,
+    REGULATIONS,
+    SUBJECT_OF,
+    SUBJECTS,
+    accepted_subjects,
+)
 from rail_compliance.spec import (
     CATEGORY_SECTIONS,
     CATEGORY_TERMS,
@@ -83,7 +89,9 @@ Rules:
   value depends on another parameter (for example unit length) goes in `bands`: one band for
   every row of the table, none left out, and `quote` must contain the whole table. Set `value` to
   null when you give `bands`, and `bands` to an empty list when you give `value`; never both.
-  `band_variable` names the spec parameter that selects the row. Mind inclusive/exclusive bounds:
+  `band_variable` names the spec parameter that selects the row. A table whose rows are
+  categories ("EMUs | 65", "Coaches | 64") selects by a category parameter: give each row its
+  `category` name from the request and no bounds. Mind inclusive/exclusive bounds:
   "less than 30 m" excludes 30, "30 to 205 metres" includes both.
 - A requirement that something "shall be provided", "shall be fitted" or "shall be installed" (for
   example "a universal toilet shall be provided") states a minimum of one: give `value` 1 with
@@ -215,6 +223,15 @@ def _check_variables(
             )
         if name not in kinds:
             return f"the rule refers to {name}, which is not a spec parameter"
+    if rule.bands and rule.bands[0].category is not None:
+        options = choices.get(rule.band_variable, ())
+        if not options:
+            return f"{rule.band_variable} is not a category, so a table cannot have a row per name"
+        unknown = [b.category for b in rule.bands if b.category not in options]
+        if unknown:
+            return f"{rule.band_variable} has no value {unknown[0]!r}. Valid: {', '.join(options)}"
+    elif rule.bands and kinds[rule.band_variable] == "category":
+        return f"{rule.band_variable} is a category: give each row its `category`, not a range"
     for cond in rule.conditions:
         is_category = kinds[cond.variable] == "category"
         if is_category and not isinstance(cond.value, str):
@@ -293,6 +310,12 @@ def extract_requirement(
         return _unverified(f"passage {draft.passage_id} is not one of the passages given")
     if not _quote_in(draft.quote, source.text):
         return _unverified(f"the quote was not found in the passage {source.id}")
+    regulation = REGULATION_OF.get(parameter)
+    if regulation and source.doc_id != regulation:
+        return _unverified(
+            f"{parameter} is governed by the {REGULATIONS[regulation]} ({regulation}); passage "
+            f"{source.id} is from {source.doc_id}, which does not set it"
+        )
 
     kinds = parameter_kinds()
     problem = _check_variables(rule, kinds)
@@ -340,6 +363,10 @@ def extract_requirement(
         shown = ", ".join(f"{x:g}" for x in missing)
         return _unverified(f"the number(s) {shown} are not stated in the quote")
     # A flag's 1/0 and a count's "there is at least one" are not numbers the quote has to state.
+    for band in rule.bands:
+        if band.category and not _category_stated(band.category, draft.quote, source.section):
+            return _unverified(f"the table row for {band.category} names a category the quote "
+                               "does not state")  # fmt: skip
     for cond in rule.conditions:
         if isinstance(cond.value, str):
             if not _category_stated(cond.value, draft.quote, source.section):

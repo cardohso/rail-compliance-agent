@@ -39,7 +39,12 @@ from rail_compliance.models import (
     Passage,
     Requirement,
 )
-from rail_compliance.parameters import CHECKED_PARAMETERS, accepted_subjects
+from rail_compliance.parameters import (
+    CHECKED_PARAMETERS,
+    REGULATION_OF,
+    REGULATIONS,
+    accepted_subjects,
+)
 from rail_compliance.report import (
     CoverageGap,
     ParameterResult,
@@ -306,6 +311,12 @@ class _Runner:
         return True, "recorded. Work on this parameter ends here."
 
 
+RENEWED_NOISE = (
+    "a renewed or upgraded unit must keep its noise below the limits of the Noise TSI version that "
+    "applied when it was first authorised (Noise TSI 7.2.1), which the spec does not give"
+)
+
+
 def _task_message(
     parameter: str, values: dict[str, float], categories: dict[str, str] | None = None
 ) -> str:
@@ -314,6 +325,7 @@ def _task_message(
     categories = categories or {}
     supplied = {k: f"{v:g}" for k, v in values.items() if k != parameter} | categories
     renewed = categories.get("unit_status") == "renewed"
+    regulation = REGULATION_OF[parameter]
     missing = [
         k
         for k in info
@@ -322,6 +334,7 @@ def _task_message(
     lines = [
         f"Parameter to check: {parameter}" + (f" ({unit})" if unit else ""),
         f"Meaning: {description}",
+        f"Governed by: {REGULATIONS[regulation]}; rules from other regulations do not count",
         "Rules stated for these subjects govern it (own subject first): "
         + ", ".join(accepted_subjects(parameter)),
         f"Spec value: {values[parameter]:g}" + (f" {unit}" if unit else ""),
@@ -331,12 +344,12 @@ def _task_message(
         + (", ".join(f"{k}={v}" for k, v in supplied.items()) or "none"),
         "Not supplied: " + (", ".join(m for m in missing if m != parameter) or "nothing"),
     ]
-    if renewed:
+    if renewed and regulation == "tsi-prm":
         lines += [
             "",
-            "This unit is being renewed or upgraded: also search Appendix F (renewal or upgrade "
-            "of rolling stock) for when compliance with this parameter's rules is not mandatory, "
-            "extract each such exemption, and check it like any rule.",
+            "This unit is being renewed or upgraded: also search Appendix F of the PRM TSI "
+            "(renewal or upgrade of rolling stock) for when compliance with this parameter's "
+            "rules is not mandatory, extract each such exemption, and check it like any rule.",
         ]
     return "\n".join(lines)
 
@@ -507,12 +520,18 @@ class ComplianceAgent:
     def _build(self):
         def plan(state: AgentState) -> AgentState:
             values, queue, results, trace = state["values"], [], [], []
+            renewed = state.get("categories", {}).get("unit_status") == "renewed"
             for parameter in CHECKED_PARAMETERS:
-                if parameter in values:
+                changed_noise = renewed and REGULATION_OF[parameter] == "tsi-noi"
+                if parameter in values and not changed_noise:
                     queue.append(parameter)
                     continue
-                reason = f"the spec does not supply {parameter}"
-                review = HumanReview(parameter=parameter, category="missing_data", reason=reason)
+                reason, category = f"the spec does not supply {parameter}", "missing_data"
+                if parameter in values:
+                    # Noise TSI 7.2.1: changed rolling stock must stay below the limits of the TSI
+                    # version that applied when it was first authorised; that version is not here
+                    reason, category = RENEWED_NOISE, "ambiguous_law"
+                review = HumanReview(parameter=parameter, category=category, reason=reason)
                 results.append(
                     ParameterResult(
                         parameter=parameter, verdict="needs_human", reason=reason, reviews=[review]
@@ -521,8 +540,8 @@ class ComplianceAgent:
                 trace.append(
                     ToolCall(
                         index=-1, parameter=parameter, name="needs_human",
-                        args={"reason": reason, "category": "missing_data"},
-                        ok=True, summary="decided by the runtime: parameter not supplied",
+                        args={"reason": reason, "category": category},
+                        ok=True, summary=f"decided by the runtime: {reason}",
                         seconds=0.0, source="runtime",
                     )
                 )  # fmt: skip

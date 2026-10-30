@@ -1,0 +1,69 @@
+{
+  "id": "n04",
+  "title": "High-speed EMU within every limit",
+  "tags": [
+    "noise",
+    "category-table",
+    "table-boundary",
+    "exact-limit"
+  ],
+  "why": "300 km/h: the 250 km/h pass-by applies, and the cab row for 250 to 350 km/h.",
+  "spec": {
+    "spec_version": "1",
+    "name": "High-speed EMU within every limit",
+    "unit_length_m": 100.0,
+    "design_speed_kmh": 300.0,
+    "rolling_stock_category": "emu",
+    "has_drivers_cab": true,
+    "unit_status": "new",
+    "noise": {
+      "pass_by_250_db": 95.0,
+      "cab_standstill_horn_db": 95.0,
+      "cab_max_speed_db": 80.0
+    }
+  },
+  "expected": {
+    "noise.pass_by_250_db": {
+      "verdict": "pass",
+      "required": "≤ 95 dB (EMUs, 250 km/h)",
+      "gold_passages": [
+        "tsi-noi:Annex §4.2.3#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "Noise TSI 4.2.3 Table 4 (80 km/h: electric locomotives 84, diesel 85, EMUs 80, DMUs 81, coaches 79, wagons 83 dB; 250 km/h, if applicable: electric locomotives 99, EMUs 95, DMUs 96 dB): the design speed is 300 km/h, so the 250 km/h limit applies; EMU 95 ≤ 95."
+    },
+    "noise.cab_standstill_horn_db": {
+      "verdict": "pass",
+      "required": "≤ 95 dB",
+      "gold_passages": [
+        "tsi-noi:Annex §4.2.4#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "Noise TSI 4.2.4 Table 5 (cab, for units fitted with a cab: standstill with horns 95 dB; at vmax 78 dB if vmax < 250 km/h, 80 dB if 250 ≤ vmax < 350 km/h): 95 ≤ 95."
+    },
+    "noise.cab_max_speed_db": {
+      "verdict": "pass",
+      "required": "≤ 80 dB (250 to 350 km/h)",
+      "gold_passages": [
+        "tsi-noi:Annex §4.2.4#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "Noise TSI 4.2.4 Table 5 (cab, for units fitted with a cab: standstill with horns 95 dB; at vmax 78 dB if vmax < 250 km/h, 80 dB if 250 ≤ vmax < 350 km/h): 250 ≤ 300 < 350, so 80 dB; 80 ≤ 80."
+    }
+  }
+}

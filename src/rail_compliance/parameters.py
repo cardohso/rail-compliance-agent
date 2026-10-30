@@ -24,7 +24,22 @@ CHECKED_PARAMETERS: tuple[str, ...] = (
     "stairs.step_depth_mm",
     "handrails.outside_diameter_mm",
     "priority_seats.cushion_height_mm",
+    "noise.stationary_db",
+    "noise.pass_by_80_db",
+    "noise.pass_by_250_db",
+    "noise.cab_standstill_horn_db",
+    "noise.cab_max_speed_db",
 )
+
+# The regulation that governs each parameter (corpus doc id). A rule quoted from another one is
+# rejected: the PRM TSI's dB figures for door signals say nothing about a unit's noise.
+REGULATIONS: dict[str, str] = {
+    "tsi-prm": "PRM TSI (Regulation (EU) No 1300/2014)",
+    "tsi-noi": "Noise TSI (Regulation (EU) No 1304/2014)",
+}
+REGULATION_OF: dict[str, str] = {
+    p: "tsi-noi" if p.startswith("noise.") else "tsi-prm" for p in CHECKED_PARAMETERS
+}
 
 SUBJECTS: dict[str, str] = {
     "wheelchair_space": "a wheelchair space in a unit",
@@ -39,6 +54,9 @@ SUBJECTS: dict[str, str] = {
     "internal_stairs": "internal steps and stairs other than those for external access",
     "handrail": "handrails fitted to a vehicle",
     "priority_seat": "a priority seat",
+    "stationary_noise": "the stationary noise of a unit",
+    "pass_by_noise": "the pass-by noise of a unit",
+    "cab_noise": "the noise inside the driver's cab",
 }
 
 SUBJECT_OF: dict[str, str] = {
@@ -56,6 +74,11 @@ SUBJECT_OF: dict[str, str] = {
     "stairs.step_depth_mm": "internal_stairs",
     "handrails.outside_diameter_mm": "handrail",
     "priority_seats.cushion_height_mm": "priority_seat",
+    "noise.stationary_db": "stationary_noise",
+    "noise.pass_by_80_db": "pass_by_noise",
+    "noise.pass_by_250_db": "pass_by_noise",
+    "noise.cab_standstill_horn_db": "cab_noise",
+    "noise.cab_max_speed_db": "cab_noise",
 }
 
 # subject -> the broader subject it sits inside
@@ -91,6 +114,9 @@ SUBJECT_TERMS: dict[str, tuple[str, ...]] = {
     "internal_stairs": ("internal steps",),
     "handrail": ("handrail",),
     "priority_seat": ("priority seat",),
+    "stationary_noise": ("stationary noise",),
+    "pass_by_noise": ("pass-by noise",),
+    "cab_noise": ("driver's cab",),
 }
 
 # What a sentence must name to state a rule on the same measure as the parameter. For millimetre
