@@ -1,0 +1,41 @@
+{
+  "id": "r04",
+  "title": "Renewal that complies anyway",
+  "tags": [
+    "renewal",
+    "exemption",
+    "missing-data"
+  ],
+  "why": "35 mm meets 30–40 mm, so whether the exemption holds does not matter.",
+  "spec": {
+    "spec_version": "1",
+    "name": "Renewal that complies anyway",
+    "unit_length_m": 100.0,
+    "unit_status": "renewed",
+    "handrails": {
+      "outside_diameter_mm": 35.0
+    }
+  },
+  "expected": {
+    "handrails.outside_diameter_mm": {
+      "verdict": "pass",
+      "required": "30–40 mm",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.9#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [
+        [
+          "search_regulation",
+          "extract_requirement",
+          "check"
+        ]
+      ],
+      "rationale": "4.2.2.9(1): 35 is within 30–40 mm; the Appendix F exemption could only remove the rule."
+    }
+  }
+}

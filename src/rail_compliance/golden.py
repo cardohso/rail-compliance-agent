@@ -45,10 +45,10 @@ class GoldenCase(_Strict):
     expected: dict[str, Expected]
 
 
-# Suites of the development set, by file prefix: the original twenty (core) and the cases for the
-# parameters added later (prm-extended). Each runs and is gated on its own, so a free-tier day
-# can hold one fresh run of either.
-SUITES: dict[str, str] = {"core": "g*.json", "prm-extended": "p*.json"}
+# Suites of the development set, by file prefix: the original twenty (core), the cases for the
+# parameters added later (prm-extended) and renewed units under Appendix F (renewal). Each runs
+# and is gated on its own, so a free-tier day can hold one fresh run of any of them.
+SUITES: dict[str, str] = {"core": "g*.json", "prm-extended": "p*.json", "renewal": "r*.json"}
 
 
 def load_suite(name: str) -> list[GoldenCase]:

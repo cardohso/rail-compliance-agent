@@ -9,6 +9,7 @@
     "spec_version": "1",
     "name": "Wheelchair space and turning space exactly at the minimum",
     "unit_length_m": 100.0,
+    "unit_status": "new",
     "wheelchair_space_layout": {
       "width_mm": 700.0,
       "turning_space_diameter_mm": 1500.0

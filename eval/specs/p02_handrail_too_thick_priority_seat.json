@@ -10,6 +10,7 @@
     "spec_version": "1",
     "name": "Handrail too thick, priority seat at the top of the range",
     "unit_length_m": 100.0,
+    "unit_status": "new",
     "handrails": {
       "outside_diameter_mm": 41.0
     },

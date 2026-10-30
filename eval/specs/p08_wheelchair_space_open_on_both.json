@@ -10,6 +10,7 @@
     "spec_version": "1",
     "name": "Wheelchair space open on both sides",
     "unit_length_m": 100.0,
+    "unit_status": "new",
     "wheelchair_space_layout": {
       "sides_next_to_obstacle": 0,
       "hand_clearance_mm": 20.0

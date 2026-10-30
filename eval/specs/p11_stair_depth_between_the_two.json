@@ -12,6 +12,7 @@
     "spec_version": "1",
     "name": "Stair depth between the two limits, deck layout not stated",
     "unit_length_m": 100.0,
+    "unit_status": "new",
     "stairs": {
       "step_depth_mm": 275.0
     }

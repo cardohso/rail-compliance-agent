@@ -1,0 +1,49 @@
+{
+  "id": "r05",
+  "title": "Renewal with steep stairs and a high external step",
+  "tags": [
+    "renewal",
+    "exemption"
+  ],
+  "why": "4.2.2.8 and 4.2.2.11 are not mandatory at renewal or upgrade.",
+  "spec": {
+    "spec_version": "1",
+    "name": "Renewal with steep stairs and a high external step",
+    "unit_length_m": 100.0,
+    "unit_status": "renewed",
+    "steps": {
+      "external_step_height_mm": 260.0
+    },
+    "stairs": {
+      "step_height_mm": 220.0
+    }
+  },
+  "expected": {
+    "stairs.step_height_mm": {
+      "verdict": "not_applicable",
+      "gold_passages": [
+        "tsi-prm:Appendix F §Height Changes#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "Appendix F, Height Changes: 'Compliance with the requirements of point 4.2.2.8 is not mandatory at renewal or upgrade.'"
+    },
+    "steps.external_step_height_mm": {
+      "verdict": "not_applicable",
+      "gold_passages": [
+        "tsi-prm:Appendix F §Step positions, steps and boarding aids#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "Appendix F, Step positions: 'Compliance with the requirements of points 4.2.2.11 and 4.2.2.12 is not mandatory at renewal or upgrade.'"
+    }
+  }
+}

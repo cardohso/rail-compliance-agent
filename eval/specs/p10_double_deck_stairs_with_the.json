@@ -11,6 +11,7 @@
     "name": "Double-deck stairs with the relaxed depth",
     "unit_length_m": 100.0,
     "deck_layout": "double_deck",
+    "unit_status": "new",
     "stairs": {
       "step_height_mm": 210.0,
       "step_depth_mm": 275.0

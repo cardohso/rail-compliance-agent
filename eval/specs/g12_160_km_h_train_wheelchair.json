@@ -10,6 +10,7 @@
     "name": "160 km/h train, wheelchair door 900 mm without level access",
     "unit_length_m": 100.0,
     "design_speed_kmh": 160.0,
+    "unit_status": "new",
     "exterior_doors": {
       "wheelchair_door_clear_width_mm": 900.0,
       "wheelchair_door_level_access": false

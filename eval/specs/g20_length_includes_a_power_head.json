@@ -11,6 +11,7 @@
     "name": "Length includes a power head, three wheelchair spaces",
     "unit_length_m": 210.0,
     "length_includes_power_head": true,
+    "unit_status": "new",
     "wheelchair_spaces": 3
   },
   "expected": {

@@ -19,7 +19,7 @@ from rail_compliance.spec import TrainSpec
 
 ROOT = Path(__file__).resolve().parents[1]
 CORE = load_golden()
-CASES = CORE + load_suite("prm-extended")
+CASES = [c for name in SUITES for c in load_suite(name)]
 TOOLS = {"search_regulation", "extract_requirement", "check", "needs_human"}
 
 
@@ -29,7 +29,7 @@ def test_the_core_suite_has_between_15_and_20_cases_and_every_id_is_unique():
 
 
 def test_every_suite_loads_and_an_unknown_one_is_an_error():
-    assert [len(load_suite(name)) for name in SUITES] == [len(CORE), 12]
+    assert [len(load_suite(name)) for name in SUITES] == [len(CORE), 12, 10]
     with pytest.raises(ValueError, match="core"):
         load_suite("nope")
 

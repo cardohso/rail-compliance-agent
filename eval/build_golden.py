@@ -25,6 +25,7 @@ from rail_compliance.golden import (
     P_TOILET,
     P_TURNING,
     P_UNIVERSAL,
+    SUITES,
     GoldenCase,
 )
 from rail_compliance.spec import spec_categories, spec_values
@@ -47,6 +48,15 @@ STAIR_H = "stairs.step_height_mm"
 STAIR_D = "stairs.step_depth_mm"
 RAIL = "handrails.outside_diameter_mm"
 SEAT = "priority_seats.cushion_height_mm"
+F_RAILS = "tsi-prm:Appendix F §Handrails#1"
+F_HEIGHT = "tsi-prm:Appendix F §Height Changes#1"
+F_STEPS = "tsi-prm:Appendix F §Step positions, steps and boarding aids#1"
+F_SPACES = "tsi-prm:Appendix F §Wheelchair spaces#1"
+F_TOILETS = "tsi-prm:Appendix F §Toilets#1"
+F_CLEARWAYS = "tsi-prm:Appendix F §Clearways#1"
+F_SEATS = "tsi-prm:Appendix F §Seats#1"
+F_STRUCTURES = "tsi-prm:Appendix F §Structures#1"
+RENEWED = {"unit_length_m": 100.0, "unit_status": "renewed"}
 STAIRS_TEXT = "4.2.2.8(1): 'maximum height of 200 mm and a minimum depth of 280 mm ... For double deck trains it is permitted to reduce this value to 270 mm'"
 
 
@@ -776,6 +786,192 @@ CASES = [
         {"unit_length_m": 100.0, "deck_layout": "double_deck", "stairs": {"step_depth_mm": 265}},
         {STAIR_D: e("fail", "≥ 270 mm (double deck)", [P_STAIRS], f"{STAIRS_TEXT}: 265 < 270.")},
     ),
+    # --- suite renewal (r*): renewed units under Appendix F ---------------------------------
+    case(
+        "r01",
+        "Renewal keeps the old handrails",
+        ["renewal", "exemption"],
+        "4.2.2.9 is only mandatory where existing handrails are renewed: these were not.",
+        {
+            **RENEWED,
+            "renewal": {"handrails_renewed": False},
+            "handrails": {"outside_diameter_mm": 45},
+        },
+        {
+            RAIL: e(
+                "not_applicable",
+                None,
+                [F_RAILS],
+                "Appendix F, Handrails: 'only mandatory where existing handrails are being renewed or upgraded'; handrails_renewed is false, so 45 mm need not meet 30–40 mm.",
+            )
+        },
+    ),
+    case(
+        "r02",
+        "Renewal replaces the handrails with thick ones",
+        ["renewal", "exemption"],
+        "Renewed handrails must comply.",
+        {
+            **RENEWED,
+            "renewal": {"handrails_renewed": True},
+            "handrails": {"outside_diameter_mm": 45},
+        },
+        {
+            RAIL: e(
+                "fail",
+                "30–40 mm",
+                [P_HANDRAILS, F_RAILS],
+                "Appendix F, Handrails: the handrails are renewed, so 4.2.2.9(1) applies; 45 > 40.",
+            )
+        },
+    ),
+    case(
+        "r03",
+        "Renewal that does not say what happened to the handrails",
+        ["renewal", "exemption", "missing-data", "needs-human"],
+        "45 mm fails unless the handrails were kept, and the spec does not say.",
+        {**RENEWED, "renewal": {}, "handrails": {"outside_diameter_mm": 45}},
+        {
+            RAIL: e(
+                "needs_human",
+                "30–40 mm, unless the handrails are not renewed",
+                [P_HANDRAILS, F_RAILS],
+                "4.2.2.9(1) fails (45 > 40); Appendix F exempts handrails that are not renewed, and handrails_renewed is not supplied.",
+                alt=[ESCALATE],
+            )
+        },
+    ),
+    case(
+        "r04",
+        "Renewal that complies anyway",
+        ["renewal", "exemption", "missing-data"],
+        "35 mm meets 30–40 mm, so whether the exemption holds does not matter.",
+        {**RENEWED, "handrails": {"outside_diameter_mm": 35}},
+        {
+            RAIL: e(
+                "pass",
+                "30–40 mm",
+                [P_HANDRAILS],
+                "4.2.2.9(1): 35 is within 30–40 mm; the Appendix F exemption could only remove the rule.",
+                alt=[["search_regulation", "extract_requirement", "check"]],
+            )
+        },
+    ),
+    case(
+        "r05",
+        "Renewal with steep stairs and a high external step",
+        ["renewal", "exemption"],
+        "4.2.2.8 and 4.2.2.11 are not mandatory at renewal or upgrade.",
+        {**RENEWED, "stairs": {"step_height_mm": 220}, "steps": {"external_step_height_mm": 260}},
+        {
+            STAIR_H: e(
+                "not_applicable",
+                None,
+                [F_HEIGHT],
+                "Appendix F, Height Changes: 'Compliance with the requirements of point 4.2.2.8 is not mandatory at renewal or upgrade.'",
+            ),
+            EXT: e(
+                "not_applicable",
+                None,
+                [F_STEPS],
+                "Appendix F, Step positions: 'Compliance with the requirements of points 4.2.2.11 and 4.2.2.12 is not mandatory at renewal or upgrade.'",
+            ),
+        },
+    ),
+    case(
+        "r06",
+        "Renewal that keeps the seating layout, no wheelchair space",
+        ["renewal", "exemption", "length-dependent"],
+        "Wheelchair spaces are only required when the layout is altered within a complete train.",
+        {
+            **RENEWED,
+            "renewal": {"seating_layout_altered_in_entire_train": False},
+            "wheelchair_spaces": 0,
+        },
+        {
+            SPACES: e(
+                "not_applicable",
+                None,
+                [F_SPACES],
+                "Appendix F, Wheelchair spaces: 'only required when the seating layout is altered within a complete train formation'; it was not.",
+            )
+        },
+    ),
+    case(
+        "r07",
+        "Renewal that alters the whole layout but adds one wheelchair space",
+        ["renewal", "exemption", "needs-human"],
+        "Table 5 needs 2 at 100 m; Appendix F waives spaces only if the doorways cannot be modified, which the spec cannot show.",
+        {
+            **RENEWED,
+            "renewal": {"seating_layout_altered_in_entire_train": True},
+            "wheelchair_spaces": 1,
+        },
+        {
+            SPACES: e(
+                "needs_human",
+                "≥ 2, unless the doorways cannot be modified",
+                [P_SPACES, F_SPACES],
+                "Table 5: 1 < 2 at 100 m. Appendix F: 'if the entrance doorway, or clearways, cannot be modified to enable wheelchair access, a wheelchair space does not need to be provided'. A person must judge the doorways.",
+                alt=[ESCALATE],
+            )
+        },
+    ),
+    case(
+        "r08",
+        "Renewal that keeps the old toilets",
+        ["renewal", "exemption"],
+        "A universal toilet is only mandatory when the toilets are completely renewed.",
+        {
+            **RENEWED,
+            "renewal": {"toilets_completely_renewed": False},
+            "toilets": {"fitted": 2, "universal": 0},
+        },
+        {
+            UNIVERSAL: e(
+                "not_applicable",
+                None,
+                [F_TOILETS],
+                "Appendix F, Toilets: 'only mandatory when existing toilets are being completely renewed or upgraded'; they are not.",
+            )
+        },
+    ),
+    case(
+        "r09",
+        "Renewal that alters a vehicle's layout with a small turning space",
+        ["renewal", "exemption"],
+        "4.2.2.6 is mandatory when a vehicle's layout is altered and a wheelchair space is provided: both hold.",
+        {
+            **RENEWED,
+            "renewal": {"seating_layout_altered_in_entire_vehicle": True},
+            "wheelchair_spaces": 2,
+            "wheelchair_space_layout": {"turning_space_diameter_mm": 1400},
+        },
+        {
+            TURN: e(
+                "fail",
+                "≥ 1500 mm",
+                [P_TURNING, F_CLEARWAYS],
+                "Appendix F, Clearways: the layout is altered within an entire vehicle and 2 wheelchair spaces are provided, so 4.2.2.6(3) applies; 1400 < 1500.",
+            )
+        },
+    ),
+    case(
+        "r10",
+        "Renewal with a narrow exterior door",
+        ["renewal", "exemption", "needs-human"],
+        "800 mm is required, but widening a door portal is a structural alteration, which Appendix F does not require.",
+        {**RENEWED, "exterior_doors": {"clear_width_mm": 750}},
+        {
+            DOORS: e(
+                "needs_human",
+                "≥ 800 mm, unless it needs structural alteration to the door portal",
+                [P_DOORS, F_STRUCTURES],
+                "4.2.2.3.2(1): 750 < 800. Appendix F, Structures: 'Compliance is not mandatory if the work would require structural alterations to door portals'. A person must judge the work.",
+                alt=[ESCALATE],
+            )
+        },
+    ),
 ]
 
 
@@ -808,7 +1004,7 @@ def key_values(spec) -> str:
 def main() -> None:
     specs = HERE / "specs"
     specs.mkdir(exist_ok=True)
-    for old in [*specs.glob("g*.json"), *specs.glob("p*.json")]:
+    for old in [p for pattern in SUITES.values() for p in specs.glob(pattern)]:
         old.unlink()
     cases = []
     for raw in CASES:

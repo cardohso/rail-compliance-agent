@@ -11,6 +11,7 @@
     "name": "Single-deck stairs: height at the limit, depth too short",
     "unit_length_m": 100.0,
     "deck_layout": "single_deck",
+    "unit_status": "new",
     "stairs": {
       "step_height_mm": 200.0,
       "step_depth_mm": 275.0

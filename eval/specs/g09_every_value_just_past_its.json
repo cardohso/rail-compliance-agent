@@ -14,6 +14,7 @@
     "unit_length_m": 205.1,
     "length_includes_power_head": false,
     "design_speed_kmh": 160.0,
+    "unit_status": "new",
     "wheelchair_spaces": 2,
     "exterior_doors": {
       "clear_width_mm": 799.9,

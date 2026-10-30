@@ -2,7 +2,7 @@
 
 Written by hand from the text of the PRM TSI (Regulation (EU) No 1300/2014, point 4.2.2 and 5.3.2): drafted with Claude, reviewed by the repository owner, who confirmed the four judgment calls below on 2026-10-24. One reviewer only.
 
-**32 specs, 60 scored parameter verdicts:** 23 fail, 7 needs human, 2 not applicable, 28 pass.
+**42 specs, 71 scored parameter verdicts:** 25 fail, 10 needs human, 7 not applicable, 29 pass.
 
 ## Assumptions to confirm
 
@@ -37,15 +37,17 @@ Written by hand from the text of the PRM TSI (Regulation (EU) No 1300/2014, poin
 | `conditional-rule` | g10, g11, g12, g13, g14, g15 |
 | `exact-limit` | g03, g04, g05, g06, g07, g08, g09, g13, p01, p02, p04, p06, p09 |
 | `exception` | g03, g16 |
+| `exemption` | r01, r02, r03, r04, r05, r06, r07, r08, r09, r10 |
 | `high-speed` | g10, g11 |
 | `judgment-call` | g13 |
-| `length-dependent` | g02, g04, g05, g06, g07, g08, g09, g19, g20 |
-| `missing-data` | g14, g15, p07, p11 |
-| `needs-human` | g03, g14, g15, g16, g19, p07, p11 |
+| `length-dependent` | g02, g04, g05, g06, g07, g08, g09, g19, g20, r06 |
+| `missing-data` | g14, g15, p07, p11, r03, r04 |
+| `needs-human` | g03, g14, g15, g16, g19, p07, p11, r03, r07, r10 |
 | `not-applicable` | g17, p08 |
 | `other-section` | g08, g09 |
 | `range` | p01, p02, p03 |
 | `relaxation` | p10, p11, p12 |
+| `renewal` | r01, r02, r03, r04, r05, r06, r07, r08, r09, r10 |
 | `table-boundary` | g04, g05, g06, g07 |
 | `thousand-separator` | p05 |
 | `violation` | g02, g09, g18 |
@@ -54,38 +56,48 @@ Written by hand from the text of the PRM TSI (Regulation (EU) No 1300/2014, poin
 
 | Id | Title | Spec (supplied values) | Expected |
 |---|---|---|---|
-| g01 | Compliant regional EMU | len 105, head 0, speed 160, wheelchair_spaces 2, clear_width_mm 850, wheelchair_door 1100, level 1, external_step 200, internal_step 180, fitted 2, universal 1, universal_door 900 | `wheelchair_spaces`: **pass**<br>`clear_width_mm`: **pass**<br>`wheelchair_door_clear_width_mm`: **pass**<br>`external_step_height_mm`: **pass**<br>`internal_step_height_mm`: **pass**<br>`universal`: **pass**<br>`universal_door_clear_width_mm`: **pass** |
-| g02 | Regional train violating six rules | len 150, head 0, speed 160, wheelchair_spaces 1, clear_width_mm 760, wheelchair_door 950, level 1, external_step 260, internal_step 240, fitted 3, universal 0 | `wheelchair_spaces`: **fail**<br>`clear_width_mm`: **fail**<br>`wheelchair_door_clear_width_mm`: **fail**<br>`external_step_height_mm`: **fail**<br>`internal_step_height_mm`: **fail**<br>`universal`: **fail** |
-| g03 | Internal step exactly at the exception limit | len 100, internal_step 230 | `internal_step_height_mm`: **needs human** |
-| g04 | Length exactly 30 m with one wheelchair space | len 30, wheelchair_spaces 1 | `wheelchair_spaces`: **fail** |
-| g05 | Length exactly 205 m with two wheelchair spaces | len 205, wheelchair_spaces 2 | `wheelchair_spaces`: **pass** |
-| g06 | Length exactly 300 m with three wheelchair spaces | len 300, wheelchair_spaces 3 | `wheelchair_spaces`: **pass** |
-| g07 | Length 300.1 m with three wheelchair spaces | len 300.1, wheelchair_spaces 3 | `wheelchair_spaces`: **fail** |
-| g08 | Every value exactly at its limit | len 30, head 0, speed 160, wheelchair_spaces 2, clear_width_mm 800, wheelchair_door 1000, level 1, external_step 230, internal_step 200, fitted 1, universal 1, universal_door 800 | `wheelchair_spaces`: **pass**<br>`clear_width_mm`: **pass**<br>`wheelchair_door_clear_width_mm`: **pass**<br>`external_step_height_mm`: **pass**<br>`internal_step_height_mm`: **pass**<br>`universal`: **pass**<br>`universal_door_clear_width_mm`: **pass** |
-| g09 | Every value just past its limit | len 205.1, head 0, speed 160, wheelchair_spaces 2, clear_width_mm 799.9, wheelchair_door 999.9, level 1, external_step 230.1, internal_step 230.1, fitted 1, universal 1, universal_door 799.9 | `wheelchair_spaces`: **fail**<br>`clear_width_mm`: **fail**<br>`wheelchair_door_clear_width_mm`: **fail**<br>`external_step_height_mm`: **fail**<br>`internal_step_height_mm`: **fail**<br>`universal`: **pass**<br>`universal_door_clear_width_mm`: **fail** |
-| g10 | 300 km/h train, wheelchair door 780 mm | len 200, speed 300, wheelchair_door 780, level 1 | `wheelchair_door_clear_width_mm`: **fail** |
-| g11 | 300 km/h train, wheelchair door 900 mm | len 200, speed 300, wheelchair_door 900, level 1 | `wheelchair_door_clear_width_mm`: **pass** |
-| g12 | 160 km/h train, wheelchair door 900 mm without level access | len 100, speed 160, wheelchair_door 900, level 0 | `wheelchair_door_clear_width_mm`: **pass** |
-| g13 | Design speed exactly 250 km/h | len 100, speed 250, wheelchair_door 900, level 1 | `wheelchair_door_clear_width_mm`: **pass** |
-| g14 | Wheelchair door rule needs a design speed the spec omits | len 100, wheelchair_door 900, level 1 | `wheelchair_door_clear_width_mm`: **needs human** |
-| g15 | Wheelchair door rule needs level-access data the spec omits | len 100, speed 160, wheelchair_door 900 | `wheelchair_door_clear_width_mm`: **needs human** |
-| g16 | Internal step of 215 mm | len 100, internal_step 215 | `internal_step_height_mm`: **needs human** |
-| g17 | Train with no toilets | len 100, fitted 0, universal 0 | `universal`: **not applicable** |
-| g18 | Toilets fitted but none universal | len 100, fitted 2, universal 0 | `universal`: **fail** |
-| g19 | Length includes a power head, two wheelchair spaces | len 210, head 1, wheelchair_spaces 2 | `wheelchair_spaces`: **needs human** |
-| g20 | Length includes a power head, three wheelchair spaces | len 210, head 1, wheelchair_spaces 3 | `wheelchair_spaces`: **pass** |
-| p01 | Handrail diameter at the bottom of the range | len 100, outside_diameter_mm 30 | `outside_diameter_mm`: **pass** |
-| p02 | Handrail too thick, priority seat at the top of the range | len 100, outside_diameter_mm 41, cushion 500 | `outside_diameter_mm`: **fail**<br>`cushion_height_mm`: **pass** |
-| p03 | Priority seat too low | len 100, cushion 425 | `cushion_height_mm`: **fail** |
-| p04 | Wheelchair space and turning space exactly at the minimum | len 100, width_mm 700, turning_space_diameter_mm 1500 | `width_mm`: **pass**<br>`turning_space_diameter_mm`: **pass** |
-| p05 | Wheelchair space and turning space too small | len 100, width_mm 690, turning_space_diameter_mm 1450 | `width_mm`: **fail**<br>`turning_space_diameter_mm`: **fail** |
-| p06 | Hand clearance on a side next to a wall | len 100, sides_next_to_obstacle 1, hand_clearance_mm 50 | `hand_clearance_mm`: **pass** |
-| p07 | Too little hand clearance, sides not stated | len 100, hand_clearance_mm 40 | `hand_clearance_mm`: **needs human** |
-| p08 | Wheelchair space open on both sides | len 100, sides_next_to_obstacle 0, hand_clearance_mm 20 | `hand_clearance_mm`: **not applicable** |
-| p09 | Single-deck stairs: height at the limit, depth too short | len 100, step 200, step_depth_mm 275, single_deck | `step_height_mm`: **pass**<br>`step_depth_mm`: **fail** |
-| p10 | Double-deck stairs with the relaxed depth | len 100, step 210, step_depth_mm 275, double_deck | `step_height_mm`: **fail**<br>`step_depth_mm`: **pass** |
-| p11 | Stair depth between the two limits, deck layout not stated | len 100, step_depth_mm 275 | `step_depth_mm`: **needs human** |
-| p12 | Double-deck stairs below even the relaxed depth | len 100, step_depth_mm 265, double_deck | `step_depth_mm`: **fail** |
+| g01 | Compliant regional EMU | len 105, head 0, speed 160, wheelchair_spaces 2, clear_width_mm 850, wheelchair_door 1100, level 1, external_step 200, internal_step 180, fitted 2, universal 1, universal_door 900, new | `wheelchair_spaces`: **pass**<br>`clear_width_mm`: **pass**<br>`wheelchair_door_clear_width_mm`: **pass**<br>`external_step_height_mm`: **pass**<br>`internal_step_height_mm`: **pass**<br>`universal`: **pass**<br>`universal_door_clear_width_mm`: **pass** |
+| g02 | Regional train violating six rules | len 150, head 0, speed 160, wheelchair_spaces 1, clear_width_mm 760, wheelchair_door 950, level 1, external_step 260, internal_step 240, fitted 3, universal 0, new | `wheelchair_spaces`: **fail**<br>`clear_width_mm`: **fail**<br>`wheelchair_door_clear_width_mm`: **fail**<br>`external_step_height_mm`: **fail**<br>`internal_step_height_mm`: **fail**<br>`universal`: **fail** |
+| g03 | Internal step exactly at the exception limit | len 100, internal_step 230, new | `internal_step_height_mm`: **needs human** |
+| g04 | Length exactly 30 m with one wheelchair space | len 30, wheelchair_spaces 1, new | `wheelchair_spaces`: **fail** |
+| g05 | Length exactly 205 m with two wheelchair spaces | len 205, wheelchair_spaces 2, new | `wheelchair_spaces`: **pass** |
+| g06 | Length exactly 300 m with three wheelchair spaces | len 300, wheelchair_spaces 3, new | `wheelchair_spaces`: **pass** |
+| g07 | Length 300.1 m with three wheelchair spaces | len 300.1, wheelchair_spaces 3, new | `wheelchair_spaces`: **fail** |
+| g08 | Every value exactly at its limit | len 30, head 0, speed 160, wheelchair_spaces 2, clear_width_mm 800, wheelchair_door 1000, level 1, external_step 230, internal_step 200, fitted 1, universal 1, universal_door 800, new | `wheelchair_spaces`: **pass**<br>`clear_width_mm`: **pass**<br>`wheelchair_door_clear_width_mm`: **pass**<br>`external_step_height_mm`: **pass**<br>`internal_step_height_mm`: **pass**<br>`universal`: **pass**<br>`universal_door_clear_width_mm`: **pass** |
+| g09 | Every value just past its limit | len 205.1, head 0, speed 160, wheelchair_spaces 2, clear_width_mm 799.9, wheelchair_door 999.9, level 1, external_step 230.1, internal_step 230.1, fitted 1, universal 1, universal_door 799.9, new | `wheelchair_spaces`: **fail**<br>`clear_width_mm`: **fail**<br>`wheelchair_door_clear_width_mm`: **fail**<br>`external_step_height_mm`: **fail**<br>`internal_step_height_mm`: **fail**<br>`universal`: **pass**<br>`universal_door_clear_width_mm`: **fail** |
+| g10 | 300 km/h train, wheelchair door 780 mm | len 200, speed 300, wheelchair_door 780, level 1, new | `wheelchair_door_clear_width_mm`: **fail** |
+| g11 | 300 km/h train, wheelchair door 900 mm | len 200, speed 300, wheelchair_door 900, level 1, new | `wheelchair_door_clear_width_mm`: **pass** |
+| g12 | 160 km/h train, wheelchair door 900 mm without level access | len 100, speed 160, wheelchair_door 900, level 0, new | `wheelchair_door_clear_width_mm`: **pass** |
+| g13 | Design speed exactly 250 km/h | len 100, speed 250, wheelchair_door 900, level 1, new | `wheelchair_door_clear_width_mm`: **pass** |
+| g14 | Wheelchair door rule needs a design speed the spec omits | len 100, wheelchair_door 900, level 1, new | `wheelchair_door_clear_width_mm`: **needs human** |
+| g15 | Wheelchair door rule needs level-access data the spec omits | len 100, speed 160, wheelchair_door 900, new | `wheelchair_door_clear_width_mm`: **needs human** |
+| g16 | Internal step of 215 mm | len 100, internal_step 215, new | `internal_step_height_mm`: **needs human** |
+| g17 | Train with no toilets | len 100, fitted 0, universal 0, new | `universal`: **not applicable** |
+| g18 | Toilets fitted but none universal | len 100, fitted 2, universal 0, new | `universal`: **fail** |
+| g19 | Length includes a power head, two wheelchair spaces | len 210, head 1, wheelchair_spaces 2, new | `wheelchair_spaces`: **needs human** |
+| g20 | Length includes a power head, three wheelchair spaces | len 210, head 1, wheelchair_spaces 3, new | `wheelchair_spaces`: **pass** |
+| p01 | Handrail diameter at the bottom of the range | len 100, outside_diameter_mm 30, new | `outside_diameter_mm`: **pass** |
+| p02 | Handrail too thick, priority seat at the top of the range | len 100, outside_diameter_mm 41, cushion 500, new | `outside_diameter_mm`: **fail**<br>`cushion_height_mm`: **pass** |
+| p03 | Priority seat too low | len 100, cushion 425, new | `cushion_height_mm`: **fail** |
+| p04 | Wheelchair space and turning space exactly at the minimum | len 100, width_mm 700, turning_space_diameter_mm 1500, new | `width_mm`: **pass**<br>`turning_space_diameter_mm`: **pass** |
+| p05 | Wheelchair space and turning space too small | len 100, width_mm 690, turning_space_diameter_mm 1450, new | `width_mm`: **fail**<br>`turning_space_diameter_mm`: **fail** |
+| p06 | Hand clearance on a side next to a wall | len 100, sides_next_to_obstacle 1, hand_clearance_mm 50, new | `hand_clearance_mm`: **pass** |
+| p07 | Too little hand clearance, sides not stated | len 100, hand_clearance_mm 40, new | `hand_clearance_mm`: **needs human** |
+| p08 | Wheelchair space open on both sides | len 100, sides_next_to_obstacle 0, hand_clearance_mm 20, new | `hand_clearance_mm`: **not applicable** |
+| p09 | Single-deck stairs: height at the limit, depth too short | len 100, step 200, step_depth_mm 275, single_deck, new | `step_height_mm`: **pass**<br>`step_depth_mm`: **fail** |
+| p10 | Double-deck stairs with the relaxed depth | len 100, step 210, step_depth_mm 275, double_deck, new | `step_height_mm`: **fail**<br>`step_depth_mm`: **pass** |
+| p11 | Stair depth between the two limits, deck layout not stated | len 100, step_depth_mm 275, new | `step_depth_mm`: **needs human** |
+| p12 | Double-deck stairs below even the relaxed depth | len 100, step_depth_mm 265, double_deck, new | `step_depth_mm`: **fail** |
+| r01 | Renewal keeps the old handrails | len 100, handrails_renewed 0, outside_diameter_mm 45, renewed | `outside_diameter_mm`: **not applicable** |
+| r02 | Renewal replaces the handrails with thick ones | len 100, handrails_renewed 1, outside_diameter_mm 45, renewed | `outside_diameter_mm`: **fail** |
+| r03 | Renewal that does not say what happened to the handrails | len 100, outside_diameter_mm 45, renewed | `outside_diameter_mm`: **needs human** |
+| r04 | Renewal that complies anyway | len 100, outside_diameter_mm 35, renewed | `outside_diameter_mm`: **pass** |
+| r05 | Renewal with steep stairs and a high external step | len 100, external_step 260, step 220, renewed | `step_height_mm`: **not applicable**<br>`external_step_height_mm`: **not applicable** |
+| r06 | Renewal that keeps the seating layout, no wheelchair space | len 100, seating_layout_altered_in_entire_train 0, wheelchair_spaces 0, renewed | `wheelchair_spaces`: **not applicable** |
+| r07 | Renewal that alters the whole layout but adds one wheelchair space | len 100, seating_layout_altered_in_entire_train 1, wheelchair_spaces 1, renewed | `wheelchair_spaces`: **needs human** |
+| r08 | Renewal that keeps the old toilets | len 100, toilets_completely_renewed 0, fitted 2, universal 0, renewed | `universal`: **not applicable** |
+| r09 | Renewal that alters a vehicle's layout with a small turning space | len 100, seating_layout_altered_in_entire_vehicle 1, wheelchair_spaces 2, turning_space_diameter_mm 1400, renewed | `turning_space_diameter_mm`: **fail** |
+| r10 | Renewal with a narrow exterior door | len 100, clear_width_mm 750, renewed | `clear_width_mm`: **needs human** |
 
 ## Reasoning per case
 
@@ -308,3 +320,64 @@ Written by hand from the text of the PRM TSI (Regulation (EU) No 1300/2014, poin
 *The relaxation does not save a value below 270 mm.* Tags: category, relaxation.
 
 - `stairs.step_depth_mm` → **fail**. 4.2.2.8(1): 'maximum height of 200 mm and a minimum depth of 280 mm ... For double deck trains it is permitted to reduce this value to 270 mm': 265 < 270.
+
+### r01: Renewal keeps the old handrails
+
+*4.2.2.9 is only mandatory where existing handrails are renewed: these were not.* Tags: renewal, exemption.
+
+- `handrails.outside_diameter_mm` → **not applicable**. Appendix F, Handrails: 'only mandatory where existing handrails are being renewed or upgraded'; handrails_renewed is false, so 45 mm need not meet 30–40 mm.
+
+### r02: Renewal replaces the handrails with thick ones
+
+*Renewed handrails must comply.* Tags: renewal, exemption.
+
+- `handrails.outside_diameter_mm` → **fail**. Appendix F, Handrails: the handrails are renewed, so 4.2.2.9(1) applies; 45 > 40.
+
+### r03: Renewal that does not say what happened to the handrails
+
+*45 mm fails unless the handrails were kept, and the spec does not say.* Tags: renewal, exemption, missing-data, needs-human.
+
+- `handrails.outside_diameter_mm` → **needs human**. 4.2.2.9(1) fails (45 > 40); Appendix F exempts handrails that are not renewed, and handrails_renewed is not supplied.
+
+### r04: Renewal that complies anyway
+
+*35 mm meets 30–40 mm, so whether the exemption holds does not matter.* Tags: renewal, exemption, missing-data.
+
+- `handrails.outside_diameter_mm` → **pass**. 4.2.2.9(1): 35 is within 30–40 mm; the Appendix F exemption could only remove the rule.
+
+### r05: Renewal with steep stairs and a high external step
+
+*4.2.2.8 and 4.2.2.11 are not mandatory at renewal or upgrade.* Tags: renewal, exemption.
+
+- `stairs.step_height_mm` → **not applicable**. Appendix F, Height Changes: 'Compliance with the requirements of point 4.2.2.8 is not mandatory at renewal or upgrade.'
+- `steps.external_step_height_mm` → **not applicable**. Appendix F, Step positions: 'Compliance with the requirements of points 4.2.2.11 and 4.2.2.12 is not mandatory at renewal or upgrade.'
+
+### r06: Renewal that keeps the seating layout, no wheelchair space
+
+*Wheelchair spaces are only required when the layout is altered within a complete train.* Tags: renewal, exemption, length-dependent.
+
+- `wheelchair_spaces` → **not applicable**. Appendix F, Wheelchair spaces: 'only required when the seating layout is altered within a complete train formation'; it was not.
+
+### r07: Renewal that alters the whole layout but adds one wheelchair space
+
+*Table 5 needs 2 at 100 m; Appendix F waives spaces only if the doorways cannot be modified, which the spec cannot show.* Tags: renewal, exemption, needs-human.
+
+- `wheelchair_spaces` → **needs human**. Table 5: 1 < 2 at 100 m. Appendix F: 'if the entrance doorway, or clearways, cannot be modified to enable wheelchair access, a wheelchair space does not need to be provided'. A person must judge the doorways.
+
+### r08: Renewal that keeps the old toilets
+
+*A universal toilet is only mandatory when the toilets are completely renewed.* Tags: renewal, exemption.
+
+- `toilets.universal` → **not applicable**. Appendix F, Toilets: 'only mandatory when existing toilets are being completely renewed or upgraded'; they are not.
+
+### r09: Renewal that alters a vehicle's layout with a small turning space
+
+*4.2.2.6 is mandatory when a vehicle's layout is altered and a wheelchair space is provided: both hold.* Tags: renewal, exemption.
+
+- `wheelchair_space_layout.turning_space_diameter_mm` → **fail**. Appendix F, Clearways: the layout is altered within an entire vehicle and 2 wheelchair spaces are provided, so 4.2.2.6(3) applies; 1400 < 1500.
+
+### r10: Renewal with a narrow exterior door
+
+*800 mm is required, but widening a door portal is a structural alteration, which Appendix F does not require.* Tags: renewal, exemption, needs-human.
+
+- `exterior_doors.clear_width_mm` → **needs human**. 4.2.2.3.2(1): 750 < 800. Appendix F, Structures: 'Compliance is not mandatory if the work would require structural alterations to door portals'. A person must judge the work.

@@ -11,6 +11,7 @@
     "spec_version": "1",
     "name": "Length exactly 205 m with two wheelchair spaces",
     "unit_length_m": 205.0,
+    "unit_status": "new",
     "wheelchair_spaces": 2
   },
   "expected": {

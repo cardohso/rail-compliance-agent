@@ -12,6 +12,7 @@
     "name": "Wheelchair door rule needs level-access data the spec omits",
     "unit_length_m": 100.0,
     "design_speed_kmh": 160.0,
+    "unit_status": "new",
     "exterior_doors": {
       "wheelchair_door_clear_width_mm": 900.0
     }

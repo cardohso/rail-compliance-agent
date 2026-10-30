@@ -10,6 +10,7 @@
     "spec_version": "1",
     "name": "Internal step of 215 mm",
     "unit_length_m": 100.0,
+    "unit_status": "new",
     "steps": {
       "internal_step_height_mm": 215.0
     }

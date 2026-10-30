@@ -12,6 +12,7 @@
     "name": "Design speed exactly 250 km/h",
     "unit_length_m": 100.0,
     "design_speed_kmh": 250.0,
+    "unit_status": "new",
     "exterior_doors": {
       "wheelchair_door_clear_width_mm": 900.0,
       "wheelchair_door_level_access": true

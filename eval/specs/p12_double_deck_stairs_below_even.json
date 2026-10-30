@@ -11,6 +11,7 @@
     "name": "Double-deck stairs below even the relaxed depth",
     "unit_length_m": 100.0,
     "deck_layout": "double_deck",
+    "unit_status": "new",
     "stairs": {
       "step_depth_mm": 265.0
     }

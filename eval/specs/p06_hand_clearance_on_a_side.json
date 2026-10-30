@@ -10,6 +10,7 @@
     "spec_version": "1",
     "name": "Hand clearance on a side next to a wall",
     "unit_length_m": 100.0,
+    "unit_status": "new",
     "wheelchair_space_layout": {
       "sides_next_to_obstacle": 1,
       "hand_clearance_mm": 50.0

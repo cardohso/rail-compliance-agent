@@ -1,0 +1,36 @@
+{
+  "id": "r01",
+  "title": "Renewal keeps the old handrails",
+  "tags": [
+    "renewal",
+    "exemption"
+  ],
+  "why": "4.2.2.9 is only mandatory where existing handrails are renewed: these were not.",
+  "spec": {
+    "spec_version": "1",
+    "name": "Renewal keeps the old handrails",
+    "unit_length_m": 100.0,
+    "unit_status": "renewed",
+    "renewal": {
+      "handrails_renewed": false
+    },
+    "handrails": {
+      "outside_diameter_mm": 45.0
+    }
+  },
+  "expected": {
+    "handrails.outside_diameter_mm": {
+      "verdict": "not_applicable",
+      "gold_passages": [
+        "tsi-prm:Appendix F §Handrails#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "Appendix F, Handrails: 'only mandatory where existing handrails are being renewed or upgraded'; handrails_renewed is false, so 45 mm need not meet 30–40 mm."
+    }
+  }
+}

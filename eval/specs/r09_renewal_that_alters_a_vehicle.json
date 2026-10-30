@@ -1,0 +1,39 @@
+{
+  "id": "r09",
+  "title": "Renewal that alters a vehicle's layout with a small turning space",
+  "tags": [
+    "renewal",
+    "exemption"
+  ],
+  "why": "4.2.2.6 is mandatory when a vehicle's layout is altered and a wheelchair space is provided: both hold.",
+  "spec": {
+    "spec_version": "1",
+    "name": "Renewal that alters a vehicle's layout with a small turning space",
+    "unit_length_m": 100.0,
+    "unit_status": "renewed",
+    "renewal": {
+      "seating_layout_altered_in_entire_vehicle": true
+    },
+    "wheelchair_spaces": 2,
+    "wheelchair_space_layout": {
+      "turning_space_diameter_mm": 1400.0
+    }
+  },
+  "expected": {
+    "wheelchair_space_layout.turning_space_diameter_mm": {
+      "verdict": "fail",
+      "required": "≥ 1500 mm",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.6#1",
+        "tsi-prm:Appendix F §Clearways#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "Appendix F, Clearways: the layout is altered within an entire vehicle and 2 wheelchair spaces are provided, so 4.2.2.6(3) applies; 1400 < 1500."
+    }
+  }
+}

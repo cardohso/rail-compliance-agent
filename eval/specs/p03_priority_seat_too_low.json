@@ -9,6 +9,7 @@
     "spec_version": "1",
     "name": "Priority seat too low",
     "unit_length_m": 100.0,
+    "unit_status": "new",
     "priority_seats": {
       "cushion_height_mm": 425.0
     }
