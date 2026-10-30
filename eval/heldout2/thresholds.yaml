@@ -1,0 +1,16 @@
+# Held-out set 2 (k01-k13): the same floors as the suites it mirrors, without tag slices (a tag here
+# holds one to four verdicts). SET ON 2026-10-30, BEFORE THE AGENT WAS RUN ON IT OR ON THOSE SUITES.
+# With 22 verdicts one miss moves accuracy by 4.5 points: read the result as a measurement.
+#  - accuracy 0.70: between renewal's 0.65 and noise's 0.80, weighted by the mix of cases;
+#  - the cost guard allows renewal's extra exemption calls;
+#  - 3 verdicts expect needs_human, so recall moves in steps of 0.33.
+metrics:
+  verdict_accuracy:        {min: 0.70}
+  unsafe_pass_rate:        {max: 0.05}
+  needs_human_recall:      {min: 0.33}
+  needs_human_precision:   {min: 0.50}
+  tool_selection_accuracy: {min: 0.75}
+  argument_correctness:    {min: 0.95}
+  citation_hit_rate:       {min: 0.80}
+  tool_calls_per_parameter: {max: 8.0}
+  errors:                  {max: 0}

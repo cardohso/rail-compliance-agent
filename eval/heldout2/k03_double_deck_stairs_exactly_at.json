@@ -1,0 +1,52 @@
+{
+  "id": "k03",
+  "title": "Double-deck stairs exactly at the relaxed depth",
+  "tags": [
+    "heldout2",
+    "category",
+    "relaxation",
+    "exact-limit"
+  ],
+  "why": "270 mm is the permitted minimum on a double deck train; the height rule is unchanged.",
+  "spec": {
+    "spec_version": "1",
+    "name": "Double-deck stairs exactly at the relaxed depth",
+    "unit_length_m": 80.0,
+    "deck_layout": "double_deck",
+    "unit_status": "new",
+    "stairs": {
+      "step_height_mm": 199.0,
+      "step_depth_mm": 270.0
+    }
+  },
+  "expected": {
+    "stairs.step_height_mm": {
+      "verdict": "pass",
+      "required": "≤ 200 mm",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.8#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.8(1): 'maximum height of 200 mm and a minimum depth of 280 mm ... For double deck trains it is permitted to reduce this value to 270 mm': 199 ≤ 200."
+    },
+    "stairs.step_depth_mm": {
+      "verdict": "pass",
+      "required": "≥ 270 mm (double deck)",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.8#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.8(1): 'maximum height of 200 mm and a minimum depth of 280 mm ... For double deck trains it is permitted to reduce this value to 270 mm': double deck, 270 ≥ 270."
+    }
+  }
+}

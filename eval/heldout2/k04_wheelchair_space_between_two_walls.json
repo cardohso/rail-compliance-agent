@@ -1,0 +1,50 @@
+{
+  "id": "k04",
+  "title": "Wheelchair space between two walls",
+  "tags": [
+    "heldout2",
+    "conditional"
+  ],
+  "why": "Both sides are next to an obstacle, so each needs 50 mm of hand clearance.",
+  "spec": {
+    "spec_version": "1",
+    "name": "Wheelchair space between two walls",
+    "unit_length_m": 80.0,
+    "unit_status": "new",
+    "wheelchair_space_layout": {
+      "width_mm": 701.0,
+      "sides_next_to_obstacle": 2,
+      "hand_clearance_mm": 49.0
+    }
+  },
+  "expected": {
+    "wheelchair_space_layout.width_mm": {
+      "verdict": "pass",
+      "required": "≥ 700 mm",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.2#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.2(3): 701 ≥ 700."
+    },
+    "wheelchair_space_layout.hand_clearance_mm": {
+      "verdict": "fail",
+      "required": "≥ 50 mm (sides next to an obstacle)",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.2#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.2(3): an additional 50 mm on each side next to an obstacle; 49 < 50."
+    }
+  }
+}

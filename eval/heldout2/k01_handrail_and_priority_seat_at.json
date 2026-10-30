@@ -1,0 +1,52 @@
+{
+  "id": "k01",
+  "title": "Handrail and priority seat at the other ends of their ranges",
+  "tags": [
+    "heldout2",
+    "range",
+    "exact-limit"
+  ],
+  "why": "40 mm and 430 mm are both included in their ranges.",
+  "spec": {
+    "spec_version": "1",
+    "name": "Handrail and priority seat at the other ends of their ranges",
+    "unit_length_m": 80.0,
+    "unit_status": "new",
+    "handrails": {
+      "outside_diameter_mm": 40.0
+    },
+    "priority_seats": {
+      "cushion_height_mm": 430.0
+    }
+  },
+  "expected": {
+    "handrails.outside_diameter_mm": {
+      "verdict": "pass",
+      "required": "30–40 mm",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.9#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.9(1): 40 is the upper bound of '30 mm to 40 mm', included."
+    },
+    "priority_seats.cushion_height_mm": {
+      "verdict": "pass",
+      "required": "430–500 mm",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.1.2.1#2"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [],
+      "rationale": "4.2.2.1.2.1(9): 430 is the lower bound of 'between 430 and 500 mm', included."
+    }
+  }
+}

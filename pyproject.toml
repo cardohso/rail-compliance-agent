@@ -53,6 +53,7 @@ select = ["E", "F", "I", "B", "UP", "SIM"]
 [tool.ruff.lint.per-file-ignores]
 "eval/build_golden.py" = ["E501"]  # data file: long rationale strings read better unwrapped
 "eval/build_heldout.py" = ["E501"]  # data file, same reason
+"eval/build_heldout2.py" = ["E501"]  # data file, same reason
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

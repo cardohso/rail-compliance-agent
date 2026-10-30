@@ -1,0 +1,43 @@
+{
+  "id": "k05",
+  "title": "Stair depth 279 mm, deck layout not stated",
+  "tags": [
+    "heldout2",
+    "category",
+    "relaxation",
+    "missing-data",
+    "needs-human"
+  ],
+  "why": "279 mm fails 280 and meets 270; only the deck layout decides.",
+  "spec": {
+    "spec_version": "1",
+    "name": "Stair depth 279 mm, deck layout not stated",
+    "unit_length_m": 80.0,
+    "unit_status": "new",
+    "stairs": {
+      "step_depth_mm": 279.0
+    }
+  },
+  "expected": {
+    "stairs.step_depth_mm": {
+      "verdict": "needs_human",
+      "required": "≥ 280 mm, or ≥ 270 mm if double deck",
+      "gold_passages": [
+        "tsi-prm:Annex §4.2.2.8#1"
+      ],
+      "expected_tools": [
+        "search_regulation",
+        "extract_requirement",
+        "check"
+      ],
+      "alt_tools": [
+        [
+          "search_regulation",
+          "extract_requirement",
+          "needs_human"
+        ]
+      ],
+      "rationale": "4.2.2.8(1): 'maximum height of 200 mm and a minimum depth of 280 mm ... For double deck trains it is permitted to reduce this value to 270 mm': deck_layout is not supplied."
+    }
+  }
+}
