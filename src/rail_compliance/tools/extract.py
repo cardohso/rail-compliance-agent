@@ -316,8 +316,23 @@ def extract_requirement(
     a stricter one for some cases): `focus` names the one to extract on this call."""
     if not passages:
         return ExtractionResult(status="not_found", reason="no passages were given")
-    draft = llm.extract(SYSTEM, _prompt(parameter, passages, focus), RequirementDraft)
+    prompt = _prompt(parameter, passages, focus)
+    result = _verify(llm.extract(SYSTEM, prompt, RequirementDraft), passages, parameter)
+    if result.status != "unverified":
+        return result
+    # The verifier rejected the rule. The extraction model is deterministic, so asking again with
+    # the same words gives the same rule: it has to be shown why this one was rejected. Once.
+    feedback = (
+        f"{prompt}\n\nYour previous answer was rejected: {result.reason}.\n"
+        "Correct exactly that, or set `found` to false if the passages do not state this rule."
+    )
+    return _verify(llm.extract(SYSTEM, feedback, RequirementDraft), passages, parameter)
 
+
+def _verify(
+    draft: RequirementDraft, passages: Sequence[Passage], parameter: str
+) -> ExtractionResult:
+    """Check the model's draft against the passages: the rule is only as good as its quote."""
     if not draft.found:
         return ExtractionResult(
             status="not_found", reason=draft.note or "the model found no requirement"

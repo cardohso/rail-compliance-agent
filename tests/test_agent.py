@@ -274,7 +274,8 @@ def test_an_unverified_extraction_is_escalated_by_the_model():
         ai(tool_call("needs_human", reason="The extracted quote could not be verified.",
                      category="weak_citation")),
     ]  # fmt: skip
-    report, *_ = run(spec(exterior_doors={"clear_width_mm": 850}), script, [bad])
+    # the extractor is shown the rejection and revises once; this one repeats itself
+    report, *_ = run(spec(exterior_doors={"clear_width_mm": 850}), script, [bad, bad])
     result = report.result_for(DOOR)
     assert result.verdict == "needs_human"
     assert result.reviews[0].category == "weak_citation"
