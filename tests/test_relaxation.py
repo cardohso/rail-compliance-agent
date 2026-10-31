@@ -6,7 +6,7 @@ import pytest
 from pydantic import ValidationError
 
 from rail_compliance.agent import Scratch, _settle
-from rail_compliance.models import Condition, RequirementCore
+from rail_compliance.models import Condition, RequirementCore, RuleDraft
 from rail_compliance.tools.check import check
 from tests.factories import limit
 
@@ -152,3 +152,85 @@ def test_end_to_end_the_spec_deck_layout_decides_the_relaxation(deck, verdict):
                             clock=lambda: next(ticks) * 0.5)  # fmt: skip
     result = agent.run(spec).result_for(DEPTH)
     assert result.verdict == verdict, result.reason
+
+
+# --- found by the first runs of the new suites (core g08/g09, prm-extended p10) ----------------
+
+CONTINGENT_QUOTE = (
+    "The height of each step may be increased to a maximum of 230 mm if it can be demonstrated "
+    "that this achieves a reduction of one in the total number of steps required."
+)
+HEIGHT = "steps.internal_step_height_mm"
+STAIRS_QUOTE = "For double deck trains it is permitted to reduce this value to 270 mm"
+
+
+def extract_height(rule_fields, quote=CONTINGENT_QUOTE):
+    from rail_compliance.models import RequirementDraft
+    from rail_compliance.tools.extract import extract_requirement
+    from tests.factories import passage
+    from tests.test_extract import FakeLLM
+
+    extra = [
+        "The height of each step may be increased to a maximum of 230 mm.",
+        "For double deck trains the height of each step may be increased to a maximum of 230 mm.",
+        "For double deck trains it is permitted to use 270 mm for the lower deck.",
+    ]
+    text = " ".join([CONTINGENT_QUOTE, STAIRS_QUOTE, quote, *extra])
+    p = passage(text, id_="tsi-prm:Annex §4.2.2.11.2#1")
+    base = dict(parameter=HEIGHT, subject="internal_step", comparator="<=", value=230, unit="mm")
+    draft = RequirementDraft(found=True, passage_id=p.id, quote=quote,
+                             rule=RuleDraft(**{**base, **rule_fields}))  # fmt: skip
+    return extract_requirement([p], HEIGHT, FakeLLM(draft))
+
+
+def test_a_demonstration_exception_filed_as_a_relaxation_is_told_what_it_is_instead():
+    """The model marked 'if it can be demonstrated' as a relaxation with no conditions, which
+    cost the agent the rule and two verdicts. The message must say what to do."""
+    result = extract_height({"relaxes": True, "contingency": "a reduction of one in the steps"})
+    assert result.status == "unverified"
+    assert "contingency" in result.reason and "relaxes to false" in result.reason
+
+
+def test_the_same_exception_as_a_contingency_is_found():
+    result = extract_height({"contingency": "a reduction of one in the total number of steps"})
+    assert result.status == "found"
+
+
+@pytest.mark.parametrize(
+    ("comparator", "status"),
+    [
+        (">=", "found"),  # a minimum may be reduced: that is a relaxation
+        ("<=", "unverified"),  # a maximum cannot be relaxed by reducing it: that is stricter
+    ],
+)
+def test_a_relaxation_must_move_the_limit_the_way_its_verb_says(comparator, status):
+    """p10: 'reduce this value to 270 mm' was read as a new maximum for the step HEIGHT, which
+    turned 210 mm from a fail into a pass."""
+    result = extract_height({"comparator": comparator, "value": 270, "relaxes": True,
+                             "conditions": [DOUBLE]}, quote=STAIRS_QUOTE)  # fmt: skip
+    assert result.status == status, result.reason
+    if status == "unverified":
+        assert "stricter" in result.reason and "minimum" in result.reason
+
+
+def test_the_word_lower_in_lower_deck_is_not_a_reduction():
+    quote = "For double deck trains it is permitted to use 270 mm for the lower deck"
+    result = extract_height({"comparator": "<=", "value": 270, "relaxes": True,
+                             "conditions": [DOUBLE]}, quote=quote)  # fmt: skip
+    assert result.status == "found", result.reason
+
+
+def test_an_increase_may_relax_a_maximum_but_not_a_minimum():
+    quote = "For double deck trains the height of each step may be increased to a maximum of 230 mm"
+    ok = extract_height({"relaxes": True, "conditions": [DOUBLE]}, quote=quote)
+    assert ok.status == "found", ok.reason
+    bad = extract_height({"comparator": ">=", "relaxes": True, "conditions": [DOUBLE]}, quote=quote)
+    assert bad.status == "unverified" and "stricter" in bad.reason
+
+
+def test_the_prompt_separates_a_relaxation_from_a_demonstration_and_asks_for_the_case_condition():
+    from rail_compliance.tools.extract import SYSTEM
+
+    flat = " ".join(SYSTEM.split())
+    assert "not a relaxation" in flat and "`contingency`" in flat
+    assert "holds for every spec" in flat  # a rule with no condition is a rule for every spec

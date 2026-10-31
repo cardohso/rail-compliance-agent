@@ -171,7 +171,11 @@ class RequirementCore(RuleDraft):
             if self.value > self.value_max:
                 raise ValueError(f"range lower {self.value:g} is above upper {self.value_max:g}")
         if self.relaxes and not self.conditions:
-            raise ValueError("a relaxation needs the conditions where it applies")
+            raise ValueError(
+                "a relaxation needs the conditions where it applies. A permission that holds only "
+                "if something is shown or demonstrated is a `contingency`, not a relaxation: set "
+                "relaxes to false and fill `contingency`"
+            )
         return self
 
 

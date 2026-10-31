@@ -73,10 +73,17 @@ Rules:
   Never make a condition out of wording that only says how a value is measured ("excluding the
   locomotive or power head"): the spec handles that outside the rules. A
   count is not a flag: "when toilets are fitted" means `toilets.fitted` > 0, never == 1.
+  Read the sentence for words that limit the rule to a case ("on each side that is adjacent to
+  an obstacle", "on trains with ...", "where ... is fitted"). If a listed spec parameter
+  describes that case, the rule needs a condition on it: a rule with no conditions holds for
+  every spec.
 - A permission to depart from the general rule in some cases ("for double deck trains it is
   permitted to reduce this value to 270 mm") is its own rule: set `relaxes` to true, give the
   relaxed value, and put the cases in `conditions`. Never fold it into the general rule, and
-  leave `relaxes` false for every other rule.
+  leave `relaxes` false for every other rule. A permission that holds only if something is shown
+  ("if it can be demonstrated that ...") is not a relaxation: it goes in `contingency` with
+  `relaxes` false. "Reduce" lowers a minimum and "increase" raises a maximum; name the measure
+  the sentence is about (a sentence on the depth is not a rule for the height).
 - For a renewed unit, Appendix F says when a rule need not be met ("compliance with point 4.2.2.9
   is only mandatory where existing handrails are being renewed or upgraded"). Give such an
   exemption as its own rule with comparator "exempt", no value, and `conditions` saying when
@@ -273,7 +280,29 @@ _CONDITIONAL = re.compile(
 _EXEMPTION = re.compile(
     r"\b(?:not mandatory|only mandatory|only required|not required|does not need to be)\b", re.I
 )
+# A relaxation moves a limit in the permitted direction, and its verb says which way it moves:
+# reducing a minimum or increasing a maximum is more permissive; the opposite is stricter.
+_REDUCES = re.compile(r"\b(?:reduc\w*|decreas\w*)\b", re.I)  # not "lower": "the lower deck"
+_INCREASES = re.compile(r"\b(?:increas\w*)\b", re.I)
 _PERMISSION = re.compile(r"\b(?:permitted|allowed|may|can be reduced|can be increased)\b", re.I)
+
+
+def _relaxation_direction(comparator: str, quote: str) -> str | None:
+    """A quote that says 'reduce' cannot relax a maximum, nor 'increase' a minimum."""
+    reduces, increases = _REDUCES.search(quote), _INCREASES.search(quote)
+    if comparator in ("<=", "<") and reduces and not increases:
+        return (
+            "the quote reduces the value, but the rule is a maximum: reducing a maximum makes it "
+            "stricter, not a relaxation. A permission to reduce applies to a minimum; check which "
+            "value the sentence reduces (the sentence may be about another measure)"
+        )
+    if comparator in (">=", ">") and increases and not reduces:
+        return (
+            "the quote increases the value, but the rule is a minimum: increasing a minimum makes "
+            "it stricter, not a relaxation. A permission to increase applies to a maximum; check "
+            "which value the sentence increases"
+        )
+    return None
 
 
 def _unverified(reason: str) -> ExtractionResult:
@@ -333,6 +362,10 @@ def extract_requirement(
                 "an exemption of Appendix F holds only for a renewed unit: add the condition "
                 "unit_status == renewed"
             )
+    if rule.relaxes:
+        problem = _relaxation_direction(rule.comparator, _norm(draft.quote))
+        if problem:
+            return _unverified(problem)
     if rule.relaxes and not _PERMISSION.search(_norm(draft.quote)):
         return _unverified(
             "the rule is marked as a relaxation, but the quote states no permission ('permitted', "
