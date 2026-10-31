@@ -29,3 +29,17 @@ code was fixed afterwards (commit e492d83), so these are **not** the numbers for
 
 Thresholds were not changed. The renewal, noise and held-out-2 suites had not been run at this
 point.
+
+## Second core run (commit a5901a1: the verb-direction check, the clearer rejection message and the
+## prompt changes), saved in `v02-second-core/`
+
+Core again 41/43 (0.95), 0 unsafe passes, tool-use gate passed; goldpass grounding failed again
+(0.93 < 0.95, three items). g16 was fixed (it now extracts and cites the exception), but g08 and
+g09 were still wrong and g03 still cited nothing.
+
+Cause: the rejection message reached the agent, not the model that wrote the rule. The extraction
+model is deterministic, so asking again with another focus (g03 asked twice, g08 and g09 once)
+produced the same rule. Fixed in b3b09f9: the rejection reason is appended to the extraction
+request and the model revises once. Not yet run on a model.
+
+The prm-extended run on a5901a1 stopped on the daily Gemini quota (p09 of 12) and was not scored.
