@@ -44,6 +44,7 @@ from rail_compliance.parameters import (
     REGULATION_OF,
     REGULATIONS,
     accepted_subjects,
+    renewal_queries,
 )
 from rail_compliance.report import (
     CoverageGap,
@@ -55,6 +56,7 @@ from rail_compliance.report import (
 )
 from rail_compliance.retry import LLMUnavailable
 from rail_compliance.spec import (
+    CATEGORY_SECTIONS,
     TrainSpec,
     parameter_info,
     spec_categories,
@@ -83,10 +85,13 @@ Procedure:
    stated for a broader subject (all exterior doorways) also governs a narrower parameter
    (wheelchair doorways). Extract the rule for each listed subject, plus any special-case rule
    with conditions for the parameter's own subject, one call per rule, using `focus` to name the
-   rule you want. Never use a rule stated for a narrower subject than the parameter. An exception
-   that holds only "if it can be demonstrated ..." is recorded with its contingency and does not
-   settle the parameter by itself. A table is one rule: extract it in a single call, never row
-   by row. Do not extract the same rule twice.
+   rule you want. Never use a rule stated for a narrower subject than the parameter. For a
+   renewed unit the task lists Appendix F passages: extract each exemption in them that concerns
+   this parameter, one call per exemption sentence, and check it like any rule. An exemption the
+   spec cannot decide is not a reason to call needs_human: the runtime combines it with the
+   ordinary rules. An exception that holds only "if it can be demonstrated ..." is recorded with
+   its contingency and does not settle the parameter by itself. A table is one rule: extract it
+   in a single call, never row by row. Do not extract the same rule twice.
 3. check(parameter, spec_value, requirement_id): compare the spec with a requirement. Pass the
    spec value exactly as given. A result of not_applicable means that rule's conditions are false
    for this spec: that is not a failure, so look for the other rule that applies.
@@ -219,6 +224,37 @@ class _Runner:
             return False, f"invalid arguments for {name}: {first['msg']} ({first['loc']})"
         return getattr(self, f"_{name}")(parsed, scratch, values)
 
+    def appendix_f(
+        self, scratch: Scratch, parameter: str, clock: Callable[[], float]
+    ) -> tuple[list[Passage], list[ToolCall]]:
+        """For a renewed unit, the runtime searches Appendix F itself (see renewal_queries)."""
+        renewed = scratch.categories.get("unit_status") == "renewed"
+        if not renewed or REGULATION_OF[parameter] != "tsi-prm":
+            return [], []
+        prefix = tuple(CATEGORY_SECTIONS["renewed"])
+        found: dict[str, Passage] = {}
+        calls: list[ToolCall] = []
+        for question in renewal_queries(parameter):
+            started = clock()
+            try:
+                result = search_tool(question, self.search, self.k)
+            except (ValueError, SearchError) as exc:
+                summary, ok, kept = f"search failed: {exc}", False, []
+            else:
+                kept = [p for p in result.passages if p.section.startswith(prefix)]
+                summary, ok = f"{len(kept)} Appendix F passages (decided by the runtime)", True
+            for p in kept:
+                found[p.id] = p
+            calls.append(
+                ToolCall(
+                    index=-1, parameter=parameter, name="search_regulation",
+                    args={"question": question}, ok=ok, summary=summary,
+                    seconds=clock() - started, source="runtime",
+                )
+            )  # fmt: skip
+        scratch.passages.update(found)
+        return list(found.values()), calls
+
     def _search_regulation(self, a: SearchArgs, scratch: Scratch, values) -> tuple[bool, str]:
         try:
             result = search_tool(a.question, self.search, self.k)
@@ -318,7 +354,10 @@ RENEWED_NOISE = (
 
 
 def _task_message(
-    parameter: str, values: dict[str, float], categories: dict[str, str] | None = None
+    parameter: str,
+    values: dict[str, float],
+    categories: dict[str, str] | None = None,
+    appendix: list[Passage] | None = None,
 ) -> str:
     info = parameter_info()
     unit, description = info[parameter]
@@ -347,9 +386,11 @@ def _task_message(
     if renewed and regulation == "tsi-prm":
         lines += [
             "",
-            "This unit is being renewed or upgraded: also search Appendix F of the PRM TSI "
-            "(renewal or upgrade of rolling stock) for when compliance with this parameter's "
-            "rules is not mandatory, extract each such exemption, and check it like any rule.",
+            "This unit is being renewed or upgraded. Appendix F of the PRM TSI says when "
+            "compliance with this parameter's rules is not mandatory; the runtime has already "
+            "searched it. Extract each exemption below that concerns this parameter, and check "
+            "it like any rule.",
+            _passages_text(appendix) if appendix else "(no Appendix F passage was found)",
         ]
     return "\n".join(lines)
 
@@ -560,7 +601,11 @@ class ComplianceAgent:
                 intervals=state.get("intervals", {}),
                 categories=state.get("categories", {}),
             )
-            return {"messages": messages, "scratch": scratch}
+            appendix, searches = self.runner.appendix_f(scratch, parameter, self.clock)
+            messages[1] = HumanMessage(
+                _task_message(parameter, state["values"], state.get("categories", {}), appendix)
+            )
+            return {"messages": messages, "scratch": scratch, "trace": searches}
 
         def agent(state: AgentState) -> AgentState:
             reply = self.llm.invoke(state["messages"])

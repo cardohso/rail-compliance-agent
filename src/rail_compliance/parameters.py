@@ -85,6 +85,23 @@ SUBJECT_OF: dict[str, str] = {
 WITHIN: dict[str, str] = {"wheelchair_doorway": "exterior_doorway"}
 
 
+# Appendix F (renewal or upgrade of rolling stock) says, section by section, when compliance with a
+# part of the TSI is not mandatory. A renewed unit's exemptions come from there, and a model left to
+# search for them does not always do it, so the runtime fetches them: one query by the parameter's
+# subject, and one for the clause that holds for every parameter (structural alterations), which
+# never names a measure and so is not found by a query about one.
+APPENDIX_F = "Appendix F renewal or upgrade of rolling stock"
+
+
+def renewal_queries(parameter: str) -> list[str]:
+    term = SUBJECT_TERMS[SUBJECT_OF[parameter]][0]
+    return [
+        f"{APPENDIX_F}: when is compliance with the requirements for {term} not mandatory?",
+        f"{APPENDIX_F}: compliance is not mandatory if the work would require structural "
+        "alterations to vehicle bodies",
+    ]
+
+
 def accepted_subjects(parameter: str) -> list[str]:
     """Subjects whose rules govern `parameter`: its own, then each broader one."""
     subject, out = SUBJECT_OF[parameter], []

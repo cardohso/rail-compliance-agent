@@ -147,8 +147,12 @@ def check(
         if unknown:
             applies = None
             names = ", ".join(c.variable for c in unknown)
-            return result("needs_human", f"whether the exemption ({where}) holds depends on "
-                          f"{names}, not supplied")  # fmt: skip
+            return result(
+                "needs_human",
+                f"whether the exemption ({where}) holds depends on {names}, not supplied. This "
+                "is no verdict on its own: it matters only if another rule for this parameter "
+                "fails, and the runtime combines the two",
+            )
         return result("not_applicable", f"compliance is not mandatory: exempt where {where}")
     if unknown:
         applies = None

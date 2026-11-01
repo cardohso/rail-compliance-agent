@@ -9,6 +9,7 @@ from rail_compliance.agent import Scratch, _settle
 from rail_compliance.models import Condition, RequirementCore
 from rail_compliance.spec import TrainSpec, spec_categories, spec_values
 from rail_compliance.tools.check import check
+from tests.factories import passage
 
 RAIL = "handrails.outside_diameter_mm"
 RENEWED = Condition(variable="unit_status", op="==", value="renewed")
@@ -198,3 +199,135 @@ def test_a_quote_from_appendix_f_states_a_renewal_without_the_word():
     quote = "The provision of wheelchair spaces is only required when the seating layout is altered"
     assert _category_stated("renewed", quote, "Appendix F §Wheelchair spaces")
     assert not _category_stated("renewed", quote, "Annex §4.2.2.2")
+
+
+# --- found by the first run of the renewal suite (4/11) -----------------------------------------
+# r03, r10: the agent never searched Appendix F, though the task asked it to.
+# r04: the exemption could not be decided, so the agent escalated a value that passes either way.
+# r06, r08: exemptions encoded as limits ("number 1 not stated", "exactly one of value or bands").
+
+
+def appendix_f(section, text):
+    return passage(text, id_=f"tsi-prm:Appendix F §{section}#1", section=f"Appendix F §{section}")
+
+
+APPENDIX_PASSAGES = [
+    appendix_f("Handrails", HANDRAILS_F),
+    appendix_f("Structures", "Compliance is not mandatory if the work would require structural "
+                             "alterations to door portals."),
+]  # fmt: skip
+
+
+class RecordingSearch:
+    """Answers the runtime's Appendix F queries, and fails on request."""
+
+    name = "fake"
+
+    def __init__(self, passages=APPENDIX_PASSAGES, fail=False):
+        self.questions, self.passages, self.fail = [], passages, fail
+
+    def search(self, question, k):
+        from rail_compliance.models import SearchResult
+        from rail_compliance.tools.search import SearchError
+
+        self.questions.append(question)
+        if self.fail:
+            raise SearchError("down")
+        return SearchResult(question=question, passages=self.passages, backend="fake")
+
+
+def run_agent(spec, search, script=()):
+    import itertools
+
+    from rail_compliance.agent import ComplianceAgent
+    from tests.fakes import ScriptedAgentLLM, ai
+    from tests.test_agent import FakeExtractor
+
+    llm = ScriptedAgentLLM(list(script) or [ai(text="Checked.")] * 40)
+    ticks = itertools.count()
+    agent = ComplianceAgent(llm, FakeExtractor([]), search, clock=lambda: next(ticks) * 0.5)
+    return agent.run(spec), llm
+
+
+def renewed_spec(**kw):
+    return TrainSpec(name="t", unit_length_m=100, unit_status="renewed",
+                     handrails={"outside_diameter_mm": 45}, **kw)  # fmt: skip
+
+
+def test_for_a_renewed_unit_the_runtime_searches_appendix_f_itself_and_says_so():
+    search = RecordingSearch()
+    report, llm = run_agent(renewed_spec(), search)
+    mine = [t for t in report.trace if t.parameter == RAIL and t.source == "runtime"]
+    assert [t.name for t in mine] == ["search_regulation"] * 2
+    assert any("handrail" in q and "Appendix F" in q for q in search.questions)
+    assert any("structural alterations" in q for q in search.questions)  # the clause for all
+    first_message = llm.seen[0][1].content if isinstance(llm.seen[0], tuple) else str(llm.seen[0])
+    assert "tsi-prm:Appendix F §Handrails#1" in first_message
+
+
+def test_the_appendix_f_passages_can_be_extracted_from_without_a_search_by_the_model():
+    report, _ = run_agent(renewed_spec(), RecordingSearch())
+    assert not any(t.name == "search_regulation" and t.source == "agent" for t in report.trace)
+    assert all(t.ok for t in report.trace if t.source == "runtime")
+
+
+def test_a_new_unit_gets_no_runtime_search():
+    search = RecordingSearch()
+    new = TrainSpec(name="t", unit_length_m=100, handrails={"outside_diameter_mm": 45})
+    report, _ = run_agent(new, search)
+    ran = [t for t in report.trace if t.source == "runtime" and t.name == "search_regulation"]
+    assert search.questions == [] and ran == []
+
+
+def test_noise_is_not_searched_in_appendix_f_even_for_a_renewed_unit():
+    search = RecordingSearch()
+    noisy = TrainSpec(
+        name="t", unit_length_m=100, unit_status="renewed", noise={"stationary_db": 60}
+    )
+    run_agent(noisy, search)
+    assert search.questions == []
+
+
+def test_only_appendix_f_passages_are_kept_from_the_runtime_search():
+    mixed = [*APPENDIX_PASSAGES, passage("A handrail rule", id_="tsi-prm:Annex §4.2.2.9#1")]
+    _, llm = run_agent(renewed_spec(), RecordingSearch(mixed))
+    assert "Annex §4.2.2.9#1" not in str(llm.seen[0])
+
+
+def test_a_failed_runtime_search_does_not_stop_the_agent():
+    report, _ = run_agent(renewed_spec(), RecordingSearch(fail=True))
+    assert report.result_for(RAIL).verdict == "needs_human"  # no rule extracted, escalated by code
+
+
+def test_an_exemption_encoded_as_a_limit_is_told_what_an_exemption_looks_like():
+    """r08: 'exactly one of value or bands'. r06: 'the number 1 is not stated'."""
+    bare = RequirementCore.model_validate  # the schema-level message first
+    with pytest.raises(ValidationError, match="exempt"):
+        bare(dict(parameter=RAIL, subject="handrail", comparator=">="))
+    from rail_compliance.models import RequirementDraft, RuleDraft
+    from rail_compliance.tools.extract import extract_requirement
+    from tests.test_extract import FakeLLM
+
+    p = APPENDIX_PASSAGES[0]
+    as_limit = RuleDraft(parameter=RAIL, subject="handrail", comparator=">=", value=1,
+                         conditions=[RENEWED, KEPT])  # fmt: skip
+    draft = RequirementDraft(found=True, passage_id=p.id, quote=HANDRAILS_F, rule=as_limit)
+    result = extract_requirement([p], RAIL, FakeLLM(draft))
+    assert result.status == "unverified" and "exempt" in result.reason
+
+
+def test_an_exemption_the_spec_cannot_decide_does_not_ask_for_an_escalation():
+    r = check(35, as_requirement(exemption()), context={"unit_status": "renewed"})
+    assert r.verdict == "needs_human"
+    assert "not an escalation" in r.reason or "only if another rule" in r.reason
+
+
+def test_the_prompts_cover_exemptions_that_cannot_be_decided_and_one_call_per_sentence():
+    from rail_compliance.agent import SYSTEM_PROMPT
+    from rail_compliance.tools.extract import SYSTEM
+
+    flat = " ".join(SYSTEM.split())
+    assert "its own exemption" in flat and "`contingency`" in flat
+    agent = " ".join(SYSTEM_PROMPT.split())
+    assert "Appendix F" in agent and "one call per" in agent
+    assert "needs_human" in agent and "exemption" in agent

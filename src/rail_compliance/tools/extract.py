@@ -91,7 +91,8 @@ Rules:
   unit_status == "renewed" and renewal.handrails_renewed == 0. "Only mandatory if A and B" is two
   exemptions, one for "not A" and one for "not B": extract the one the Focus line names. A part
   that depends on something the spec cannot show ("can be accommodated without structural
-  alteration") goes in `contingency`.
+  alteration") goes in `contingency`. Each sentence that excuses compliance is its own
+  exemption, extracted in its own call. An exemption never has a number of its own.
 - A table is ONE rule: give it in one answer, never one answer per row. A table whose required
   value depends on another parameter (for example unit length) goes in `bands`: one band for
   every row of the table, none left out, and `quote` must contain the whole table. Set `value` to
@@ -409,7 +410,13 @@ def _verify(
     missing = sorted({x for x in rule_numbers if x is not None and x not in stated})
     if missing:
         shown = ", ".join(f"{x:g}" for x in missing)
-        return _unverified(f"the number(s) {shown} are not stated in the quote")
+        hint = ""
+        if _EXEMPTION.search(_norm(draft.quote)):
+            hint = (
+                ". The quote says when compliance is not mandatory: that is an exemption, with "
+                "comparator 'exempt', no value, and the cases in `conditions`"
+            )
+        return _unverified(f"the number(s) {shown} are not stated in the quote{hint}")
     # A flag's 1/0 and a count's "there is at least one" are not numbers the quote has to state.
     for band in rule.bands:
         if band.category and not _category_stated(band.category, draft.quote, source.section):

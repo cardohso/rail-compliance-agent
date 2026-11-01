@@ -156,7 +156,10 @@ class RequirementCore(RuleDraft):
                 raise ValueError("an exemption is not a relaxation: leave relaxes false")
             return self
         if (self.value is None) == (not self.bands):
-            raise ValueError("give exactly one of `value` or `bands`")
+            raise ValueError(
+                "give exactly one of `value` or `bands`. A rule that says when compliance is NOT "
+                "mandatory has comparator 'exempt' and neither"
+            )
         if self.bands and not self.band_variable:
             raise ValueError("`bands` need a `band_variable` to select the band")
         if len({b.category is None for b in self.bands}) > 1:
