@@ -43,3 +43,45 @@ produced the same rule. Fixed in b3b09f9: the rejection reason is appended to th
 request and the model revises once. Not yet run on a model.
 
 The prm-extended run on a5901a1 stopped on the daily Gemini quota (p09 of 12) and was not scored.
+
+## Third round (commit a959557: the extractor sees its rejection and revises once)
+
+Runs on 2026-11-01, thresholds unchanged. Folders: `v02-core-a959557`, `v02-prm-extended-a959557`,
+`v02-renewal-first-run`, `v02-noise-first-run`.
+
+| Suite | Verdicts | Accuracy | Unsafe passes | Gate |
+|---|---|---|---|---|
+| core | 42/43 (0.98) | 0/43 | passed; goldpass grounding passed (0.98) | **passed** |
+| prm-extended | 17/17 | 0/17 | | **passed** |
+| renewal (first run) | 4/11 (0.36) | 0/11 | accuracy, escalation recall and precision below floor | **failed** |
+| noise (first run) | 14/18 (0.78) | 0/18 | accuracy 0.78 < 0.80, everything else passed | **failed** |
+
+**Read the first two with care.** core and prm-extended were the suites whose misses I used to
+design the fixes, so 42/43 and 17/17 show the fixes work on the cases that motivated them, not
+that the agent would score that on new specs. Core's remaining miss is g08 (golden pass,
+agent needs_human): the model's second extraction of the exception was rejected again and the
+agent escalated without checking the rule it already had (200 mm meets 200 mm). Safe direction.
+
+### Renewal, 4/11: seven causes (none an unsafe pass)
+- r03, r10 (and r05's external step): the agent never searched Appendix F although the task said
+  to. r03 and r10 were fails where the goldens are needs_human.
+- r04: the exemption could not be decided and the agent escalated a value that passes either way.
+- r06, r08: the exemption was encoded as a limit and rejected with messages that did not say what
+  an exemption is.
+- r07: only the first of the two exemption sentences was extracted; the doorway one was not.
+
+### Noise, 14/18: four causes
+- n04: "Noise TSI is outside the PRM TSI scope handled by this tool set" (the agent prompt named only
+  the PRM TSI).
+- n08: the agent escalated for a missing category before the check, which would have settled it.
+- n07: the cab limit was extracted without the cab condition, because "fitted with a cab" is in
+  the sentence before the table, not in the row quoted.
+- n06: **debatable, not a clear error.** The 250 km/h pass-by limit applies "if applicable"; I read
+  that as design speed >= 250 km/h. The model checked a 200 km/h unit's 250 km/h figure against 95 dB.
+
+### Fixes after this round (commits dc2b35f and later; not yet run on a model)
+The runtime now fetches Appendix F for renewed units (two searches, chosen by checking offline that
+they retrieve the gold exemption passage for all 14 parameters, so **fitted to the dev suite**);
+exemption rejection messages say what an exemption is; an undecidable exemption is no verdict on
+its own; the agent prompt names both regulations, defers missing-data escalation to the check, and
+the extraction prompt asks for the sentence that introduces a table. n06 is left as it is.

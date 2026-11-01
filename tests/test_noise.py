@@ -177,3 +177,31 @@ def test_a_row_name_that_is_not_a_choice_is_unverified_even_if_the_quote_has_the
     draft = table_draft(ROWS | {"traction": 70})  # "traction" is in the table text
     result = extract_requirement([NOISE_PASSAGE], STATIONARY, FakeLLM(draft))
     assert result.status == "unverified" and "Valid:" in result.reason
+
+
+# --- found by the first run of the noise suite (14/18) -----------------------------------------
+
+
+def test_the_agent_prompt_names_both_regulations_so_noise_is_not_out_of_scope():
+    """n04: 'Noise TSI is outside the PRM TSI scope handled by this tool set'."""
+    from rail_compliance.agent import SYSTEM_PROMPT
+
+    flat = " ".join(SYSTEM_PROMPT.split())
+    assert "Noise TSI" in flat and "PRM TSI" in flat and "named in the task" in flat
+
+
+def test_missing_data_is_settled_by_check_not_by_an_early_escalation():
+    """n08: the category was missing, the agent escalated before extracting, and check would have
+    shown that 78 dB meets every row of the table."""
+    from rail_compliance.agent import SYSTEM_PROMPT
+
+    flat = " ".join(SYSTEM_PROMPT.split())
+    assert "until check" in flat and "only when check returns needs_human" in flat
+
+
+def test_the_extraction_prompt_asks_for_the_sentence_that_introduces_a_table():
+    """n07: 'fitted with a cab' is in the sentence before Table 5, not in the row quoted."""
+    from rail_compliance.tools.extract import SYSTEM
+
+    flat = " ".join(SYSTEM.split())
+    assert "sentence that introduces it" in flat and "Quote that sentence too" in flat

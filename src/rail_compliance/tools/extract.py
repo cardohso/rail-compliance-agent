@@ -93,6 +93,8 @@ Rules:
   that depends on something the spec cannot show ("can be accommodated without structural
   alteration") goes in `contingency`. Each sentence that excuses compliance is its own
   exemption, extracted in its own call. An exemption never has a number of its own.
+- A table's scope is often stated in the sentence that introduces it ("... fitted with a cab are
+  set out in Table 5"). Quote that sentence too (with "...") and put its case in `conditions`.
 - A table is ONE rule: give it in one answer, never one answer per row. A table whose required
   value depends on another parameter (for example unit length) goes in `bands`: one band for
   every row of the table, none left out, and `quote` must contain the whole table. Set `value` to

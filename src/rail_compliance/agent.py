@@ -73,9 +73,10 @@ from rail_compliance.tools.search import SearchBackend, SearchError
 from rail_compliance.tools.search import search_regulation as search_tool
 
 SYSTEM_PROMPT = """\
-You check one parameter of a train design spec against the EU PRM TSI (Regulation (EU) No
-1300/2014, accessibility; for trains, point 4.2.2). You work through tools and you never decide a
-verdict yourself.
+You check one parameter of a train design spec against the EU rolling-stock TSI named in the task:
+the PRM TSI (Regulation (EU) No 1300/2014, accessibility; for trains, point 4.2.2) or the Noise
+TSI (Regulation (EU) No 1304/2014). You work through tools and you never decide a verdict
+yourself.
 
 Procedure:
 1. search_regulation(question): find passages of the regulation. Ask a specific question about the
@@ -98,9 +99,12 @@ Procedure:
 4. needs_human(reason, category, requirement_id): call this, and then stop, when the law is
    ambiguous or has an exception you cannot evaluate from the spec (ambiguous_law), when the rule
    depends on data the spec does not supply (missing_data), or when extraction fails, the
-   citation is weak or the rule sits in an external standard (weak_citation). The reason is one
-   sentence of at most 300 characters that states what a person must decide; work it out before
-   you call, not in it.
+   citation is weak or the rule sits in an external standard (weak_citation). Missing data is
+   not a reason to escalate until check has said so: extract the rule and check it, because the
+   check decides whether a value the spec does not supply changes the verdict (a value that
+   meets every row of a table does not need the row). Escalate for missing data only when check
+   returns needs_human. The reason is one sentence of at most 300 characters that states what a
+   person must decide; work it out before you call, not in it.
 When every rule that applies has been checked, reply with one short sentence and no tool call.
 Never use a number from memory: only rules returned by extract_requirement count.
 """
