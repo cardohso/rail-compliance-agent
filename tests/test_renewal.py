@@ -236,7 +236,7 @@ class RecordingSearch:
         return SearchResult(question=question, passages=self.passages, backend="fake")
 
 
-def run_agent(spec, search, script=()):
+def run_agent(spec, search, script=(), drafts=()):
     import itertools
 
     from rail_compliance.agent import ComplianceAgent
@@ -245,7 +245,9 @@ def run_agent(spec, search, script=()):
 
     llm = ScriptedAgentLLM(list(script) or [ai(text="Checked.")] * 40)
     ticks = itertools.count()
-    agent = ComplianceAgent(llm, FakeExtractor([]), search, clock=lambda: next(ticks) * 0.5)
+    agent = ComplianceAgent(
+        llm, FakeExtractor(list(drafts)), search, clock=lambda: next(ticks) * 0.5
+    )
     return agent.run(spec), llm
 
 
@@ -319,7 +321,7 @@ def test_an_exemption_encoded_as_a_limit_is_told_what_an_exemption_looks_like():
 def test_an_exemption_the_spec_cannot_decide_does_not_ask_for_an_escalation():
     r = check(35, as_requirement(exemption()), context={"unit_status": "renewed"})
     assert r.verdict == "needs_human"
-    assert "not an escalation" in r.reason or "only if another rule" in r.reason
+    assert "no verdict on its own" in r.reason
 
 
 def test_the_prompts_cover_exemptions_that_cannot_be_decided_and_one_call_per_sentence():
@@ -331,3 +333,31 @@ def test_the_prompts_cover_exemptions_that_cannot_be_decided_and_one_call_per_se
     agent = " ".join(SYSTEM_PROMPT.split())
     assert "Appendix F" in agent and "one call per" in agent
     assert "needs_human" in agent and "exemption" in agent
+
+
+def test_the_runtime_search_itself_refuses_a_noise_parameter():
+    """Renewed noise never reaches `begin` (it is decided in `plan`), so test the guard directly."""
+    from rail_compliance.agent import Scratch, _Runner
+    from tests.test_extract import FakeLLM
+
+    runner = _Runner(RecordingSearch(), FakeLLM(None), 8)
+    scratch = Scratch(parameter="noise.stationary_db", categories={"unit_status": "renewed"})
+    assert runner.appendix_f(scratch, "noise.stationary_db", lambda: 0.0) == ([], [])
+
+
+def test_an_appendix_f_passage_the_runtime_fetched_can_be_extracted_from_without_a_model_search():
+    from rail_compliance.models import RequirementDraft
+    from tests.fakes import ai, tool_call
+
+    handrails = APPENDIX_PASSAGES[0]
+    draft = RequirementDraft(found=True, passage_id=handrails.id, quote=HANDRAILS_F,
+                             rule=exemption())  # fmt: skip
+    script = [
+        ai(
+            tool_call("extract_requirement", passage_ids=[handrails.id], parameter=RAIL, focus=None)
+        ),
+        ai(text="Checked."),
+    ]
+    report, _ = run_agent(renewed_spec(), RecordingSearch(), script, drafts=[draft])
+    extract = next(t for t in report.trace if t.name == "extract_requirement")
+    assert extract.ok and extract.summary.startswith("found R1")
