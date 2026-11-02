@@ -115,3 +115,10 @@ the fair test and has not been run. Core and prm-extended have **not** been re-r
 ### Known limit in noise (1/18 wrong)
 - **n06**: the golden reading of "if applicable" (250 km/h pass-by applies from a design speed of
   250 km/h) is mine and debatable; the model checked the figure against the 95 dB EMU limit.
+
+## Round 4 re-check: prm-extended on 9c27634 (f9fe92a prompts)
+
+Re-run after the latest prompt changes, to look for regressions. Result: 17/17 verdicts
+correct (Wilson 0.82-1.00), 0/17 unsafe passes, tool selection 17/17. Gate passed,
+thresholds unchanged. Saved in `v02-prm-extended-f9fe92a/`. Core still has to be
+re-run on these prompts.
