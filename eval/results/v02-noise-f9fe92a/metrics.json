@@ -1,0 +1,964 @@
+{
+  "meta": {
+    "model": "gemini:gemini-3.5-flash-lite",
+    "search": "local",
+    "cases": [
+      "n01",
+      "n02",
+      "n03",
+      "n04",
+      "n05",
+      "n06",
+      "n07",
+      "n08",
+      "n09",
+      "n10"
+    ],
+    "suite": "noise"
+  },
+  "metrics": {
+    "n_cases": 10,
+    "n_items": 18,
+    "errors": 0,
+    "rates": {
+      "verdict_accuracy": {
+        "value": 0.9444444444444444,
+        "k": 17,
+        "n": 18,
+        "low": 0.7424,
+        "high": 0.9901
+      },
+      "unsafe_pass_rate": {
+        "value": 0.0,
+        "k": 0,
+        "n": 18,
+        "low": 0.0,
+        "high": 0.1759
+      },
+      "needs_human_recall": {
+        "value": 1.0,
+        "k": 2,
+        "n": 2,
+        "low": 0.3424,
+        "high": 1.0
+      },
+      "needs_human_precision": {
+        "value": 1.0,
+        "k": 2,
+        "n": 2,
+        "low": 0.3424,
+        "high": 1.0
+      },
+      "tool_selection_accuracy": {
+        "value": 1.0,
+        "k": 18,
+        "n": 18,
+        "low": 0.8241,
+        "high": 1.0
+      },
+      "argument_correctness": {
+        "value": 1.0,
+        "k": 18,
+        "n": 18,
+        "low": 0.8241,
+        "high": 1.0
+      },
+      "citation_hit_rate": {
+        "value": 1.0,
+        "k": 18,
+        "n": 18,
+        "low": 0.8241,
+        "high": 1.0
+      }
+    },
+    "tool_calls_per_parameter": 3.388888888888889,
+    "by_tag": {
+      "category-table": {
+        "verdict_accuracy": {
+          "value": 1.0,
+          "k": 13,
+          "n": 13,
+          "low": 0.7719,
+          "high": 1.0
+        },
+        "unsafe_pass_rate": {
+          "value": 0.0,
+          "k": 0,
+          "n": 13,
+          "low": 0.0,
+          "high": 0.2281
+        },
+        "needs_human_recall": {
+          "value": 1.0,
+          "k": 1,
+          "n": 1,
+          "low": 0.2065,
+          "high": 1.0
+        },
+        "needs_human_precision": {
+          "value": 1.0,
+          "k": 1,
+          "n": 1,
+          "low": 0.2065,
+          "high": 1.0
+        },
+        "tool_selection_accuracy": {
+          "value": 1.0,
+          "k": 13,
+          "n": 13,
+          "low": 0.7719,
+          "high": 1.0
+        },
+        "argument_correctness": {
+          "value": 1.0,
+          "k": 13,
+          "n": 13,
+          "low": 0.7719,
+          "high": 1.0
+        },
+        "citation_hit_rate": {
+          "value": 1.0,
+          "k": 13,
+          "n": 13,
+          "low": 0.7719,
+          "high": 1.0
+        }
+      },
+      "conditional": {
+        "verdict_accuracy": {
+          "value": 0.5,
+          "k": 1,
+          "n": 2,
+          "low": 0.0945,
+          "high": 0.9055
+        },
+        "unsafe_pass_rate": {
+          "value": 0.0,
+          "k": 0,
+          "n": 2,
+          "low": 0.0,
+          "high": 0.6576
+        },
+        "needs_human_recall": {
+          "value": null,
+          "k": 0,
+          "n": 0,
+          "low": null,
+          "high": null
+        },
+        "needs_human_precision": {
+          "value": null,
+          "k": 0,
+          "n": 0,
+          "low": null,
+          "high": null
+        },
+        "tool_selection_accuracy": {
+          "value": 1.0,
+          "k": 2,
+          "n": 2,
+          "low": 0.3424,
+          "high": 1.0
+        },
+        "argument_correctness": {
+          "value": 1.0,
+          "k": 2,
+          "n": 2,
+          "low": 0.3424,
+          "high": 1.0
+        },
+        "citation_hit_rate": {
+          "value": 1.0,
+          "k": 2,
+          "n": 2,
+          "low": 0.3424,
+          "high": 1.0
+        }
+      },
+      "cross-document": {
+        "verdict_accuracy": {
+          "value": 1.0,
+          "k": 2,
+          "n": 2,
+          "low": 0.3424,
+          "high": 1.0
+        },
+        "unsafe_pass_rate": {
+          "value": 0.0,
+          "k": 0,
+          "n": 2,
+          "low": 0.0,
+          "high": 0.6576
+        },
+        "needs_human_recall": {
+          "value": null,
+          "k": 0,
+          "n": 0,
+          "low": null,
+          "high": null
+        },
+        "needs_human_precision": {
+          "value": null,
+          "k": 0,
+          "n": 0,
+          "low": null,
+          "high": null
+        },
+        "tool_selection_accuracy": {
+          "value": 1.0,
+          "k": 2,
+          "n": 2,
+          "low": 0.3424,
+          "high": 1.0
+        },
+        "argument_correctness": {
+          "value": 1.0,
+          "k": 2,
+          "n": 2,
+          "low": 0.3424,
+          "high": 1.0
+        },
+        "citation_hit_rate": {
+          "value": 1.0,
+          "k": 2,
+          "n": 2,
+          "low": 0.3424,
+          "high": 1.0
+        }
+      },
+      "exact-limit": {
+        "verdict_accuracy": {
+          "value": 1.0,
+          "k": 5,
+          "n": 5,
+          "low": 0.5655,
+          "high": 1.0
+        },
+        "unsafe_pass_rate": {
+          "value": 0.0,
+          "k": 0,
+          "n": 5,
+          "low": 0.0,
+          "high": 0.4345
+        },
+        "needs_human_recall": {
+          "value": null,
+          "k": 0,
+          "n": 0,
+          "low": null,
+          "high": null
+        },
+        "needs_human_precision": {
+          "value": null,
+          "k": 0,
+          "n": 0,
+          "low": null,
+          "high": null
+        },
+        "tool_selection_accuracy": {
+          "value": 1.0,
+          "k": 5,
+          "n": 5,
+          "low": 0.5655,
+          "high": 1.0
+        },
+        "argument_correctness": {
+          "value": 1.0,
+          "k": 5,
+          "n": 5,
+          "low": 0.5655,
+          "high": 1.0
+        },
+        "citation_hit_rate": {
+          "value": 1.0,
+          "k": 5,
+          "n": 5,
+          "low": 0.5655,
+          "high": 1.0
+        }
+      },
+      "missing-data": {
+        "verdict_accuracy": {
+          "value": 1.0,
+          "k": 3,
+          "n": 3,
+          "low": 0.4385,
+          "high": 1.0
+        },
+        "unsafe_pass_rate": {
+          "value": 0.0,
+          "k": 0,
+          "n": 3,
+          "low": 0.0,
+          "high": 0.5615
+        },
+        "needs_human_recall": {
+          "value": 1.0,
+          "k": 2,
+          "n": 2,
+          "low": 0.3424,
+          "high": 1.0
+        },
+        "needs_human_precision": {
+          "value": 1.0,
+          "k": 2,
+          "n": 2,
+          "low": 0.3424,
+          "high": 1.0
+        },
+        "tool_selection_accuracy": {
+          "value": 1.0,
+          "k": 3,
+          "n": 3,
+          "low": 0.4385,
+          "high": 1.0
+        },
+        "argument_correctness": {
+          "value": 1.0,
+          "k": 3,
+          "n": 3,
+          "low": 0.4385,
+          "high": 1.0
+        },
+        "citation_hit_rate": {
+          "value": 1.0,
+          "k": 3,
+          "n": 3,
+          "low": 0.4385,
+          "high": 1.0
+        }
+      },
+      "needs-human": {
+        "verdict_accuracy": {
+          "value": 1.0,
+          "k": 3,
+          "n": 3,
+          "low": 0.4385,
+          "high": 1.0
+        },
+        "unsafe_pass_rate": {
+          "value": 0.0,
+          "k": 0,
+          "n": 3,
+          "low": 0.0,
+          "high": 0.5615
+        },
+        "needs_human_recall": {
+          "value": 1.0,
+          "k": 2,
+          "n": 2,
+          "low": 0.3424,
+          "high": 1.0
+        },
+        "needs_human_precision": {
+          "value": 1.0,
+          "k": 2,
+          "n": 2,
+          "low": 0.3424,
+          "high": 1.0
+        },
+        "tool_selection_accuracy": {
+          "value": 1.0,
+          "k": 3,
+          "n": 3,
+          "low": 0.4385,
+          "high": 1.0
+        },
+        "argument_correctness": {
+          "value": 1.0,
+          "k": 3,
+          "n": 3,
+          "low": 0.4385,
+          "high": 1.0
+        },
+        "citation_hit_rate": {
+          "value": 1.0,
+          "k": 3,
+          "n": 3,
+          "low": 0.4385,
+          "high": 1.0
+        }
+      },
+      "noise": {
+        "verdict_accuracy": {
+          "value": 0.9444444444444444,
+          "k": 17,
+          "n": 18,
+          "low": 0.7424,
+          "high": 0.9901
+        },
+        "unsafe_pass_rate": {
+          "value": 0.0,
+          "k": 0,
+          "n": 18,
+          "low": 0.0,
+          "high": 0.1759
+        },
+        "needs_human_recall": {
+          "value": 1.0,
+          "k": 2,
+          "n": 2,
+          "low": 0.3424,
+          "high": 1.0
+        },
+        "needs_human_precision": {
+          "value": 1.0,
+          "k": 2,
+          "n": 2,
+          "low": 0.3424,
+          "high": 1.0
+        },
+        "tool_selection_accuracy": {
+          "value": 1.0,
+          "k": 18,
+          "n": 18,
+          "low": 0.8241,
+          "high": 1.0
+        },
+        "argument_correctness": {
+          "value": 1.0,
+          "k": 18,
+          "n": 18,
+          "low": 0.8241,
+          "high": 1.0
+        },
+        "citation_hit_rate": {
+          "value": 1.0,
+          "k": 18,
+          "n": 18,
+          "low": 0.8241,
+          "high": 1.0
+        }
+      },
+      "not-applicable": {
+        "verdict_accuracy": {
+          "value": 0.5,
+          "k": 1,
+          "n": 2,
+          "low": 0.0945,
+          "high": 0.9055
+        },
+        "unsafe_pass_rate": {
+          "value": 0.0,
+          "k": 0,
+          "n": 2,
+          "low": 0.0,
+          "high": 0.6576
+        },
+        "needs_human_recall": {
+          "value": null,
+          "k": 0,
+          "n": 0,
+          "low": null,
+          "high": null
+        },
+        "needs_human_precision": {
+          "value": null,
+          "k": 0,
+          "n": 0,
+          "low": null,
+          "high": null
+        },
+        "tool_selection_accuracy": {
+          "value": 1.0,
+          "k": 2,
+          "n": 2,
+          "low": 0.3424,
+          "high": 1.0
+        },
+        "argument_correctness": {
+          "value": 1.0,
+          "k": 2,
+          "n": 2,
+          "low": 0.3424,
+          "high": 1.0
+        },
+        "citation_hit_rate": {
+          "value": 1.0,
+          "k": 2,
+          "n": 2,
+          "low": 0.3424,
+          "high": 1.0
+        }
+      },
+      "table-boundary": {
+        "verdict_accuracy": {
+          "value": 1.0,
+          "k": 5,
+          "n": 5,
+          "low": 0.5655,
+          "high": 1.0
+        },
+        "unsafe_pass_rate": {
+          "value": 0.0,
+          "k": 0,
+          "n": 5,
+          "low": 0.0,
+          "high": 0.4345
+        },
+        "needs_human_recall": {
+          "value": null,
+          "k": 0,
+          "n": 0,
+          "low": null,
+          "high": null
+        },
+        "needs_human_precision": {
+          "value": null,
+          "k": 0,
+          "n": 0,
+          "low": null,
+          "high": null
+        },
+        "tool_selection_accuracy": {
+          "value": 1.0,
+          "k": 5,
+          "n": 5,
+          "low": 0.5655,
+          "high": 1.0
+        },
+        "argument_correctness": {
+          "value": 1.0,
+          "k": 5,
+          "n": 5,
+          "low": 0.5655,
+          "high": 1.0
+        },
+        "citation_hit_rate": {
+          "value": 1.0,
+          "k": 5,
+          "n": 5,
+          "low": 0.5655,
+          "high": 1.0
+        }
+      }
+    },
+    "confusion": {
+      "fail": {
+        "fail": 5
+      },
+      "needs_human": {
+        "needs_human": 2
+      },
+      "not_applicable": {
+        "fail": 1,
+        "not_applicable": 1
+      },
+      "pass": {
+        "pass": 9
+      }
+    },
+    "per_spec": {
+      "tool_calls_mean": 6.1,
+      "model_calls_mean": 7.2,
+      "seconds_mean": 121.2334,
+      "seconds_p50": 48.480000000000004,
+      "seconds_p95": 425.13264999999956
+    },
+    "explanation_quality": {
+      "value": 1.0,
+      "k": 2,
+      "n": 2,
+      "low": 0.3424,
+      "high": 1.0
+    }
+  },
+  "items": [
+    {
+      "case": "n01",
+      "parameter": "noise.stationary_db",
+      "tags": [
+        "noise",
+        "category-table",
+        "exact-limit",
+        "cross-document"
+      ],
+      "expected": "pass",
+      "verdict": "pass",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-noi:Annex §4.2.1#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "n01",
+      "parameter": "noise.pass_by_80_db",
+      "tags": [
+        "noise",
+        "category-table",
+        "exact-limit",
+        "cross-document"
+      ],
+      "expected": "pass",
+      "verdict": "pass",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-noi:Annex §4.2.3#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "n02",
+      "parameter": "noise.stationary_db",
+      "tags": [
+        "noise",
+        "category-table"
+      ],
+      "expected": "fail",
+      "verdict": "fail",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-noi:Annex §4.2.1#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "n02",
+      "parameter": "noise.pass_by_80_db",
+      "tags": [
+        "noise",
+        "category-table"
+      ],
+      "expected": "pass",
+      "verdict": "pass",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-noi:Annex §4.2.3#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "n03",
+      "parameter": "noise.stationary_db",
+      "tags": [
+        "noise",
+        "category-table"
+      ],
+      "expected": "pass",
+      "verdict": "pass",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-noi:Annex §4.2.1#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "n03",
+      "parameter": "noise.pass_by_80_db",
+      "tags": [
+        "noise",
+        "category-table"
+      ],
+      "expected": "fail",
+      "verdict": "fail",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-noi:Annex §4.2.3#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "n04",
+      "parameter": "noise.pass_by_250_db",
+      "tags": [
+        "noise",
+        "category-table",
+        "table-boundary",
+        "exact-limit"
+      ],
+      "expected": "pass",
+      "verdict": "pass",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-noi:Annex §4.2.3#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "n04",
+      "parameter": "noise.cab_standstill_horn_db",
+      "tags": [
+        "noise",
+        "category-table",
+        "table-boundary",
+        "exact-limit"
+      ],
+      "expected": "pass",
+      "verdict": "pass",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-noi:Annex §4.2.4#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "n04",
+      "parameter": "noise.cab_max_speed_db",
+      "tags": [
+        "noise",
+        "category-table",
+        "table-boundary",
+        "exact-limit"
+      ],
+      "expected": "pass",
+      "verdict": "pass",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-noi:Annex §4.2.4#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "n05",
+      "parameter": "noise.cab_standstill_horn_db",
+      "tags": [
+        "noise",
+        "table-boundary"
+      ],
+      "expected": "fail",
+      "verdict": "fail",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-noi:Annex §4.2.4#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "n05",
+      "parameter": "noise.cab_max_speed_db",
+      "tags": [
+        "noise",
+        "table-boundary"
+      ],
+      "expected": "fail",
+      "verdict": "fail",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-noi:Annex §4.2.4#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "n06",
+      "parameter": "noise.pass_by_250_db",
+      "tags": [
+        "noise",
+        "conditional",
+        "not-applicable"
+      ],
+      "expected": "not_applicable",
+      "verdict": "fail",
+      "correct": false,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-noi:Annex §4.2.3#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "n07",
+      "parameter": "noise.cab_standstill_horn_db",
+      "tags": [
+        "noise",
+        "conditional",
+        "not-applicable"
+      ],
+      "expected": "not_applicable",
+      "verdict": "not_applicable",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-noi:Annex §4.2.4#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "n08",
+      "parameter": "noise.stationary_db",
+      "tags": [
+        "noise",
+        "category-table",
+        "missing-data",
+        "needs-human"
+      ],
+      "expected": "needs_human",
+      "verdict": "needs_human",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 4,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-noi:Annex §4.2.1#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "n08",
+      "parameter": "noise.pass_by_80_db",
+      "tags": [
+        "noise",
+        "category-table",
+        "missing-data",
+        "needs-human"
+      ],
+      "expected": "pass",
+      "verdict": "pass",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 8,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-noi:Annex §4.2.3#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "n09",
+      "parameter": "noise.stationary_db",
+      "tags": [
+        "noise",
+        "category-table"
+      ],
+      "expected": "pass",
+      "verdict": "pass",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-noi:Annex §4.2.1#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "n09",
+      "parameter": "noise.pass_by_80_db",
+      "tags": [
+        "noise",
+        "category-table"
+      ],
+      "expected": "fail",
+      "verdict": "fail",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-noi:Annex §4.2.3#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "n10",
+      "parameter": "noise.cab_max_speed_db",
+      "tags": [
+        "noise",
+        "missing-data",
+        "needs-human"
+      ],
+      "expected": "needs_human",
+      "verdict": "needs_human",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 4,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-noi:Annex §4.2.4#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    }
+  ],
+  "errors": {}
+}

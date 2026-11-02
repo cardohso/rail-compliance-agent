@@ -1,0 +1,612 @@
+{
+  "meta": {
+    "model": "gemini:gemini-3.5-flash-lite",
+    "search": "local",
+    "cases": [
+      "r01",
+      "r02",
+      "r03",
+      "r04",
+      "r05",
+      "r06",
+      "r07",
+      "r08",
+      "r09",
+      "r10"
+    ],
+    "suite": "renewal"
+  },
+  "metrics": {
+    "n_cases": 10,
+    "n_items": 11,
+    "errors": 0,
+    "rates": {
+      "verdict_accuracy": {
+        "value": 0.7272727272727273,
+        "k": 8,
+        "n": 11,
+        "low": 0.4343,
+        "high": 0.9025
+      },
+      "unsafe_pass_rate": {
+        "value": 0.0,
+        "k": 0,
+        "n": 11,
+        "low": 0.0,
+        "high": 0.2588
+      },
+      "needs_human_recall": {
+        "value": 0.6666666666666666,
+        "k": 2,
+        "n": 3,
+        "low": 0.2077,
+        "high": 0.9385
+      },
+      "needs_human_precision": {
+        "value": 0.6666666666666666,
+        "k": 2,
+        "n": 3,
+        "low": 0.2077,
+        "high": 0.9385
+      },
+      "tool_selection_accuracy": {
+        "value": 1.0,
+        "k": 11,
+        "n": 11,
+        "low": 0.7412,
+        "high": 1.0
+      },
+      "argument_correctness": {
+        "value": 1.0,
+        "k": 19,
+        "n": 19,
+        "low": 0.8318,
+        "high": 1.0
+      },
+      "citation_hit_rate": {
+        "value": 0.8181818181818182,
+        "k": 9,
+        "n": 11,
+        "low": 0.523,
+        "high": 0.9486
+      }
+    },
+    "tool_calls_per_parameter": 5.0,
+    "by_tag": {
+      "exemption": {
+        "verdict_accuracy": {
+          "value": 0.7272727272727273,
+          "k": 8,
+          "n": 11,
+          "low": 0.4343,
+          "high": 0.9025
+        },
+        "unsafe_pass_rate": {
+          "value": 0.0,
+          "k": 0,
+          "n": 11,
+          "low": 0.0,
+          "high": 0.2588
+        },
+        "needs_human_recall": {
+          "value": 0.6666666666666666,
+          "k": 2,
+          "n": 3,
+          "low": 0.2077,
+          "high": 0.9385
+        },
+        "needs_human_precision": {
+          "value": 0.6666666666666666,
+          "k": 2,
+          "n": 3,
+          "low": 0.2077,
+          "high": 0.9385
+        },
+        "tool_selection_accuracy": {
+          "value": 1.0,
+          "k": 11,
+          "n": 11,
+          "low": 0.7412,
+          "high": 1.0
+        },
+        "argument_correctness": {
+          "value": 1.0,
+          "k": 19,
+          "n": 19,
+          "low": 0.8318,
+          "high": 1.0
+        },
+        "citation_hit_rate": {
+          "value": 0.8181818181818182,
+          "k": 9,
+          "n": 11,
+          "low": 0.523,
+          "high": 0.9486
+        }
+      },
+      "length-dependent": {
+        "verdict_accuracy": {
+          "value": 1.0,
+          "k": 1,
+          "n": 1,
+          "low": 0.2065,
+          "high": 1.0
+        },
+        "unsafe_pass_rate": {
+          "value": 0.0,
+          "k": 0,
+          "n": 1,
+          "low": 0.0,
+          "high": 0.7935
+        },
+        "needs_human_recall": {
+          "value": null,
+          "k": 0,
+          "n": 0,
+          "low": null,
+          "high": null
+        },
+        "needs_human_precision": {
+          "value": null,
+          "k": 0,
+          "n": 0,
+          "low": null,
+          "high": null
+        },
+        "tool_selection_accuracy": {
+          "value": 1.0,
+          "k": 1,
+          "n": 1,
+          "low": 0.2065,
+          "high": 1.0
+        },
+        "argument_correctness": {
+          "value": 1.0,
+          "k": 3,
+          "n": 3,
+          "low": 0.4385,
+          "high": 1.0
+        },
+        "citation_hit_rate": {
+          "value": 1.0,
+          "k": 1,
+          "n": 1,
+          "low": 0.2065,
+          "high": 1.0
+        }
+      },
+      "missing-data": {
+        "verdict_accuracy": {
+          "value": 1.0,
+          "k": 2,
+          "n": 2,
+          "low": 0.3424,
+          "high": 1.0
+        },
+        "unsafe_pass_rate": {
+          "value": 0.0,
+          "k": 0,
+          "n": 2,
+          "low": 0.0,
+          "high": 0.6576
+        },
+        "needs_human_recall": {
+          "value": 1.0,
+          "k": 1,
+          "n": 1,
+          "low": 0.2065,
+          "high": 1.0
+        },
+        "needs_human_precision": {
+          "value": 1.0,
+          "k": 1,
+          "n": 1,
+          "low": 0.2065,
+          "high": 1.0
+        },
+        "tool_selection_accuracy": {
+          "value": 1.0,
+          "k": 2,
+          "n": 2,
+          "low": 0.3424,
+          "high": 1.0
+        },
+        "argument_correctness": {
+          "value": 1.0,
+          "k": 3,
+          "n": 3,
+          "low": 0.4385,
+          "high": 1.0
+        },
+        "citation_hit_rate": {
+          "value": 1.0,
+          "k": 2,
+          "n": 2,
+          "low": 0.3424,
+          "high": 1.0
+        }
+      },
+      "needs-human": {
+        "verdict_accuracy": {
+          "value": 0.6666666666666666,
+          "k": 2,
+          "n": 3,
+          "low": 0.2077,
+          "high": 0.9385
+        },
+        "unsafe_pass_rate": {
+          "value": 0.0,
+          "k": 0,
+          "n": 3,
+          "low": 0.0,
+          "high": 0.5615
+        },
+        "needs_human_recall": {
+          "value": 0.6666666666666666,
+          "k": 2,
+          "n": 3,
+          "low": 0.2077,
+          "high": 0.9385
+        },
+        "needs_human_precision": {
+          "value": 1.0,
+          "k": 2,
+          "n": 2,
+          "low": 0.3424,
+          "high": 1.0
+        },
+        "tool_selection_accuracy": {
+          "value": 1.0,
+          "k": 3,
+          "n": 3,
+          "low": 0.4385,
+          "high": 1.0
+        },
+        "argument_correctness": {
+          "value": 1.0,
+          "k": 6,
+          "n": 6,
+          "low": 0.6097,
+          "high": 1.0
+        },
+        "citation_hit_rate": {
+          "value": 1.0,
+          "k": 3,
+          "n": 3,
+          "low": 0.4385,
+          "high": 1.0
+        }
+      },
+      "renewal": {
+        "verdict_accuracy": {
+          "value": 0.7272727272727273,
+          "k": 8,
+          "n": 11,
+          "low": 0.4343,
+          "high": 0.9025
+        },
+        "unsafe_pass_rate": {
+          "value": 0.0,
+          "k": 0,
+          "n": 11,
+          "low": 0.0,
+          "high": 0.2588
+        },
+        "needs_human_recall": {
+          "value": 0.6666666666666666,
+          "k": 2,
+          "n": 3,
+          "low": 0.2077,
+          "high": 0.9385
+        },
+        "needs_human_precision": {
+          "value": 0.6666666666666666,
+          "k": 2,
+          "n": 3,
+          "low": 0.2077,
+          "high": 0.9385
+        },
+        "tool_selection_accuracy": {
+          "value": 1.0,
+          "k": 11,
+          "n": 11,
+          "low": 0.7412,
+          "high": 1.0
+        },
+        "argument_correctness": {
+          "value": 1.0,
+          "k": 19,
+          "n": 19,
+          "low": 0.8318,
+          "high": 1.0
+        },
+        "citation_hit_rate": {
+          "value": 0.8181818181818182,
+          "k": 9,
+          "n": 11,
+          "low": 0.523,
+          "high": 0.9486
+        }
+      }
+    },
+    "confusion": {
+      "fail": {
+        "fail": 2
+      },
+      "needs_human": {
+        "needs_human": 2,
+        "fail": 1
+      },
+      "not_applicable": {
+        "not_applicable": 3,
+        "needs_human": 1,
+        "fail": 1
+      },
+      "pass": {
+        "pass": 1
+      }
+    },
+    "per_spec": {
+      "tool_calls_mean": 6.1,
+      "model_calls_mean": 6.5,
+      "seconds_mean": 9.857299999999999,
+      "seconds_p50": 7.6915,
+      "seconds_p95": 17.883999999999997
+    },
+    "explanation_quality": {
+      "value": 1.0,
+      "k": 3,
+      "n": 3,
+      "low": 0.4385,
+      "high": 1.0
+    }
+  },
+  "items": [
+    {
+      "case": "r01",
+      "parameter": "handrails.outside_diameter_mm",
+      "tags": [
+        "renewal",
+        "exemption"
+      ],
+      "expected": "not_applicable",
+      "verdict": "not_applicable",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 5,
+      "check_calls": 2,
+      "correct_check_calls": 2,
+      "cited": [
+        "tsi-prm:Annex §4.2.2.9#1",
+        "tsi-prm:Appendix F §Handrails#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 0.5
+    },
+    {
+      "case": "r02",
+      "parameter": "handrails.outside_diameter_mm",
+      "tags": [
+        "renewal",
+        "exemption"
+      ],
+      "expected": "fail",
+      "verdict": "fail",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-prm:Annex §4.2.2.9#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "r03",
+      "parameter": "handrails.outside_diameter_mm",
+      "tags": [
+        "renewal",
+        "exemption",
+        "missing-data",
+        "needs-human"
+      ],
+      "expected": "needs_human",
+      "verdict": "needs_human",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 6,
+      "check_calls": 2,
+      "correct_check_calls": 2,
+      "cited": [
+        "tsi-prm:Annex §4.2.2.9#1",
+        "tsi-prm:Appendix F §Handrails#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "r04",
+      "parameter": "handrails.outside_diameter_mm",
+      "tags": [
+        "renewal",
+        "exemption",
+        "missing-data"
+      ],
+      "expected": "pass",
+      "verdict": "pass",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-prm:Annex §4.2.2.9#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "r05",
+      "parameter": "stairs.step_height_mm",
+      "tags": [
+        "renewal",
+        "exemption"
+      ],
+      "expected": "not_applicable",
+      "verdict": "needs_human",
+      "correct": false,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 6,
+      "check_calls": 2,
+      "correct_check_calls": 2,
+      "cited": [
+        "tsi-prm:Annex §4.2.2.8#1",
+        "tsi-prm:Annex §Specific Case France ‘P’ for the ‘Ile de France’ network (3)#1"
+      ],
+      "citation_hit": false,
+      "citation_precision": 0.0
+    },
+    {
+      "case": "r05",
+      "parameter": "steps.external_step_height_mm",
+      "tags": [
+        "renewal",
+        "exemption"
+      ],
+      "expected": "not_applicable",
+      "verdict": "not_applicable",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 5,
+      "check_calls": 2,
+      "correct_check_calls": 2,
+      "cited": [
+        "tsi-prm:Annex §4.2.2.11.2#1",
+        "tsi-prm:Appendix F §Step positions, steps and boarding aids#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 0.5
+    },
+    {
+      "case": "r06",
+      "parameter": "wheelchair_spaces",
+      "tags": [
+        "renewal",
+        "exemption",
+        "length-dependent"
+      ],
+      "expected": "not_applicable",
+      "verdict": "not_applicable",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 8,
+      "check_calls": 3,
+      "correct_check_calls": 3,
+      "cited": [
+        "tsi-prm:Appendix F §Wheelchair spaces#1",
+        "tsi-prm:Annex §4.2.2.2#1",
+        "tsi-prm:Annex §4.2.2.2#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 0.3333333333333333
+    },
+    {
+      "case": "r07",
+      "parameter": "wheelchair_spaces",
+      "tags": [
+        "renewal",
+        "exemption",
+        "needs-human"
+      ],
+      "expected": "needs_human",
+      "verdict": "fail",
+      "correct": false,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 6,
+      "check_calls": 2,
+      "correct_check_calls": 2,
+      "cited": [
+        "tsi-prm:Appendix F §Wheelchair spaces#1",
+        "tsi-prm:Annex §4.2.2.2#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "r08",
+      "parameter": "toilets.universal",
+      "tags": [
+        "renewal",
+        "exemption"
+      ],
+      "expected": "not_applicable",
+      "verdict": "fail",
+      "correct": false,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 4,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-prm:Annex §4.2.2.5#1"
+      ],
+      "citation_hit": false,
+      "citation_precision": 0.0
+    },
+    {
+      "case": "r09",
+      "parameter": "wheelchair_space_layout.turning_space_diameter_mm",
+      "tags": [
+        "renewal",
+        "exemption"
+      ],
+      "expected": "fail",
+      "verdict": "fail",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 3,
+      "check_calls": 1,
+      "correct_check_calls": 1,
+      "cited": [
+        "tsi-prm:Annex §4.2.2.6#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    },
+    {
+      "case": "r10",
+      "parameter": "exterior_doors.clear_width_mm",
+      "tags": [
+        "renewal",
+        "exemption",
+        "needs-human"
+      ],
+      "expected": "needs_human",
+      "verdict": "needs_human",
+      "correct": true,
+      "unsafe_pass": false,
+      "tool_selection_ok": true,
+      "agent_calls": 6,
+      "check_calls": 2,
+      "correct_check_calls": 2,
+      "cited": [
+        "tsi-prm:Annex §4.2.2.3.2#1",
+        "tsi-prm:Appendix F §Structures#1"
+      ],
+      "citation_hit": true,
+      "citation_precision": 1.0
+    }
+  ],
+  "errors": {}
+}

@@ -85,3 +85,33 @@ they retrieve the gold exemption passage for all 14 parameters, so **fitted to t
 exemption rejection messages say what an exemption is; an undecidable exemption is no verdict on
 its own; the agent prompt names both regulations, defers missing-data escalation to the check, and
 the extraction prompt asks for the sentence that introduces a table. n06 is left as it is.
+
+## Fourth round (commit f9fe92a: runtime Appendix F search, exemption messages, noise prompt fixes)
+
+Runs on 2026-11-02, thresholds unchanged. Folders: `v02-renewal-f9fe92a`, `v02-noise-f9fe92a`.
+
+| Suite | Before | After | Unsafe passes | Gate |
+|---|---|---|---|---|
+| renewal | 4/11 (0.36) | **8/11 (0.73)**, floor 0.65 | 0/11 | **passed** |
+| noise | 14/18 (0.78) | **17/18 (0.94)**, floor 0.80 | 0/18 | **passed** |
+
+Both are dev suites: their misses designed these fixes, and the Appendix F search queries were
+chosen by checking offline that they find the gold exemption passages (14/14). Held-out set 2 is
+the fair test and has not been run. Core and prm-extended have **not** been re-run on f9fe92a
+(the prompts changed again, so their cached answers no longer apply).
+
+### Known limits left in renewal (3/11 wrong)
+- **r05** (golden not_applicable, agent needs_human): the search returned a *national specific case*
+  (France, Ile de France, double-deck steps at most 208 mm) and the agent extracted it as a rule
+  conditioned on deck layout, which the spec does not give. It also did not extract the Appendix F
+  height exemption. The agent should not treat a specific case for one country's network as a
+  general rule; nothing in the code stops it.
+- **r07** (golden needs_human, agent fail): the second Appendix F wheelchair-space sentence (the
+  doorway exemption) is still not extracted; the first is. A check that flags an Appendix F
+  sentence about the parameter's subject that no extracted exemption cites would catch it. Not built.
+- **r08** (golden not_applicable, agent fail): the model answered that the toilet exemption needs a
+  numeric requirement and returned not_found. Seen in the first run too.
+
+### Known limit in noise (1/18 wrong)
+- **n06**: the golden reading of "if applicable" (250 km/h pass-by applies from a design speed of
+  250 km/h) is mine and debatable; the model checked the figure against the 95 dB EMU limit.
