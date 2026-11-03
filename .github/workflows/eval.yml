@@ -14,7 +14,7 @@ on:
       suite:
         description: "Golden suite to run"
         type: choice
-        options: [core, prm-extended, renewal, noise]
+        options: [core, prm-extended, renewal, noise, heldout2]
         default: core
       cases:
         description: "Comma-separated case ids to run (empty = the whole suite), e.g. g04,g05"
@@ -99,7 +99,10 @@ jobs:
           CASES: ${{ inputs.cases }}  # via the environment, never interpolated into the script
           SUITE: ${{ inputs.suite || 'core' }}  # pull requests run core
         run: |
-          if [ -n "$CASES" ]; then
+          if [ "$SUITE" = heldout2 ]; then
+            # The held-out set 2 is not a suite: its cases and thresholds live in eval/heldout2.
+            uv run python -m rail_compliance.evaluation run --golden-dir eval/heldout2 --thresholds eval/heldout2/thresholds.yaml --out eval/results/local
+          elif [ -n "$CASES" ]; then
             uv run python -m rail_compliance.evaluation run --suite "$SUITE" --out eval/results/local --cases "$CASES"
           else
             uv run python -m rail_compliance.evaluation run --suite "$SUITE" --out eval/results/local
@@ -118,9 +121,15 @@ jobs:
       # full manual runs enforce them.
       - name: Gate on tool use, verdicts and escalation
         continue-on-error: ${{ inputs.cases != '' }}
+        env:
+          SUITE: ${{ inputs.suite || 'core' }}
         run: |
           status=0
-          uv run python -m rail_compliance.evaluation gate eval/results/local > gate.md || status=$?
+          if [ "$SUITE" = heldout2 ]; then
+            uv run python -m rail_compliance.evaluation gate eval/results/local --thresholds eval/heldout2/thresholds.yaml > gate.md || status=$?
+          else
+            uv run python -m rail_compliance.evaluation gate eval/results/local > gate.md || status=$?
+          fi
           cat gate.md
           cat eval/results/local/summary.md gate.md >> "$GITHUB_STEP_SUMMARY"
           exit "$status"

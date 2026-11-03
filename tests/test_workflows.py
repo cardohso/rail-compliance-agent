@@ -35,7 +35,13 @@ def test_a_manual_run_picks_a_suite_and_pull_requests_run_core():
     inputs = triggers["workflow_dispatch"]["inputs"]
     from rail_compliance.golden import SUITES
 
-    assert inputs["suite"]["options"] == list(SUITES) and inputs["suite"]["default"] == "core"
+    # held-out set 2 is not a suite (its cases and thresholds live in eval/heldout2), so the
+    # workflow offers it beside the suites
+    assert inputs["suite"]["options"] == [*SUITES, "heldout2"]
+    assert inputs["suite"]["default"] == "core"
+    gate = STEPS["Gate on tool use, verdicts and escalation"]
+    assert gate["env"]["SUITE"] == "${{ inputs.suite || 'core' }}"
+    assert "--thresholds eval/heldout2/thresholds.yaml" in gate["run"]
     run = STEPS["Run the agent on the golden set"]
     assert (
         run["env"]["SUITE"] == "${{ inputs.suite || 'core' }}" and '--suite "$SUITE"' in run["run"]
