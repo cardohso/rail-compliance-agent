@@ -17,7 +17,8 @@ figure covered), because reducing it to one value bypasses the deterministic row
 
 Deliberately narrow: only the 14 PRM parameters in MEASURES (not noise), only cited passages, and
 a sentence that names no subject (for example 4.2.2.11.2 (8), which talks of "steps height" without
-saying which steps) is not a candidate. It finds a sibling rule in the same passage; it cannot find one elsewhere.
+saying which steps) is not a candidate. It finds a sibling rule in the same passage; it cannot
+find one elsewhere.
 """
 
 from __future__ import annotations
