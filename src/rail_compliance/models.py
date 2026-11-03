@@ -166,13 +166,16 @@ class RequirementCore(RuleDraft):
             raise ValueError("a table's rows are all ranges or all categories, not a mix")
         if not self.bands and self.band_variable:
             raise ValueError("`band_variable` is only for `bands`")
+        if self.comparator == "between" and self.bands:
+            raise ValueError(
+                "a table's comparator relates the spec value to the row's value (>= for a "
+                "minimum), never 'between': the lengths or sizes a row covers belong in that "
+                "row's bounds, and leave `value_max` null"
+            )
         if (self.comparator == "between") != (self.value_max is not None):
             raise ValueError("a range needs comparator 'between' with both `value` and `value_max`")
-        if self.comparator == "between":
-            if self.bands:
-                raise ValueError("a range is a single rule, not a table")
-            if self.value > self.value_max:
-                raise ValueError(f"range lower {self.value:g} is above upper {self.value_max:g}")
+        if self.comparator == "between" and self.value > self.value_max:
+            raise ValueError(f"range lower {self.value:g} is above upper {self.value_max:g}")
         if self.relaxes and not self.conditions:
             raise ValueError(
                 "a relaxation needs the conditions where it applies. A permission that holds only "

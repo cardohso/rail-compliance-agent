@@ -62,6 +62,17 @@ def test_a_malformed_range_is_rejected(fields):
         RequirementCore(parameter=DOOR, subject="s", **fields)
 
 
+def test_a_table_with_comparator_between_is_told_what_to_change():
+    from rail_compliance.models import Band
+
+    bands = [Band(upper=30, upper_inclusive=False, value=1), Band(lower=30, upper=205, value=2)]
+    with pytest.raises(ValidationError) as err:
+        RequirementCore(parameter="wheelchair_spaces", subject="s", comparator="between",
+                        bands=bands, band_variable="unit_length_m")  # fmt: skip
+    assert "never 'between'" in str(err.value)
+    assert "needs comparator 'between' with both" not in str(err.value)
+
+
 HANDRAIL = passage(
     "(1) Handrails shall be of a circular cross section with an outside diameter of 30 mm to "
     "40 mm.",

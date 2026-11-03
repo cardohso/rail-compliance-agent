@@ -99,7 +99,9 @@ Rules:
   value depends on another parameter (for example unit length) goes in `bands`: one band for
   every row of the table, none left out, and `quote` must contain the whole table. Set `value` to
   null when you give `bands`, and `bands` to an empty list when you give `value`; never both.
-  `band_variable` names the spec parameter that selects the row. A table whose rows are
+  `band_variable` names the spec parameter that selects the row. A table's `comparator` says how
+  the spec value must relate to the row's value (">=" for "not less than"), never "between": the
+  lengths the rows cover are the bands' bounds. A table whose rows are
   categories ("EMUs | 65", "Coaches | 64") selects by a category parameter: give each row its
   `category` name from the request and no bounds. Mind inclusive/exclusive bounds:
   "less than 30 m" excludes 30, "30 to 205 metres" includes both.
