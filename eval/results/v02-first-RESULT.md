@@ -136,3 +136,13 @@ Three misses, all escalations to a person instead of a verdict (safe direction):
   (relaxation condition not demonstrable).
 Likely cause: the table-scope-sentence and relaxation prompt changes of f9fe92a, which
 fixed noise/renewal but cost core. Saved in `v02-core-9c27634/`. Not yet diagnosed or fixed.
+
+## Round 5: core on 310aa75 -- gate passed
+
+After the fix for g04/g06 (a table given the comparator "between" now gets a specific
+rejection message and a prompt sentence): verdicts 42/43 (Wilson 0.88-1.00), 0/43 unsafe
+passes, tool selection 43/43, `table-boundary` 4/4. Gate passed, thresholds unchanged.
+Remaining miss: g09 steps.internal_step_height_mm (expected fail, got needs_human). The agent
+escalated whether the "if demonstrated" reduction can be shown, although both extracted rules
+(200 mm and 230 mm) fail the 230.1 mm spec. Safe direction; same miss as last round, so not
+a one-off. Saved in `v02-core-310aa75/`.
