@@ -122,3 +122,17 @@ Re-run after the latest prompt changes, to look for regressions. Result: 17/17 v
 correct (Wilson 0.82-1.00), 0/17 unsafe passes, tool selection 17/17. Gate passed,
 thresholds unchanged. Saved in `v02-prm-extended-f9fe92a/`. Core still has to be
 re-run on these prompts.
+
+## Round 4 re-check: core on 46757e8 (f9fe92a prompts) -- GATE FAILED
+
+Verdicts 40/43 (Wilson 0.81-0.98), 0/43 unsafe passes, tool selection 42/43. The
+`table-boundary` tag fell to 2/4 (0.50 < 0.85) so the gate failed. Thresholds unchanged.
+Three misses, all escalations to a person instead of a verdict (safe direction):
+- g04 wheelchair_spaces (expected fail): extraction of the unit-length table failed
+  ("schema formatting issue").
+- g06 wheelchair_spaces (expected pass): the Table 5 passage was flagged as covered by no
+  extracted rule.
+- g09 steps.internal_step_height_mm (expected fail): escalated as ambiguous law
+  (relaxation condition not demonstrable).
+Likely cause: the table-scope-sentence and relaxation prompt changes of f9fe92a, which
+fixed noise/renewal but cost core. Saved in `v02-core-9c27634/`. Not yet diagnosed or fixed.
