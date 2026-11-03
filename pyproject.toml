@@ -1,6 +1,6 @@
 [project]
 name = "rail-compliance-agent"
-version = "0.1.0"
+version = "0.2.0"
 description = "A tool-using agent that checks a train design spec against the EU PRM TSI, evaluated on its tool use."
 readme = "README.md"
 license = "MIT"

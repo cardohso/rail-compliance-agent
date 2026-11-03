@@ -15,9 +15,9 @@ Counts (wheelchair spaces, universal toilets) use "<n> <noun>" and "a <noun> sha
 figures; a passage that states a whole table of counts must be extracted as a table (every row's
 figure covered), because reducing it to one value bypasses the deterministic row selection.
 
-Deliberately narrow: only these seven parameters, only cited passages, and a sentence that names no
-subject (for example 4.2.2.11.2 (8), which talks of "steps height" without saying which steps) is
-not a candidate. It finds a sibling rule in the same passage; it cannot find one elsewhere.
+Deliberately narrow: only the 14 PRM parameters in MEASURES (not noise), only cited passages, and
+a sentence that names no subject (for example 4.2.2.11.2 (8), which talks of "steps height" without
+saying which steps) is not a candidate. It finds a sibling rule in the same passage; it cannot find one elsewhere.
 """
 
 from __future__ import annotations
